@@ -1,166 +1,346 @@
-<!DOCTYPE html>
+<!DOCTYPE ahtml>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MetaCarbonics — Climate Action</title>
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaCarbonics — Climate Action Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    // Define the primary brand colors based on the user's CSS variables
+                    colors: {
+                        'primary-dark': '#0b3d2e', // --green-dark (Main BG, Text, Primary Buttons)
+                        'primary-mid': '#0f5f44', // --green-mid (Accents, Hover States)
+                        'bg-offwhite': '#f6f8f6', // --offwhite (Body background)
+                        'text-muted': '#6b7a73', // --muted (For descriptive, secondary text)
+                        // Note: --green-light has been removed. Using standard bg-gray-50 for light sections.
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Styles for Base Layout */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f6f8f6; /* Updated to --offwhite */
+        }
+        .wrap {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .section {
+            padding: 4rem 0;
+        }
+
+        /* Infinite Slider Container */
+        .infinite-slider {
+            overflow: hidden;
+            mask-image: linear-gradient(to right, 
+                transparent, 
+                #000 5%, 
+                #000 95%, 
+                transparent);
+        }
+
+        /* Slider Track */
+        .slider-track {
+            display: flex;
+            width: fit-content;
+            /* Animation speed reduced slightly */
+            animation: slide 30s linear infinite; 
+        }
+
+        /* Slider Animation Keyframes */
+        @keyframes slide {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        /* Pause animation on hover */
+        .infinite-slider:hover .slider-track {
+            animation-play-state: paused;
+        }
+
+        /* Card sizing within slider */
+        .project-card {
+            min-width: 300px;
+            margin-right: 1.5rem;
+        }
+        
+        /* Utility for smooth scrolling to sections */
+        .scroll-mt-24 {
+            scroll-margin-top: 6rem;
+        }
+    </style>
 </head>
-<body>
+<body class="text-slate-800">
 
-  <header class="site-header">
-    <div class="wrap header-inner">
-      <div class="brand">META<span class="brand-accent">CARBONICS</span></div>
-      <nav class="main-nav">
-        <a href="#about">About</a>
-        <a href="#projects">Projects</a>
-        <a href="#blogs">Blogs</a>
-        <a href="climavector.html">ClimaVector</a>
-        <a href="nbshub.html">NBSHub</a>
-        <a href="carbonhub.html">Carbon Hub</a>
-        <a href="#contact">Contact</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <!-- HERO -->
-    <section class="hero">
-      <div class="wrap hero-inner">
-        <p class="eyebrow">Climate Action that has a magnitude</p>
-        <h1 class="hero-title">WE ARE COMING SOON</h1>
-        <p class="hero-sub">Building climate-positive solutions across the globe</p>
-      </div>
-    </section>
-
-    <!-- PROJECTS -->
-    <section id="projects" class="section">
-      <div class="wrap">
-        <h2 class="section-title">Projects</h2>
-
-        <div class="cards-row">
-          <a class="card" href="biochar.html" aria-label="Biochar project page">
-            <div class="card-media" style="background-image:url('https://images.unsplash.com/photo-1523978591478-c753949ff840?auto=format&fit=crop&w=900&q=60')"></div>
-            <div class="card-body">
-              <h3>Biochar</h3>
-              <p class="muted">High-quality carbon removal using certified pyrolysis systems</p>
-              <div class="card-actions">
-                <span class="btn">Learn more</span>
-              </div>
+    <!-- Header & Navigation - Uses Dark Forest Green (primary-dark) -->
+    <header class="sticky top-0 z-50 bg-primary-dark shadow-lg transition duration-300">
+        <div class="wrap flex items-center justify-between py-4 header-inner">
+            <div class="brand text-2xl font-extrabold text-white">
+                META<span class="brand-accent">CARBONICS</span>
             </div>
-          </a>
-
-          <a class="card" href="arr.html" aria-label="ARR project page">
-            <div class="card-media" style="background-image:url('https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=60')"></div>
-            <div class="card-body">
-              <h3>ARR</h3>
-              <p class="muted">Afforestation, Reforestation & Revegetation projects</p>
-              <div class="card-actions">
-                <span class="btn">Learn more</span>
-              </div>
-            </div>
-          </a>
-
-          <a class="card" href="ifm.html" aria-label="IFM project page">
-            <div class="card-media" style="background-image:url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=900&q=60')"></div>
-            <div class="card-body">
-              <h3>IFM</h3>
-              <p class="muted">Improved Forest Management for long-term carbon storage</p>
-              <div class="card-actions">
-                <span class="btn">Learn more</span>
-              </div>
-            </div>
-          </a>
+            <nav class="main-nav space-x-6 hidden md:flex text-sm font-medium">
+                <!-- Navigation links are white on the dark header background -->
+                <a href="#about" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">About</a>
+                <a href="#projects" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Projects</a>
+                <a href="#blogs" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Blogs</a>
+                <a href="#" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">ClimaVector</a>
+                <a href="#" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">NBSHub</a>
+                <a href="#" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Carbon Hub</a>
+                <a href="#contact" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Contact</a>
+            </nav>
+            <button class="md:hidden p-2 text-white hover:text-gray-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
         </div>
-      </div>
-    </section>
+    </header>
 
-    <!-- BLOGS -->
-    <section id="blogs" class="section light">
-      <div class="wrap">
-        <h2 class="section-title">Blogs</h2>
-
-        <div class="blog-row">
-          <article class="blog-card">
-            <div class="blog-icon">📝</div>
-            <div class="blog-body">
-              <h4>Recent Articles</h4>
-              <p class="muted">Insights and updates on carbon markets, projects and MRV technologies.</p>
+    <main>
+        <!-- Hero Section - Uses Dark Forest Green (primary-dark) and Mid-Green (primary-mid) accent -->
+        <section class="hero bg-primary-dark py-24 md:py-36 text-white border-b border-primary-mid">
+            <div class="wrap hero-inner text-center">
+                <!-- Eyebrow text uses a light gray for clean contrast -->
+                <p class="eyebrow text-gray-300 uppercase tracking-widest text-sm mb-4">Climate Action that has a magnitude</p>
+                <h1 class="hero-title text-5xl md:text-7xl font-black mb-4">WE ARE COMING SOON</h1>
+                <p class="hero-sub text-xl md:text-2xl text-gray-200">Building climate-positive solutions across the globe</p>
             </div>
-            <a class="pill" href="#blogs">Read articles</a>
-          </article>
+        </section>
 
-          <article class="blog-card">
-            <div class="blog-icon">📊</div>
-            <div class="blog-body">
-              <h4>Research & Methods</h4>
-              <p class="muted">Methodology breakdowns, sampling protocols and case studies.</p>
+        <!-- Projects Section -->
+        <section id="projects" class="section scroll-mt-24">
+            <div class="wrap">
+                <h2 class="section-title text-4xl font-bold mb-10 text-center">Projects</h2>
+                <div class="flex flex-col items-center justify-center space-y-4 mb-10">
+                    <p class="text-lg text-text-muted">Explore how we are building long-term carbon removal and storage solutions.</p>
+                </div>
+                
+                <div class="infinite-slider">
+                    <div class="slider-track pb-4">
+                        
+                        <!-- Project Card 1: Biochar (Primary Brand Color) -->
+                        <a class="card project-card block bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 border-t-4 border-primary-dark" href="#">
+                            <div class="icon-wrap mb-4">
+                                <img src="https://www.svgrepo.com/show/522502/charcoal.svg" alt="Biochar Icon" class="h-10 w-10 text-primary-dark">
+                            </div>
+                            <div class="card-body">
+                                <h3 class="text-xl font-semibold mb-2">Biochar</h3>
+                                <p class="muted text-text-muted text-sm">High-quality carbon removal using certified pyrolysis systems.</p>
+                                <div class="card-actions mt-4">
+                                    <span class="inline-block px-4 py-2 text-sm font-medium text-white bg-primary-dark rounded-full hover:bg-primary-mid transition">Learn more</span>
+                                </div>
+                            </div>
+                        </a>
+                        
+                        <!-- Project Card 2: ARR (Secondary Accent - Alternating) -->
+                        <a class="card project-card block bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 border-t-4 border-primary-mid" href="#">
+                            <div class="icon-wrap mb-4">
+                                <img src="https://www.svgrepo.com/show/433190/planting-tree-ecology.svg" alt="ARR Icon" class="h-10 w-10 text-primary-mid">
+                            </div>
+                            <div class="card-body">
+                                <h3 class="text-xl font-semibold mb-2">ARR</h3>
+                                <p class="muted text-text-muted text-sm">Afforestation, Reforestation & Revegetation projects.</p>
+                                <div class="card-actions mt-4">
+                                    <span class="inline-block px-4 py-2 text-sm font-medium text-white bg-primary-dark rounded-full hover:bg-primary-mid transition">Learn more</span>
+                                </div>
+                            </div>
+                        </a>
+                        
+                        <!-- Project Card 3: IFM (Primary Accent) -->
+                        <a class="card project-card block bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 border-t-4 border-primary-dark" href="#">
+                            <div class="icon-wrap mb-4">
+                                <img src="https://www.svgrepo.com/show/433189/forest-ecology.svg" alt="IFM Icon" class="h-10 w-10 text-primary-dark">
+                            </div>
+                            <div class="card-body">
+                                <h3 class="text-xl font-semibold mb-2">IFM</h3>
+                                <p class="muted text-text-muted text-sm">Improved Forest Management for long-term storage.</p>
+                                <div class="card-actions mt-4">
+                                    <span class="inline-block px-4 py-2 text-sm font-medium text-white bg-primary-dark rounded-full hover:bg-primary-mid transition">Learn more</span>
+                                </div>
+                            </div>
+                        </a>
+                        
+                        <!-- Project Card 4: ALM (Secondary Accent) -->
+                        <a class="card project-card block bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 border-t-4 border-primary-mid" href="#">
+                            <div class="icon-wrap mb-4">
+                                <img src="https://www.svgrepo.com/show/441223/soil-earth-land.svg" alt="ALM Icon" class="h-10 w-10 text-primary-mid">
+                            </div>
+                            <div class="card-body">
+                                <h3 class="text-xl font-semibold mb-2">ALM</h3>
+                                <p class="muted text-text-muted text-sm">Agricultural Land Management for soil carbon enhancement.</p>
+                                <div class="card-actions mt-4">
+                                    <span class="inline-block px-4 py-2 text-sm font-medium text-white bg-primary-dark rounded-full hover:bg-primary-mid transition">Learn more</span>
+                                </div>
+                            </div>
+                        </a>
+
+                        <!-- Duplicate set for infinite scroll effect -->
+                        <a class="card project-card block bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 border-t-4 border-primary-dark" href="#">
+                            <div class="icon-wrap mb-4">
+                                <img src="https://www.svgrepo.com/show/522502/charcoal.svg" alt="Biochar Icon" class="h-10 w-10 text-primary-dark">
+                            </div>
+                            <div class="card-body">
+                                <h3 class="text-xl font-semibold mb-2">Biochar</h3>
+                            </div>
+                        </a>
+                        <a class="card project-card block bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 border-t-4 border-primary-mid" href="#">
+                            <div class="icon-wrap mb-4">
+                                <img src="https://www.svgrepo.com/show/433190/planting-tree-ecology.svg" alt="ARR Icon" class="h-10 w-10 text-primary-mid">
+                            </div>
+                            <div class="card-body">
+                                <h3 class="text-xl font-semibold mb-2">ARR</h3>
+                            </div>
+                        </a>
+                        <a class="card project-card block bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 border-t-4 border-primary-dark" href="#">
+                            <div class="icon-wrap mb-4">
+                                <img src="https://www.svgrepo.com/show/433189/forest-ecology.svg" alt="IFM Icon" class="h-10 w-10 text-primary-dark">
+                            </div>
+                            <div class="card-body">
+                                <h3 class="text-xl font-semibold mb-2">IFM</h3>
+                            </div>
+                        </a>
+                        <a class="card project-card block bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 border-t-4 border-primary-mid" href="#">
+                            <div class="icon-wrap mb-4">
+                                <img src="https://www.svgrepo.com/show/441223/soil-earth-land.svg" alt="ALM Icon" class="h-10 w-10 text-primary-mid">
+                            </div>
+                            <div class="card-body">
+                                <h3 class="text-xl font-semibold mb-2">ALM</h3>
+                            </div>
+                        </a>
+                    </div>
+                </div>
             </div>
-            <a class="pill" href="#blogs">Read articles</a>
-          </article>
+        </section>
+
+        <!-- Project Concepts Visualization -->
+        <div class="wrap mb-16">
+            <h3 class="text-2xl font-semibold mb-6 text-slate-700">Project Concept Visualization</h3>
+            <p class="text-text-muted mb-6">These diagrams illustrate the core processes behind our key carbon removal and sequestration projects.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                    <h4 class="text-xl font-bold text-primary-dark mb-3">Biochar Production</h4>
+                    <p class="text-sm text-text-muted mb-4">How biomass is converted via pyrolysis into stable, carbon-rich Biochar for long-term storage.</p>
+                    [Image of Biochar pyrolysis process]
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                    <h4 class="text-xl font-bold text-primary-mid mb-3">ARR Project Lifecycle</h4>
+                    <p class="text-sm text-text-muted mb-4">The stages of afforestation and reforestation, from site preparation to maturity and sequestration measurement.</p>
+                    
+                </div>
+            </div>
         </div>
-      </div>
-    </section>
 
-    <!-- DMRV -->
-    <section id="dmrv" class="section">
-      <div class="wrap">
-        <h2 class="section-title">DMRV — AI / DL Monitoring</h2>
+        <!-- Blogs Section - Uses a standard light gray background for separation -->
+        <section id="blogs" class="section bg-gray-50 scroll-mt-24">
+            <div class="wrap">
+                <h2 class="section-title text-4xl font-bold mb-10 text-center">Blogs & Insights</h2>
+                <div class="blog-row grid grid-cols-1 md:grid-cols-2 gap-8">
+                    
+                    <article class="blog-card bg-white p-6 rounded-xl shadow-lg flex flex-col md:flex-row items-start space-x-6 hover:shadow-xl transition duration-300">
+                        <div class="blog-icon text-5xl flex-shrink-0 mb-4 md:mb-0 text-primary-dark">📝</div>
+                        <div class="blog-body flex-grow">
+                            <h4 class="text-2xl font-semibold mb-2">Recent Articles</h4>
+                            <p class="muted text-text-muted mb-4">Insights and updates on carbon markets, projects and MRV technologies.</p>
+                            <a class="pill inline-block px-4 py-1 text-sm font-medium text-primary-dark border border-primary-mid bg-primary-mid/10 rounded-full hover:bg-primary-mid/20 transition" href="#blogs">Read articles</a>
+                        </div>
+                    </article>
+                    
+                    <article class="blog-card bg-white p-6 rounded-xl shadow-lg flex flex-col md:flex-row items-start space-x-6 hover:shadow-xl transition duration-300">
+                        <div class="blog-icon text-5xl flex-shrink-0 mb-4 md:mb-0 text-primary-dark">📊</div>
+                        <div class="blog-body flex-grow">
+                            <h4 class="text-2xl font-semibold mb-2">Research & Methods</h4>
+                            <p class="muted text-text-muted mb-4">Methodology breakdowns, sampling protocols and case studies.</p>
+                            <a class="pill inline-block px-4 py-1 text-sm font-medium text-primary-dark border border-primary-mid bg-primary-mid/10 rounded-full hover:bg-primary-mid/20 transition" href="#blogs">Read articles</a>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+        
+        <!-- DMRV Section -->
+        <section id="dmrv" class="section scroll-mt-24">
+            <div class="wrap">
+                <h2 class="section-title text-4xl font-bold mb-8 text-center">DMRV — AI / DL Monitoring</h2>
+                <p class="text-lg text-text-muted text-center mb-10">Digital Monitoring, Reporting, and Verification (DMRV) is the backbone of integrity in modern carbon projects.</p>
 
-        <div class="cards-row small">
-          <a class="dmrv-card" href="dmrv/due-diligence.html">Due Diligence</a>
-          <a class="dmrv-card" href="dmrv/err-estimations.html">ERR Estimations</a>
-          <a class="dmrv-card" href="dmrv/methodologies.html">Methodologies</a>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <a class="dmrv-card text-center bg-white p-6 rounded-xl shadow-md border-b-4 border-primary-dark hover:shadow-lg transition duration-200 font-semibold text-slate-700" href="#">Due Diligence</a>
+                    <a class="dmrv-card text-center bg-white p-6 rounded-xl shadow-md border-b-4 border-primary-dark hover:shadow-lg transition duration-200 font-semibold text-slate-700" href="#">ERR Estimations</a>
+                    <a class="dmrv-card text-center bg-white p-6 rounded-xl shadow-md border-b-4 border-primary-dark hover:shadow-lg transition duration-200 font-semibold text-slate-700" href="#">Methodologies</a>
+                </div>
+
+                <!-- DMRV Visualization -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 mt-10">
+                    <h4 class="text-xl font-bold text-primary-dark mb-3">DMRV Workflow Illustration</h4>
+                    <p class="text-sm text-text-muted mb-4">A high-level view of how digital technologies ensure transparency and accuracy in carbon project verification.</p>
+                    
+                </div>
+            </div>
+        </section>
+        
+        <!-- Clima Tools Section - Uses a standard light gray background for separation -->
+        <section class="section bg-gray-50">
+            <div class="wrap">
+                <h2 class="section-title text-4xl font-bold mb-10 text-center">Clima Tools</h2>
+                <div class="cards-row grid grid-cols-1 md:grid-cols-3 gap-8">
+                    
+                    <a class="card block bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300" href="#">
+                        <div class="card-body">
+                            <h4 class="text-2xl font-semibold mb-2 text-slate-800">ClimaVector</h4>
+                            <p class="muted text-text-muted text-sm mb-4">Satellite analytics, geospatial indices and monitoring pipelines — coming soon.</p>
+                            <div class="card-actions">
+                                <span class="btn-outline inline-block px-4 py-2 text-sm font-medium text-primary-dark border border-primary-dark rounded-full hover:bg-primary-dark hover:text-white transition">Visit</span>
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <a class="card block bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300" href="#">
+                        <div class="card-body">
+                            <h4 class="text-2xl font-semibold mb-2 text-slate-800">NBSHub</h4>
+                            <p class="muted text-text-muted text-sm mb-4">Nature-based solutions hub: datasets, resources and toolkits — coming soon.</p>
+                            <div class="card-actions">
+                                <span class="btn-outline inline-block px-4 py-2 text-sm font-medium text-primary-dark border border-primary-dark rounded-full hover:bg-primary-dark hover:text-white transition">Visit</span>
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <a class="card block bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300" href="#">
+                        <div class="card-body">
+                            <h4 class="text-2xl font-semibold mb-2 text-slate-800">Carbon Hub</h4>
+                            <p class="muted text-text-muted text-sm mb-4">Project registry, MRV files and tools — coming soon.</p>
+                            <div class="card-actions">
+                                <span class="btn-outline inline-block px-4 py-2 text-sm font-medium text-primary-dark border border-primary-dark rounded-full hover:bg-primary-dark hover:text-white transition">Visit</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Contact Section -->
+        <section id="contact" class="section scroll-mt-24">
+            <div class="wrap text-center">
+                <h2 class="section-title text-4xl font-bold mb-6">Contact</h2>
+                <p class="muted text-lg text-text-muted">Email: <a href="mailto:info@metacarbonics.com" class="text-primary-dark hover:text-primary-mid font-medium">info@metacarbonics.com</a></p>
+                <p class="muted text-lg text-text-muted">Address: Gurugram, Haryana, India</p>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer - Uses Dark Forest Green from user's --green-dark -->
+    <footer class="site-footer bg-primary-dark text-slate-100 py-8 border-t border-primary-mid">
+        <div class="wrap text-center text-sm">
+            © 2025 MetaCarbonics. All Rights Reserved.
         </div>
-      </div>
-    </section>
-
-    <!-- ClimaVector & NBSHub previews (index points to dedicated coming-soon pages) -->
-    <section class="section light">
-      <div class="wrap">
-        <h2 class="section-title">Clima Tools</h2>
-
-        <div class="cards-row">
-          <a class="card small" href="climavector.html">
-            <div class="card-body">
-              <h4>ClimaVector</h4>
-              <p class="muted">Satellite analytics, geospatial indices and monitoring pipelines — coming soon.</p>
-              <div class="card-actions"><span class="btn-outline">Visit</span></div>
-            </div>
-          </a>
-
-          <a class="card small" href="nbshub.html">
-            <div class="card-body">
-              <h4>NBSHub</h4>
-              <p class="muted">Nature-based solutions hub: datasets, resources and toolkits — coming soon.</p>
-              <div class="card-actions"><span class="btn-outline">Visit</span></div>
-            </div>
-          </a>
-
-          <a class="card small" href="carbonhub.html">
-            <div class="card-body">
-              <h4>Carbon Hub</h4>
-              <p class="muted">Project registry, MRV files and tools — coming soon.</p>
-              <div class="card-actions"><span class="btn-outline">Visit</span></div>
-            </div>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- CONTACT -->
-    <section id="contact" class="section">
-      <div class="wrap">
-        <h2 class="section-title">Contact</h2>
-        <p class="muted">Email: info@metacarbonics.com — Address: Gurugram, Haryana, India</p>
-      </div>
-    </section>
-
-  </main>
-
-  <footer class="site-footer">
-    <div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div>
-  </footer>
-
+    </footer>
 </body>
 </html>
