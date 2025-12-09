@@ -1,0 +1,51 @@
+# This workflow is located in the PRIVATE REPOSITORY
+
+name: Private Scraper to Public Map Deploy
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Runs daily at 9:00 AM UTC
+  workflow_dispatch:      # Allows manual trigger
+
+jobs:
+  scrape-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Private Scraper Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Scraper and Generate JSON
+        run: python update_map.py
+        
+      # Step 1: Checkout the PUBLIC REPO to access its file structure
+      - name: Checkout Public Map Repository
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository_owner }}/your-public-map-repo # <-- 🚨 CHANGE TO YOUR PUBLIC REPO NAME
+          path: public_map_repo
+          # Use the PAT secret stored in this PRIVATE repo's settings
+          token: ${{ secrets.PAT_FOR_PUBLIC_REPO }} 
+
+      # Step 2: Copy the new JSON file from the current directory (data/projects.json)
+      - name: Copy new JSON file
+        run: |
+          cp data/projects.json public_map_repo/data/projects.json
+
+      # Step 3: Commit & Push Changes to the PUBLIC REPO
+      - name: Commit & Push Changes to Public Repo
+        run: |
+          cd public_map_repo
+          git config user.name "CarbonBot"
+          git config user.email "bot@example.com"
+          git add data/projects.json
+          git commit -m "Daily data refresh from private scraper" || echo "No changes to commit"
+          # Push using the PAT token via the remote URL
+          git push https://${{ secrets.PAT_FOR_PUBLIC_REPO }}@github.com/${{ github.repository_owner }}/your-public-map-repo.git HEAD:main
