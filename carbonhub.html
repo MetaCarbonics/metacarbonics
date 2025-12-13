@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Meta Carbonics Hub</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    
+    <style>
+        /* ---------------- CUSTOM CSS VARIABLES ---------------- */
+        :root{
+            --green-dark: #0b3d2e;
+            --green-mid: #0f5f44;
+            --green-light: #daf7e8;
+            --offwhite: #f6f8f6;
+            --muted: #6b7a73;
+            --card-bg: #ffffff;
+            /* Using the previous green for the stat value text color to keep consistency */
+            --stat-green: #2e7d32; 
+        }
+
+        /* BASE LAYOUT */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        /* ---------------- HEADER STYLING ---------------- */
+        header {
+            background-color: var(--green-dark); /* Using the darkest green */
+            color: var(--green-light); /* Light green text for contrast */
+            padding: 15px 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            flex-shrink: 0;
+            z-index: 1001;
+        }
+
+        /* ---------------- FOOTER STYLING ---------------- */
+        footer {
+            background-color: var(--green-dark); /* Matching dark green footer */
+            color: var(--muted);
+            padding: 10px 20px;
+            font-size: 12px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        /* ---------------- MAIN CONTENT WRAPPER ---------------- */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* ---------------- MAP/LIST SPLIT STYLING ---------------- */
+        #map-container { flex: 1; min-height: 55vh; display: flex; position: relative; }
+        #map { width: 100%; }
+        #list-container { flex: 0 0 45vh; overflow-y: auto; padding: 20px; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
+        
+        /* ---------------- DASHBOARD & TABLE STYLING ---------------- */
+        .dashboard-overlay {
+            position: absolute; top: 20px; left: 20px; z-index: 1000;
+            background: var(--card-bg); 
+            padding: 20px; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 280px;
+        }
+        h1 { margin: 0 0 10px 0; font-size: 18px; color: #333; }
+        .stat-box { display: flex; justify-content: space-between; margin-top: 10px; }
+        .stat-label { color: var(--muted); font-size: 12px; }
+        /* Use the defined stat-green for value emphasis */
+        .stat-value { font-weight: bold; color: var(--stat-green); } 
+
+        #loading { text-align: center; padding: 50px; font-size: 1.2em; color: var(--muted); }
+        table.dataTable { width: 100% !important; margin-top: 15px !important; }
+    </style>
+</head>
+<body>
+
+    <header>
+        GREEN METACARBONICS HUB
+    </header>
+
+    <div id="main-content">
+        
+        <div class="dashboard-overlay">
+            <h1>Carbon Project Hub</h1>
+            <div style="font-size: 13px; color: #555; margin-bottom: 15px;">
+                Live view of Verra Projects.
+            </div>
+            <hr style="border: 0; border-top: 1px solid #eee;">
+            <div class="stat-box">
+                <span class="stat-label">Total Projects Found:</span>
+                <span class="stat-value" id="project-count">-</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Fetch Status:</span>
+                <span class="stat-value" id="fetch-status">Loading...</span>
+            </div>
+        </div>
+
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+        
+        <div id="list-container">
+            <h3>Project Details (Verra Live Data)</h3>
+            <div id="loading">Fetching live data from Verra... 🌍</div>
+            <table id="projectTable" class="display" style="width:100%; display:none;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Project Name</th>
+                        <th>Country</th>
+                        <th>Status</th>
+                        <th>Standard</th>
+                        <th>Registry Link</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <footer>
+        &copy; 2025 GREEN METACARBONICS. All rights reserved.
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+    <script>
+        // Verra's public API endpoint for searching projects (Client-side, may fail due to CORS)
+        const VERRA_API_URL = 'https://registry.verra.org/uiapi/resource/resource/search';
+        
+        // --- 1. INITIALIZE MAP ---
+        var map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            maxZoom: 19
+        }).addTo(map);
+
+        var markers = L.layerGroup().addTo(map);
+        var table;
+
+        // --- 2. FETCH DATA FROM VERRA API ---
+        async function fetchVerraProjects() {
+            try {
+                $('#fetch-status').text('Connecting...').css('color', '#ffc107'); 
+
+                const response = await fetch(VERRA_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        'program': 'VCS',
+                        'resourceStatus': ['registered', 'pending'],
+                        'page': 1,
+                        'limit': 500,
+                        'sortAttr': 'resourceName',
+                        'sortDirection': 'asc'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}. Check CORS restrictions.`);
+                }
+
+                const data = await response.json();
+                const projects = data.resources || [];
+                
+                $('#loading').hide();
+                $('#projectTable').show();
+                
+                processAndRenderData(projects);
+                
+                $('#fetch-status').text('Success').css('color', 'var(--stat-green)'); 
+
+            } catch (error) {
+                console.error("Error fetching data from Verra:", error);
+                
+                $('#loading').html(`❌ Error: Could not fetch live data. Please check CORS policy.<br>
+                                   <small>Using a server-side Python scraper and static JSON is the reliable solution.</small>`).css('color', 'red');
+                $('#fetch-status').text('Failed').css('color', 'red');
+            }
+        }
+        
+        // --- 3. PROCESS AND RENDER DATA ---
+        function processAndRenderData(projects) {
+            let tableData = [];
+            
+            projects.forEach(project => {
+                const latitude = parseFloat(project.latitude);
+                const longitude = parseFloat(project.longitude);
+                
+                if (!isNaN(latitude) && !isNaN(longitude)) {
+                    // a) Map Rendering
+                    addProjectMarker(latitude, longitude, project);
+                    
+                    // b) Table Data Preparation
+                    const registryLink = `https://registry.verra.org/app/projectDetail/VCS/${project.resourceIdentifier}`;
+                    
+                    tableData.push([
+                        project.resourceIdentifier,
+                        project.resourceName,
+                        project.country,
+                        project.resourceStatus,
+                        'VCS',
+                        `<a href="${registryLink}" target="_blank">View</a>`
+                    ]);
+                }
+            });
+            
+            // c) Render DataTables
+            renderTable(tableData);
+            
+            // d) Update Dashboard Stats
+            $('#project-count').text(projects.length);
+
+            // e) Fit map to all markers if projects were found
+            if (markers.getLayers().length > 0) {
+                map.fitBounds(markers.getBounds());
+            } else {
+                 map.setView([20, 0], 2);
+            }
+            
+            // Invalidate map size to fix map rendering bug inside flexbox
+            map.invalidateSize(); 
+        }
+        
+        // --- 4. MAP HELPER FUNCTION ---
+        function addProjectMarker(lat, lng, project) {
+            // Using stat-green for registered projects
+            const markerColor = project.resourceStatus === 'registered' ? 'var(--stat-green)' : '#ffc107'; 
+
+            const marker = L.circleMarker([lat, lng], {
+                radius: 6,
+                fillColor: markerColor,
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            });
+            
+            const popupContent = `
+                <b>${project.resourceName}</b><br>
+                ID: ${project.resourceIdentifier}<br>
+                Status: ${project.resourceStatus.toUpperCase()}<br>
+                Country: ${project.country}
+            `;
+            
+            marker.bindPopup(popupContent);
+            markers.addLayer(marker);
+        }
+
+        // --- 5. TABLE HELPER FUNCTION (DataTables) ---
+        function renderTable(data) {
+            if ($.fn.DataTable.isDataTable('#projectTable')) {
+                $('#projectTable').DataTable().destroy();
+            }
+
+            table = $('#projectTable').DataTable({
+                data: data,
+                paging: true,
+                pageLength: 5,
+                lengthMenu: [5, 10, 25, 50],
+                ordering: true,
+                info: true,
+                searching: true,
+            });
+        }
+        
+        // --- START THE PROCESS ---
+        $(document).ready(function() {
+            fetchVerraProjects();
+        });
+
+    </script>
+</body>
+</html>
