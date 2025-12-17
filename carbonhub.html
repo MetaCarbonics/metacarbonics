@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>METACARBONICS | Live Project Map</title>
+    <title>METACARBONICS | Global Project Map</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     
     <style>
-        /* CSS stays exactly as you had it */
         :root{
             --green-dark: #0b3d2e;
             --green-mid: #0f5f44;
@@ -22,7 +21,8 @@
         body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; height: 100vh; display: flex; flex-direction: column; }
         header { background-color: var(--green-dark); color: var(--green-light); padding: 15px 20px; font-weight: bold; flex-shrink: 0; z-index: 1001; display: flex; justify-content: space-between; align-items: center; }
         .header-title { font-size: 24px; }
-        .header-home a { color: var(--green-light); text-decoration: none; font-size: 16px; padding: 5px 10px; border: 1px solid var(--green-light); border-radius: 4px; }
+        .header-home a { color: var(--green-light); text-decoration: none; font-size: 16px; padding: 5px 10px; border: 1px solid var(--green-light); border-radius: 4px; transition: 0.3s; }
+        .header-home a:hover { background-color: var(--green-mid); }
         footer { background-color: var(--green-dark); color: var(--muted); padding: 10px 20px; font-size: 12px; text-align: center; flex-shrink: 0; }
         #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         #map-container { flex: 1; min-height: 55vh; display: flex; position: relative; }
@@ -47,26 +47,28 @@
     <div id="main-content">
         <div class="dashboard-overlay">
             <h1>Carbon Project Hub</h1>
-            <div style="font-size: 13px; color: #555; margin-bottom: 15px;">Live view of CSV Projects.</div>
+            <div style="font-size: 13px; color: #555; margin-bottom: 15px;">Live geocoded view from CSV.</div>
             <hr style="border: 0; border-top: 1px solid #eee;">
             <div class="stat-box"><span class="stat-label">Total Projects:</span><span class="stat-value" id="project-count">-</span></div>
             <div class="stat-box"><span class="stat-label">Last Updated:</span><span class="stat-value" id="update-date">Fetching...</span></div>
+            <div class="stat-box"><span class="stat-label">Map Points:</span><span class="stat-value" id="points-count">0</span></div>
             <div class="stat-box"><span class="stat-label">Fetch Status:</span><span class="stat-value" id="fetch-status">Loading...</span></div>
         </div>
 
         <div id="map-container"><div id="map"></div></div>
+        
         <div id="list-container">
-            <h3>Project Details (CSV Feed)</h3>
-            <div id="loading">Fetching data securely... 🛡️</div>
+            <h3>Project Details</h3>
+            <div id="loading">Initializing Geocoder & Fetching Data... 🛡️</div>
             <table id="projectTable" class="display" style="width:100%; display:none;">
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Project Name</th>
-                        <th>Country</th>
+                        <th>Name</th>
+                        <th>Country/Area</th>
                         <th>Status</th>
-                        <th>Standard</th>
-                        <th>Registry Link</th>
+                        <th>Project Type</th>
+                        <th>Methodology</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -86,75 +88,108 @@
         
         var map = L.map('map').setView([20, 0], 2);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CARTO',
+            attribution: '&copy; CARTO & OpenStreetMap',
             maxZoom: 19
         }).addTo(map);
 
         var markers = L.layerGroup().addTo(map);
+        const countryCache = {}; // Global cache to prevent repeated API calls
 
         async function fetchSecureProjects() {
             try {
                 $('#fetch-status').text('Connecting...').css('color', '#ffc107'); 
 
                 const response = await fetch(SECURE_DATA_URL);
-                if (!response.ok) throw new Error(`Worker error! Status: ${response.status}.`);
+                if (!response.ok) throw new Error(`Worker status: ${response.status}`);
 
                 const csvText = await response.text();
 
-                // Parse CSV to JSON objects
                 Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
-                    complete: function(results) {
+                    complete: async function(results) {
                         $('#loading').hide();
                         $('#projectTable').show();
-                        processAndRenderData(results.data);
+                        await processAndRenderData(results.data);
                         $('#fetch-status').text('Success').css('color', 'var(--stat-green)');
                     }
                 });
 
             } catch (error) {
                 console.error("Error:", error);
-                $('#loading').html(`❌ Error: Data fetch failed.`).css('color', 'red');
-                $('#fetch-status').text('Failed').css('color', 'red');
+                $('#loading').html(`❌ Error: Data fetch failed. <small>${error.message}</small>`).css('color', 'red');
             }
         }
         
-        function processAndRenderData(rows) {
+        async function processAndRenderData(rows) {
             let tableData = [];
+            let pointsPlaced = 0;
             $('#project-count').text(rows.length);
             $('#update-date').text(new Date().toLocaleDateString());
 
+            // 1. Prepare Table Data First (Instant)
             rows.forEach(project => {
-                const lat = parseFloat(project.Latitude);
-                const lng = parseFloat(project.Longitude);
-
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    // a) Add to Map
-                    addProjectMarker(lat, lng, project);
-                    
-                    // b) Add to Table
-                    tableData.push([
-                        project.ID || 'N/A',
-                        project['Project Name'] || 'Unnamed',
-                        project.Country || 'N/A',
-                        project.Status || 'N/A',
-                        'VCS',
-                        `<a href="${project['Registry Link'] || '#'}" target="_blank">View</a>`
-                    ]);
-                }
+                tableData.push([
+                    project['ID'] || 'N/A',
+                    project['Name'] || 'Unnamed',
+                    project['Country/Area'] || 'N/A',
+                    project['Status'] || 'N/A',
+                    project['Project Type'] || 'N/A',
+                    project['Methodology'] || 'N/A'
+                ]);
             });
-            
             renderTable(tableData);
+
+            // 2. Geocode and Place Markers (Sequential to respect API limits)
+            for (const project of rows) {
+                const country = project['Country/Area'];
+                if (country) {
+                    let coords = countryCache[country];
+                    
+                    if (!coords) {
+                        coords = await geocodeCountry(country);
+                        if (coords) countryCache[country] = coords;
+                        // Small delay to respect Nominatim's usage policy (1 request per second)
+                        await new Promise(resolve => setTimeout(resolve, 800));
+                    }
+
+                    if (coords) {
+                        // Apply JITTER so markers don't overlap in the same country
+                        const jitterLat = coords.lat + (Math.random() - 0.5) * 1.5;
+                        const jitterLng = coords.lng + (Math.random() - 0.5) * 1.5;
+                        
+                        addProjectMarker(jitterLat, jitterLng, project);
+                        pointsPlaced++;
+                        $('#points-count').text(pointsPlaced);
+                    }
+                }
+            }
+            
             if (markers.getLayers().length > 0) map.fitBounds(markers.getBounds());
-            map.invalidateSize(); 
+        }
+
+        async function geocodeCountry(country) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(country)}&format=json&limit=1`;
+                const response = await fetch(url, {
+                    headers: { 'User-Agent': 'MetaCarbonics-Hub-1.0' }
+                });
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                }
+            } catch (e) {
+                console.warn("Geocoding failed for:", country);
+            }
+            return null;
         }
         
         function addProjectMarker(lat, lng, project) {
-            const markerColor = (project.Status || '').toLowerCase() === 'registered' ? 'var(--stat-green)' : '#ffc107'; 
+            const status = (project['Status'] || '').toLowerCase();
+            const markerColor = status === 'registered' ? 'var(--stat-green)' : '#ffc107'; 
 
             const marker = L.circleMarker([lat, lng], {
-                radius: 6,
+                radius: 7,
                 fillColor: markerColor,
                 color: "#000",
                 weight: 1,
@@ -162,10 +197,15 @@
             });
             
             const popupContent = `
-                <b>${project['Project Name'] || 'Project'}</b><br>
-                ID: ${project.ID}<br>
-                Status: ${(project.Status || 'N/A').toUpperCase()}<br>
-                Country: ${project.Country}
+                <div style="min-width:180px;">
+                    <b style="color:var(--green-dark);">${project['Name']}</b><br>
+                    <hr style="margin:5px 0; border-top:1px solid #eee;">
+                    <b>ID:</b> ${project['ID']}<br>
+                    <b>Status:</b> ${status.toUpperCase()}<br>
+                    <b>Proponent:</b> ${project['Proponent'] || 'N/A'}<br>
+                    <b>Type:</b> ${project['Project Type']}<br>
+                    <b>Region:</b> ${project['Region']}
+                </div>
             `;
             
             marker.bindPopup(popupContent);
