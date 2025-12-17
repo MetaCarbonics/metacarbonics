@@ -1,286 +1,123 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>METACARBONICS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<script>
+    // 🚨 ENSURE THIS MATCHES YOUR DEPLOYED WORKER URL
+    const SECURE_DATA_URL = 'https://carbon-data-worker.metacarbonics.workers.dev/'; 
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-    
-    <style>
-        /* ---------------- CUSTOM CSS VARIABLES ---------------- */
-        :root{
-            --green-dark: #0b3d2e;
-            --green-mid: #0f5f44;
-            --green-light: #daf7e8;
-            --offwhite: #f6f8f6;
-            --muted: #6b7a73;
-            --card-bg: #ffffff;
-            --stat-green: #2e7d32; 
-        }
+    var map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 19
+    }).addTo(map);
 
-        /* BASE LAYOUT */
-        body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; height: 100vh; display: flex; flex-direction: column; }
-        
-        /* ---------------- HEADER STYLING ---------------- */
-        header { 
-            background-color: var(--green-dark); 
-            color: var(--green-light); 
-            padding: 15px 20px; 
-            font-weight: bold; 
-            flex-shrink: 0; 
-            z-index: 1001;
-            /* 🚨 KEY CHANGE: Space between left item (title) and right item (link) */
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-        }
+    var markers = L.layerGroup().addTo(map);
+    var table;
 
-        /* Header Title (Ensures the Title is prominent and on the left) */
-        .header-title {
-            text-align: left;
-            font-size: 24px;
-            /* Prevents the title from growing and pushing the link too far */
-            flex-grow: 0; 
-        }
+    async function fetchSecureProjects() {
+        try {
+            $('#fetch-status').text('Connecting...').css('color', '#ffc107'); 
 
-        /* Home Link Styling (Ensures the link stays on the far right) */
-        .header-home a {
-            color: var(--green-light);
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: normal;
-            padding: 5px 10px;
-            border: 1px solid var(--green-light);
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        .header-home a:hover {
-            background-color: var(--green-mid);
-        }
-        
-        /* ---------------- FOOTER STYLING ---------------- */
-        footer { background-color: var(--green-dark); color: var(--muted); padding: 10px 20px; font-size: 12px; text-align: center; flex-shrink: 0; }
-        
-        /* ---------------- MAIN CONTENT WRAPPER ---------------- */
-        #main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* MAP/LIST SPLIT STYLING */
-        #map-container { flex: 1; min-height: 55vh; display: flex; position: relative; }
-        #map { width: 100%; }
-        #list-container { flex: 0 0 45vh; overflow-y: auto; padding: 20px; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
-        
-        /* DASHBOARD & TABLE STYLING */
-        .dashboard-overlay { position: absolute; top: 20px; left: 20px; z-index: 1000; background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 280px; }
-        h1 { margin: 0 0 10px 0; font-size: 18px; color: #333; }
-        .stat-box { display: flex; justify-content: space-between; margin-top: 10px; }
-        .stat-label { color: var(--muted); font-size: 12px; }
-        .stat-value { font-weight: bold; color: var(--stat-green); } 
-        #loading { text-align: center; padding: 50px; font-size: 1.2em; color: var(--muted); }
-        table.dataTable { width: 100% !important; margin-top: 15px !important; }
-    </style>
-</head>
-<body>
+            const response = await fetch(SECURE_DATA_URL);
+            if (!response.ok) throw new Error(`Worker Error: ${response.status}`);
 
-    <header>
-        <div class="header-title">
-            METACARBONICS
-        </div>
-        
-        <div class="header-home">
-            <a href="index.html"> Home</a>
-        </div>
-    </header>
+            const csvText = await response.text();
 
-    <div id="main-content">
-        
-        <div class="dashboard-overlay">
-            <h1>Carbon Project Hub</h1>
-            <div style="font-size: 13px; color: #555; margin-bottom: 15px;">
-                Live view of Verra Projects.
-            </div>
-            <hr style="border: 0; border-top: 1px solid #eee;">
-            <div class="stat-box">
-                <span class="stat-label">Total Projects Found:</span>
-                <span class="stat-value" id="project-count">-</span>
-            </div>
-            <div class="stat-box">
-                <span class="stat-label">Last Updated:</span>
-                <span class="stat-value" id="update-date">Fetching...</span> 
-            </div>
-            <div class="stat-box">
-                <span class="stat-label">Fetch Status:</span>
-                <span class="stat-value" id="fetch-status">Loading...</span>
-            </div>
-        </div>
-
-        <div id="map-container">
-            <div id="map"></div>
-        </div>
-        
-        <div id="list-container">
-            <h3>Project Details (Verra Data)</h3>
-            <div id="loading">Fetching data securely... 🛡️</div>
-            <table id="projectTable" class="display" style="width:100%; display:none;">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Project Name</th>
-                        <th>Country</th>
-                        <th>Status</th>
-                        <th>Standard</th>
-                        <th>Registry Link</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <footer>
-        &copy; 2025 METACARBONICS. All rights reserved.
-    </footer>
-
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script type="text/javascript" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-
-    <script>
-        // 🚨 REPLACE THIS WITH YOUR CLOUDFLARE WORKER URL
-        const SECURE_DATA_URL = 'https://your-worker-name.your-username.workers.dev/'; 
-        
-        // --- 1. INITIALIZE MAP ---
-        var map = L.map('map').setView([20, 0], 2);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
-            maxZoom: 19
-        }).addTo(map);
-
-        var markers = L.layerGroup().addTo(map);
-        var table;
-
-        // --- 2. FETCH DATA FROM SECURE WORKER ---
-        async function fetchSecureProjects() {
-            try {
-                $('#fetch-status').text('Connecting...').css('color', '#ffc107'); 
-
-                const response = await fetch(SECURE_DATA_URL);
-
-                if (!response.ok) {
-                    throw new Error(`Worker/Proxy error! Status: ${response.status}.`);
+            // --- CSV PARSING LOGIC ---
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const rows = results.data;
+                    $('#loading').hide();
+                    $('#projectTable').show();
+                    
+                    processAndRenderData(rows);
+                    $('#fetch-status').text('Success').css('color', 'var(--stat-green)');
+                },
+                error: function(err) {
+                    throw new Error("CSV Parsing Failed");
                 }
+            });
 
-                const geojsonData = await response.json();
-                
-                const projects = geojsonData.features.map(f => f.properties);
-                const metadata = geojsonData.metadata || {};
-                
-                $('#loading').hide();
-                $('#projectTable').show();
-                
-                processAndRenderData(geojsonData.features, projects, metadata);
-                
-                $('#fetch-status').text('Success').css('color', 'var(--stat-green)'); 
-
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                
-                $('#loading').html(`❌ Error: Cannot retrieve data from the secure proxy. <br> 
-                                   <small>Check Worker URL and backend logs.</small>`).css('color', 'red');
-                $('#fetch-status').text('Failed').css('color', 'red');
-                $('#update-date').text('N/A');
-            }
+        } catch (error) {
+            console.error("Error:", error);
+            $('#loading').html(`❌ Error: Data fetch failed. <small>${error.message}</small>`).css('color', 'red');
+            $('#fetch-status').text('Failed').css('color', 'red');
         }
+    }
+    
+    function processAndRenderData(rows) {
+        let tableData = [];
         
-        // --- 3. PROCESS AND RENDER DATA ---
-        function processAndRenderData(features, projects, metadata) {
-            let tableData = [];
-            
-            // Update Dashboard Stats from Metadata
-            $('#project-count').text(metadata.total_projects || projects.length);
-            $('#update-date').text(metadata.last_updated || 'Unknown');
+        // Update Stats
+        $('#project-count').text(rows.length);
+        $('#update-date').text(new Date().toLocaleDateString()); // Shows today since it's a live fetch
 
-            features.forEach(feature => {
-                const project = feature.properties;
-                const coordinates = feature.geometry.coordinates; // [lng, lat]
-                const lat = coordinates[1];
-                const lng = coordinates[0];
+        rows.forEach(project => {
+            // Extract Coordinates from CSV columns
+            const lat = parseFloat(project.Latitude);
+            const lng = parseFloat(project.Longitude);
 
-                // a) Map Rendering
+            if (!isNaN(lat) && !isNaN(lng)) {
+                // a) Add to Map
                 addProjectMarker(lat, lng, project);
                 
-                // b) Table Data Preparation
+                // b) Add to Table Array
                 tableData.push([
-                    project.resourceIdentifier,
-                    project.resourceName,
-                    project.country,
-                    project.resourceStatus,
+                    project.ID || 'N/A',
+                    project['Project Name'] || 'Unnamed',
+                    project.Country || 'N/A',
+                    project.Status || 'N/A',
                     'VCS',
-                    `<a href="${project.registryLink}" target="_blank">View</a>`
+                    `<a href="${project['Registry Link'] || '#'}" target="_blank">View</a>`
                 ]);
-            });
-            
-            // c) Render DataTables
-            renderTable(tableData);
-            
-            // e) Fit map to all markers
-            if (markers.getLayers().length > 0) {
-                map.fitBounds(markers.getBounds());
-            } else {
-                 map.setView([20, 0], 2);
             }
-            map.invalidateSize(); 
-        }
-        
-        // --- 4. MAP HELPER FUNCTION ---
-        function addProjectMarker(lat, lng, project) {
-            const markerColor = project.resourceStatus === 'registered' ? 'var(--stat-green)' : '#ffc107'; 
-
-            const marker = L.circleMarker([lat, lng], {
-                radius: 6,
-                fillColor: markerColor,
-                color: "#000",
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.8
-            });
-            
-            const popupContent = `
-                <b>${project.resourceName}</b><br>
-                ID: ${project.resourceIdentifier}<br>
-                Status: ${project.resourceStatus.toUpperCase()}<br>
-                Country: ${project.country}
-                <br><small>Methodology: ${project.geo_methodology}</small>
-            `;
-            
-            marker.bindPopup(popupContent);
-            markers.addLayer(marker);
-        }
-
-        // --- 5. TABLE HELPER FUNCTION (DataTables) ---
-        function renderTable(data) {
-            if ($.fn.DataTable.isDataTable('#projectTable')) {
-                $('#projectTable').DataTable().destroy();
-            }
-
-            table = $('#projectTable').DataTable({
-                data: data,
-                paging: true,
-                pageLength: 5,
-                lengthMenu: [5, 10, 25, 50],
-                ordering: true,
-                info: true,
-                searching: true,
-            });
-        }
-        
-        // --- START THE PROCESS ---
-        $(document).ready(function() {
-            fetchSecureProjects();
         });
+        
+        renderTable(tableData);
+        
+        if (markers.getLayers().length > 0) {
+            map.fitBounds(markers.getBounds());
+        }
+    }
+    
+    function addProjectMarker(lat, lng, project) {
+        const markerColor = (project.Status && project.Status.toLowerCase() === 'registered') ? 'var(--stat-green)' : '#ffc107'; 
 
-    </script>
-</body>
-</html>
+        const marker = L.circleMarker([lat, lng], {
+            radius: 6,
+            fillColor: markerColor,
+            color: "#000",
+            weight: 1,
+            fillOpacity: 0.8
+        });
+        
+        const popupContent = `
+            <b>${project['Project Name']}</b><br>
+            ID: ${project.ID}<br>
+            Status: ${(project.Status || 'N/A').toUpperCase()}<br>
+            Country: ${project.Country}
+        `;
+        
+        marker.bindPopup(popupContent);
+        markers.addLayer(marker);
+    }
+
+    function renderTable(data) {
+        if ($.fn.DataTable.isDataTable('#projectTable')) {
+            $('#projectTable').DataTable().destroy();
+        }
+        table = $('#projectTable').DataTable({
+            data: data,
+            paging: true,
+            pageLength: 5,
+            lengthMenu: [5, 10, 25, 50],
+            ordering: true,
+            searching: true,
+        });
+    }
+    
+    $(document).ready(function() {
+        fetchSecureProjects();
+    });
+</script>
