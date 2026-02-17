@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARR Phase 1 Feasibility Tool — MetaCarbonics</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: linear-gradient(to bottom, #f8faf7, #eef3ec);
+  color: #2f3e2e;
+}
+
+header {
+  padding: 20px 40px;
+  background: white;
+  border-bottom: 1px solid #e5e5e5;
+  font-weight: bold;
+}
+
+.brand-accent {
+  color: #3a7d44;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 40px 20px;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+.section-box {
+  background: #f4f6f3;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e5df;
+}
+
+label {
+  display: block;
+  margin: 10px 0;
+}
+
+select {
+  padding: 6px;
+  margin-left: 10px;
+}
+
+button {
+  padding: 12px 20px;
+  background: #3a7d44;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background: #2f6435;
+}
+
+.result-box {
+  margin-top: 30px;
+  padding: 25px;
+  border-radius: 10px;
+  display: none;
+}
+
+.go { background: #e6f4ea; border: 1px solid #3a7d44; }
+.conditional { background: #fff8e1; border: 1px solid #f4b400; }
+.no-go { background: #fdecea; border: 1px solid #d93025; }
+
+.score {
+  font-size: 22px;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  META<span class="brand-accent">CARBONICS</span> — ARR Phase 1 Feasibility Tool
+</header>
+
+<div class="container">
+
+<h1>Feasibility & Land Assessment</h1>
+<p>Evaluate project readiness before moving to Design & Registration.</p>
+
+<form id="feasibilityForm">
+
+<div class="section-box">
+<h3>Legal & Land Due Diligence</h3>
+
+<label>Land ownership verified?
+<select name="ownership">
+<option value="2">Yes</option>
+<option value="1">Partially</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Carbon rights confirmed?
+<select name="carbonRights">
+<option value="2">Yes</option>
+<option value="1">Unclear</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Disputes or encumbrances?
+<select name="disputes">
+<option value="2">None</option>
+<option value="1">Minor issues</option>
+<option value="0">Major disputes</option>
+</select>
+</label>
+</div>
+
+<div class="section-box">
+<h3>Baseline & Environmental</h3>
+
+<label>Baseline land-use data available?
+<select name="baseline">
+<option value="2">Complete</option>
+<option value="1">Partial</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Soil & climate suitability?
+<select name="soilClimate">
+<option value="2">Suitable</option>
+<option value="1">Moderate risk</option>
+<option value="0">Unsuitable</option>
+</select>
+</label>
+
+<label>Fire/Grazing/Pest Risk?
+<select name="risk">
+<option value="2">Low</option>
+<option value="1">Medium</option>
+<option value="0">High</option>
+</select>
+</label>
+</div>
+
+<div class="section-box">
+<h3>Financial Pre-Feasibility</h3>
+
+<label>Preliminary carbon yield estimate completed?
+<select name="yield">
+<option value="2">Yes</option>
+<option value="1">Estimated</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Capex/Opex estimated?
+<select name="costs">
+<option value="2">Yes</option>
+<option value="1">Rough estimate</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Revenue projection viable?
+<select name="revenue">
+<option value="2">Strong</option>
+<option value="1">Uncertain</option>
+<option value="0">Not viable</option>
+</select>
+</label>
+</div>
+
+<button type="button" onclick="calculateScore()">Evaluate Project</button>
+
+</form>
+
+<div id="result" class="result-box">
+<div class="score" id="scoreText"></div>
+<p id="decisionText"></p>
+</div>
+
+</div>
+
+<script>
+function calculateScore() {
+  const form = document.getElementById("feasibilityForm");
+  let score = 0;
+
+  for (let element of form.elements) {
+    if (element.tagName === "SELECT") {
+      score += parseInt(element.value);
+    }
+  }
+
+  const maxScore = 18;
+  const percentage = (score / maxScore) * 100;
+  const resultBox = document.getElementById("result");
+  const scoreText = document.getElementById("scoreText");
+  const decisionText = document.getElementById("decisionText");
+
+  resultBox.style.display = "block";
+
+  if (percentage >= 75) {
+    resultBox.className = "result-box go";
+    scoreText.innerText = "Score: " + score + " / 18 — GO";
+    decisionText.innerText = "Project is viable. Proceed to Phase 2: Design & Registration.";
+  } else if (percentage >= 50) {
+    resultBox.className = "result-box conditional";
+    scoreText.innerText = "Score: " + score + " / 18 — CONDITIONAL";
+    decisionText.innerText = "Project requires mitigation before proceeding.";
+  } else {
+    resultBox.className = "result-box no-go";
+    scoreText.innerText = "Score: " + score + " / 18 — NO-GO";
+    decisionText.innerText = "Significant issues detected. Reassess land or legal structure.";
+  }
+
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
