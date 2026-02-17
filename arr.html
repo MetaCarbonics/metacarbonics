@@ -41,6 +41,13 @@
   perspective: 1000px;
 }
 
+/* ===== Clickable Card Link ===== */
+.workflow-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
 /* ===== Step Card ===== */
 .workflow-step {
   width: 230px;
@@ -152,14 +159,18 @@
 
   <div class="workflow-container">
 
-    <div class="workflow-step">
-      <div class="step-icon"><i class="fas fa-map"></i></div>
-      <h3>Feasibility</h3>
-      <p>Land & carbon baseline assessment</p>
-    </div>
+    <!-- FEASIBILITY (Clickable) -->
+    <a href="phase1-feasibility-tool.html" class="workflow-link">
+      <div class="workflow-step">
+        <div class="step-icon"><i class="fas fa-map"></i></div>
+        <h3>Feasibility</h3>
+        <p>Land & carbon baseline assessment</p>
+      </div>
+    </a>
 
     <div class="arrow"></div>
 
+    <!-- DESIGN -->
     <div class="workflow-step">
       <div class="step-icon"><i class="fas fa-file-contract"></i></div>
       <h3>Design & Registration</h3>
@@ -168,6 +179,7 @@
 
     <div class="arrow"></div>
 
+    <!-- IMPLEMENTATION -->
     <div class="workflow-step">
       <div class="step-icon"><i class="fas fa-seedling"></i></div>
       <h3>Implementation</h3>
@@ -176,6 +188,7 @@
 
     <div class="arrow"></div>
 
+    <!-- MONITORING -->
     <div class="workflow-step">
       <div class="step-icon"><i class="fas fa-chart-line"></i></div>
       <h3>Monitoring</h3>
@@ -184,6 +197,7 @@
 
     <div class="arrow"></div>
 
+    <!-- CREDIT ISSUANCE -->
     <div class="workflow-step">
       <div class="step-icon"><i class="fas fa-certificate"></i></div>
       <h3>Credit Issuance</h3>
