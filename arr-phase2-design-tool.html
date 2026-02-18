@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARR Phase 2 Design & Registration Tool — MetaCarbonics</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: linear-gradient(to bottom, #f8faf7, #eef3ec);
+  color: #2f3e2e;
+}
+
+header {
+  padding: 20px 40px;
+  background: white;
+  border-bottom: 1px solid #e5e5e5;
+  font-weight: bold;
+}
+
+.brand-accent {
+  color: #3a7d44;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 40px 20px;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+.section-box {
+  background: #f4f6f3;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e5df;
+}
+
+label {
+  display: block;
+  margin: 10px 0;
+}
+
+select {
+  padding: 6px;
+  margin-left: 10px;
+}
+
+button {
+  padding: 12px 20px;
+  background: #3a7d44;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background: #2f6435;
+}
+
+.result-box {
+  margin-top: 30px;
+  padding: 25px;
+  border-radius: 10px;
+  display: none;
+}
+
+.go { background: #e6f4ea; border: 1px solid #3a7d44; }
+.conditional { background: #fff8e1; border: 1px solid #f4b400; }
+.no-go { background: #fdecea; border: 1px solid #d93025; }
+
+.score {
+  font-size: 22px;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  META<span class="brand-accent">CARBONICS</span> — ARR Phase 2 Design & Registration Tool
+</header>
+
+<div class="container">
+
+<h1>Design & Registration Assessment</h1>
+<p>Evaluate readiness before validation and registry submission.</p>
+
+<form id="designForm">
+
+<div class="section-box">
+<h3>Technical Design</h3>
+
+<label>ARR methodology selected?
+<select name="methodology">
+<option value="2">Yes</option>
+<option value="1">Under review</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Species selection completed?
+<select name="species">
+<option value="2">Yes</option>
+<option value="1">Preliminary</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Carbon modeling completed?
+<select name="modeling">
+<option value="2">Complete</option>
+<option value="1">Partial</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Leakage & permanence analysis done?
+<select name="riskAnalysis">
+<option value="2">Yes</option>
+<option value="1">Draft</option>
+<option value="0">No</option>
+</select>
+</label>
+</div>
+
+<div class="section-box">
+<h3>Safeguards & Documentation</h3>
+
+<label>Stakeholder consultation conducted?
+<select name="stakeholder">
+<option value="2">Yes</option>
+<option value="1">Planned</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Project Design Document (PDD) prepared?
+<select name="pdd">
+<option value="2">Final</option>
+<option value="1">Draft</option>
+<option value="0">Not started</option>
+</select>
+</label>
+
+<label>Validation body engaged?
+<select name="validation">
+<option value="2">Yes</option>
+<option value="1">In discussion</option>
+<option value="0">No</option>
+</select>
+</label>
+
+<label>Registry submission ready?
+<select name="registry">
+<option value="2">Yes</option>
+<option value="1">Nearly ready</option>
+<option value="0">No</option>
+</select>
+</label>
+</div>
+
+<button type="button" onclick="calculateScore()">Evaluate Project</button>
+
+</form>
+
+<div id="result" class="result-box">
+<div class="score" id="scoreText"></div>
+<p id="decisionText"></p>
+</div>
+
+</div>
+
+<script>
+function calculateScore() {
+  const form = document.getElementById("designForm");
+  let score = 0;
+
+  for (let element of form.elements) {
+    if (element.tagName === "SELECT") {
+      score += parseInt(element.value);
+    }
+  }
+
+  const maxScore = 16;
+  const percentage = (score / maxScore) * 100;
+  const resultBox = document.getElementById("result");
+  const scoreText = document.getElementById("scoreText");
+  const decisionText = document.getElementById("decisionText");
+
+  resultBox.style.display = "block";
+
+  if (percentage >= 75) {
+    resultBox.className = "result-box go";
+    scoreText.innerText = "Score: " + score + " / 16 — GO";
+    decisionText.innerText = "Design is robust. Proceed to Validation & Registration.";
+  } else if (percentage >= 50) {
+    resultBox.className = "result-box conditional";
+    scoreText.innerText = "Score: " + score + " / 16 — CONDITIONAL";
+    decisionText.innerText = "Improvements required before registry submission.";
+  } else {
+    resultBox.className = "result-box no-go";
+    scoreText.innerText = "Score: " + score + " / 16 — NO-GO";
+    decisionText.innerText = "Major design gaps identified. Rework technical framework.";
+  }
+
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
