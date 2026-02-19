@@ -20,18 +20,12 @@ header {
   font-weight: bold;
 }
 
-.brand-accent {
-  color: #3a7d44;
-}
+.brand-accent { color: #3a7d44; }
 
 .container {
   max-width: 900px;
   margin: auto;
   padding: 40px 20px;
-}
-
-h1 {
-  margin-bottom: 10px;
 }
 
 .section-box {
@@ -42,15 +36,9 @@ h1 {
   border: 1px solid #e0e5df;
 }
 
-label {
-  display: block;
-  margin: 10px 0;
-}
+label { display: block; margin: 10px 0; }
 
-select {
-  padding: 6px;
-  margin-left: 10px;
-}
+select { padding: 6px; margin-left: 10px; }
 
 button {
   padding: 12px 20px;
@@ -62,9 +50,7 @@ button {
   font-size: 16px;
 }
 
-button:hover {
-  background: #2f6435;
-}
+button:hover { background: #2f6435; }
 
 .result-box {
   margin-top: 30px;
@@ -77,26 +63,45 @@ button:hover {
 .conditional { background: #fff8e1; border: 1px solid #f4b400; }
 .no-go { background: #fdecea; border: 1px solid #d93025; }
 
-.score {
-  font-size: 22px;
-  font-weight: bold;
-}
+.score { font-size: 22px; font-weight: bold; }
 </style>
 </head>
 
 <body>
 
 <header>
-  META<span class="brand-accent">CARBONICS</span> — ARR Phase 2 Design & Registration Tool
+META<span class="brand-accent">CARBONICS</span> — ARR Phase 2 Design & Registration Tool
 </header>
 
 <div class="container">
 
 <h1>Design & Registration Assessment</h1>
-<p>Evaluate readiness before validation and registry submission.</p>
+<p>Select registry pathway before validation and submission.</p>
 
 <form id="designForm">
 
+<!-- REGISTRY SELECTION -->
+<div class="section-box">
+<h3>Registry Selection</h3>
+
+<label>Registry Type:
+<select id="registryType" onchange="populateRegistries()" required>
+<option value="">Select Type</option>
+<option value="voluntary">Voluntary Registries</option>
+<option value="compliance">Compliance / ETS Registries</option>
+<option value="regional">Regional / Emerging</option>
+</select>
+</label>
+
+<label>Registry Name:
+<select id="registryName" required>
+<option value="">Select Registry</option>
+</select>
+</label>
+
+</div>
+
+<!-- TECHNICAL DESIGN -->
 <div class="section-box">
 <h3>Technical Design</h3>
 
@@ -133,6 +138,7 @@ button:hover {
 </label>
 </div>
 
+<!-- SAFEGUARDS -->
 <div class="section-box">
 <h3>Safeguards & Documentation</h3>
 
@@ -144,7 +150,7 @@ button:hover {
 </select>
 </label>
 
-<label>Project Design Document (PDD) prepared?
+<label>PDD prepared?
 <select name="pdd">
 <option value="2">Final</option>
 <option value="1">Draft</option>
@@ -161,7 +167,7 @@ button:hover {
 </label>
 
 <label>Registry submission ready?
-<select name="registry">
+<select name="registryReady">
 <option value="2">Yes</option>
 <option value="1">Nearly ready</option>
 <option value="0">No</option>
@@ -181,40 +187,87 @@ button:hover {
 </div>
 
 <script>
-function calculateScore() {
-  const form = document.getElementById("designForm");
-  let score = 0;
 
-  for (let element of form.elements) {
-    if (element.tagName === "SELECT") {
-      score += parseInt(element.value);
-    }
-  }
+const registryData = {
+voluntary: [
+"Verra VCS","Gold Standard","ACR","CAR","ART/TREES","GCC",
+"Cercarbono / EcoRegistry","Plan Vivo","Social Carbon",
+"Puro.earth / C-Sink","BioCarbon Registry"
+],
+compliance: [
+"CDM Registry (UNFCCC)","EU ETS","California Cap-and-Trade","RGGI",
+"UK ETS","China National ETS","Korea ETS","NZ ETS",
+"Tokyo & Saitama ETS","Swiss ETS","Mexico ETS",
+"Kazakhstan ETS","Canadian ETS/OBPS","Washington Cap-and-Invest"
+],
+regional: [
+"India CR-I","MESC Registry","UAE NRCC","Egypt Carbon Exchange",
+"Saudi RVCMC","ADGM Carbon Registry","Bahrain Safa",
+"Kuwait Carbon Offset Platform"
+]
+};
 
-  const maxScore = 16;
-  const percentage = (score / maxScore) * 100;
-  const resultBox = document.getElementById("result");
-  const scoreText = document.getElementById("scoreText");
-  const decisionText = document.getElementById("decisionText");
+function populateRegistries() {
+const type = document.getElementById("registryType").value;
+const registrySelect = document.getElementById("registryName");
+registrySelect.innerHTML = '<option value="">Select Registry</option>';
 
-  resultBox.style.display = "block";
-
-  if (percentage >= 75) {
-    resultBox.className = "result-box go";
-    scoreText.innerText = "Score: " + score + " / 16 — GO";
-    decisionText.innerText = "Design is robust. Proceed to Validation & Registration.";
-  } else if (percentage >= 50) {
-    resultBox.className = "result-box conditional";
-    scoreText.innerText = "Score: " + score + " / 16 — CONDITIONAL";
-    decisionText.innerText = "Improvements required before registry submission.";
-  } else {
-    resultBox.className = "result-box no-go";
-    scoreText.innerText = "Score: " + score + " / 16 — NO-GO";
-    decisionText.innerText = "Major design gaps identified. Rework technical framework.";
-  }
-
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+if (registryData[type]) {
+registryData[type].forEach(reg => {
+const option = document.createElement("option");
+option.value = reg;
+option.textContent = reg;
+registrySelect.appendChild(option);
+});
 }
+}
+
+function calculateScore() {
+
+const registryType = document.getElementById("registryType").value;
+const registryName = document.getElementById("registryName").value;
+
+if (!registryType || !registryName) {
+alert("Please select registry type and registry name.");
+return;
+}
+
+const form = document.getElementById("designForm");
+let score = 0;
+
+for (let element of form.elements) {
+if (element.tagName === "SELECT" && element.name) {
+score += parseInt(element.value);
+}
+}
+
+const maxScore = 16;
+const percentage = (score / maxScore) * 100;
+const resultBox = document.getElementById("result");
+const scoreText = document.getElementById("scoreText");
+const decisionText = document.getElementById("decisionText");
+
+resultBox.style.display = "block";
+
+if (percentage >= 75) {
+resultBox.className = "result-box go";
+scoreText.innerText = "Score: " + score + " / 16 — GO";
+decisionText.innerText = "Ready for validation under " + registryName + ".";
+}
+else if (percentage >= 50) {
+resultBox.className = "result-box conditional";
+scoreText.innerText = "Score: " + score + " / 16 — CONDITIONAL";
+decisionText.innerText = "Strengthen documentation before submitting to " + registryName + ".";
+}
+else {
+resultBox.className = "result-box no-go";
+scoreText.innerText = "Score: " + score + " / 16 — NO-GO";
+decisionText.innerText = "Major design gaps identified for " + registryName + ".";
+}
+
+window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
 </script>
 
 </body>
