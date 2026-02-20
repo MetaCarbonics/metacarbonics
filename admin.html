@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+
+<script>
+protectPage().then(async user => {
+    const { data: profile } = await _supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    if (profile.role !== 'admin') {
+        alert("Admins only.");
+        window.location.href = "dashboard.html";
+    } else {
+        loadUsers();
+    }
+});
+</script>
+
+<div class="max-w-5xl mx-auto mt-10 bg-white p-8 rounded-2xl shadow">
+    <h1 class="text-2xl font-bold mb-6">Admin Panel</h1>
+    <table class="w-full border">
+        <thead>
+            <tr class="bg-gray-100">
+                <th class="p-3 text-left">Email</th>
+                <th class="p-3">Role</th>
+                <th class="p-3">Action</th>
+            </tr>
+        </thead>
+        <tbody id="admin-table"></tbody>
+    </table>
+</div>
+
+<script>
+async function loadUsers() {
+    const { data } = await _supabase.from('profiles').select('*');
+
+    document.getElementById('admin-table').innerHTML =
+        data.map(u => `
+            <tr class="border-t">
+                <td class="p-3">${u.email}</td>
+                <td class="p-3 text-center">${u.role}</td>
+                <td class="p-3 text-center">
+                    <button onclick="adminDeleteUser('${u.id}')" 
+                    class="bg-red-500 text-white px-4 py-1 rounded">
+                    Delete
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+}
+</script>
+
+</body>
+</html>
