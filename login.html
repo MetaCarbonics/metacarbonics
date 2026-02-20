@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — MetaCarbonics</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                'primary-dark': '#0b3d2e',
+                'primary-mid': '#0f5f44',
+                'bg-offwhite': '#f6f8f6',
+                'text-muted': '#6b7a73',
+            }
+        }
+    }
+}
+</script>
+
+<style>
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f6f8f6;
+}
+</style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center">
+
+<div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md">
+
+    <h2 class="text-3xl font-bold text-center mb-6 text-primary-dark">
+        MetaCarbonics
+    </h2>
+
+    <form id="authForm" class="space-y-4">
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Email</label>
+            <input type="email" id="email"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-mid"
+                required>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Password</label>
+            <input type="password" id="password"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-mid"
+                required>
+        </div>
+
+        <p id="errorMsg" class="text-red-500 text-sm hidden"></p>
+
+        <button type="submit" id="authBtn"
+            class="w-full bg-primary-dark text-white py-2 rounded-lg hover:bg-primary-mid transition">
+            Login
+        </button>
+
+        <p class="text-center text-sm mt-4">
+            <span id="toggleText">Don't have an account?</span>
+            <button type="button" id="toggleAuth"
+                class="text-primary-dark font-semibold ml-1">
+                Sign up
+            </button>
+        </p>
+
+    </form>
+
+</div>
+
+<script>
+// =====================
+// 🔐 SUPABASE CONFIG
+// =====================
+const SB_URL = "https://YOUR_PROJECT_ID.supabase.co";
+const SB_KEY = "YOUR_ANON_PUBLIC_KEY";
+const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+// =====================
+// 🔄 MODE TOGGLE
+// =====================
+let isLogin = true;
+
+const form = document.getElementById("authForm");
+const toggleBtn = document.getElementById("toggleAuth");
+const authBtn = document.getElementById("authBtn");
+const toggleText = document.getElementById("toggleText");
+const errorMsg = document.getElementById("errorMsg");
+
+toggleBtn.addEventListener("click", () => {
+    isLogin = !isLogin;
+
+    if (isLogin) {
+        authBtn.textContent = "Login";
+        toggleText.textContent = "Don't have an account?";
+        toggleBtn.textContent = "Sign up";
+    } else {
+        authBtn.textContent = "Sign up";
+        toggleText.textContent = "Already have an account?";
+        toggleBtn.textContent = "Login";
+    }
+});
+
+// =====================
+// 🚀 AUTH SUBMIT
+// =====================
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    let response;
+
+    if (isLogin) {
+        response = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+    } else {
+        response = await supabase.auth.signUp({
+            email,
+            password
+        });
+    }
+
+    if (response.error) {
+        errorMsg.textContent = response.error.message;
+        errorMsg.classList.remove("hidden");
+    } else {
+        errorMsg.classList.add("hidden");
+
+        if (!isLogin) {
+            alert("Check your email to confirm your account.");
+        }
+
+        window.location.href = "index.html";
+    }
+});
+
+// =====================
+// ✅ AUTO REDIRECT IF ALREADY LOGGED IN
+// =====================
+(async () => {
+    const { data } = await supabase.auth.getUser();
+    if (data.user) {
+        window.location.href = "index.html";
+    }
+})();
+</script>
+
+</body>
+</html>
