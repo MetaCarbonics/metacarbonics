@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up — MetaCarbonics</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                'primary-dark': '#0b3d2e',
+                'primary-mid': '#0f5f44',
+                'bg-offwhite': '#f6f8f6',
+                'text-muted': '#6b7a73',
+            }
+        }
+    }
+}
+</script>
+
+<style>
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f6f8f6;
+}
+</style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center">
+
+<div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md">
+
+    <h2 class="text-3xl font-bold text-center mb-6 text-primary-dark">
+        Create Account
+    </h2>
+
+    <form id="signupForm" class="space-y-4">
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Email</label>
+            <input type="email" id="email"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-mid"
+                required>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Password</label>
+            <input type="password" id="password"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-mid"
+                required>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Confirm Password</label>
+            <input type="password" id="confirmPassword"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-mid"
+                required>
+        </div>
+
+        <p id="errorMsg" class="text-red-500 text-sm hidden"></p>
+
+        <button type="submit"
+            class="w-full bg-primary-dark text-white py-2 rounded-lg hover:bg-primary-mid transition">
+            Sign Up
+        </button>
+
+        <p class="text-center text-sm mt-4">
+            Already have an account?
+            <a href="login.html" class="text-primary-dark font-semibold ml-1">
+                Login
+            </a>
+        </p>
+
+    </form>
+
+</div>
+
+<script>
+// =====================
+// 🔐 SUPABASE CONFIG
+// =====================
+const SB_URL = "https://trytdfqeokraxklxygnc.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyeXRkZnFlb2tyYXhrbHh5Z25jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1OTUyMDcsImV4cCI6MjA4NzE3MTIwN30.wnDUZjmG1X84ayGgiyyON32nsQ8KAA_gnASkVLPw1ww";
+const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+const form = document.getElementById("signupForm");
+const errorMsg = document.getElementById("errorMsg");
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+
+    if(password !== confirmPassword){
+        errorMsg.textContent = "Passwords do not match";
+        errorMsg.classList.remove("hidden");
+        return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password
+    });
+
+    if(error){
+        errorMsg.textContent = error.message;
+        errorMsg.classList.remove("hidden");
+        return;
+    }
+
+    // Create profile row with default role
+    await supabase.from("profiles").insert([
+        {
+            id: data.user.id,
+            email: data.user.email,
+            role: "user"
+        }
+    ]);
+
+    alert("Signup successful! Please check your email to confirm your account.");
+
+    window.location.href = "login.html";
+});
+</script>
+
+</body>
+</html>
