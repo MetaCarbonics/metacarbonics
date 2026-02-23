@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MetaCarbonics — Climate Action Preview</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
+    <script src="auth.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -64,8 +67,9 @@
                 <a href="nbshub.html" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">NBSHub</a>
                 <a href="carbonhub.html" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Carbon Hub</a>
                 <a href="#contact" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Contact</a>
-                <!-- Added Login Button -->
-                <a href="login.html" class="bg-white text-primary-dark font-semibold py-1 px-4 rounded-full hover:bg-gray-200 transition duration-150">Login</a>
+                <span id="authNavSlot">
+                    <a href="login.html" class="bg-white text-primary-dark font-semibold py-1 px-4 rounded-full hover:bg-gray-200 transition duration-150">Login</a>
+                </span>
             </nav>
             <button class="md:hidden p-2 text-white hover:text-gray-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -333,6 +337,34 @@
                     }
                 });
             });
+
+            const authNavSlot = document.getElementById('authNavSlot');
+            if (!authNavSlot) return;
+
+            (async () => {
+                try {
+                    const current = await window.metaAuth.getCurrentUserWithProfile();
+                    if (!current || !current.user) return;
+
+                    const name = current.profile?.full_name || current.user.user_metadata?.full_name || current.user.email || 'User';
+                    const safeName = String(name).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+                    authNavSlot.innerHTML = `
+                        <span class="text-white font-semibold mr-2">Hi, ${safeName}</span>
+                        <a href="profile.html" class="bg-white text-primary-dark font-semibold py-1 px-3 rounded-full hover:bg-gray-200 transition duration-150 mr-2">My Account</a>
+                        <button id="logoutInlineBtn" class="bg-primary-mid text-white font-semibold py-1 px-3 rounded-full hover:bg-primary-dark transition duration-150">Logout</button>
+                    `;
+
+                    const logoutInlineBtn = document.getElementById('logoutInlineBtn');
+                    if (logoutInlineBtn) {
+                        logoutInlineBtn.addEventListener('click', async () => {
+                            await window.metaAuth.logout();
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Auth nav render skipped:', error?.message || error);
+                }
+            })();
         });
     </script>
 </body>

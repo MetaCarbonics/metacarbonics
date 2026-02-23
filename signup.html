@@ -44,6 +44,13 @@ body {
     </h2>
 
     <form id="signupForm" class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium mb-1">Name</label>
+            <input type="text" id="fullName"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-mid"
+                placeholder="Your full name"
+                required>
+        </div>
 
         <div>
             <label class="block text-sm font-medium mb-1">Email</label>
@@ -90,13 +97,16 @@ const resendBtn = document.getElementById("resendVerification");
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    const fullName = document.getElementById("fullName").value.trim();
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
 
     errorMsg.classList.add("hidden");
+    errorMsg.classList.remove("text-green-600");
+    errorMsg.classList.add("text-red-500");
 
     try {
-        await window.metaAuth.signUp(email, password);
+        await window.metaAuth.signUp(email, password, fullName);
     } catch (error) {
         errorMsg.textContent = error.message;
         errorMsg.classList.remove("hidden");

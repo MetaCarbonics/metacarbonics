@@ -3,19 +3,44 @@ if (!window._supabase) {
 }
 const _supabase = window._supabase;
 
+async function ensureProfileForCurrentUser() {
+    const {
+        data: { user },
+        error: userError
+    } = await _supabase.auth.getUser();
+
+    if (userError || !user) return;
+    const metadataName = user.user_metadata?.full_name || user.user_metadata?.name || null;
+
+    const { error: profileError } = await _supabase
+        .from("profiles")
+        .upsert(
+            { id: user.id, email: user.email, full_name: metadataName, role: "user" },
+            { onConflict: "id" }
+        );
+
+    if (profileError) {
+        console.warn("Profile upsert skipped:", profileError.message);
+    }
+}
+
 // LOGIN
 async function login(email, password) {
     const { error } = await _supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    await ensureProfileForCurrentUser();
     window.location.href = 'index.html';
 }
 
 // SIGNUP + Welcome Email
-async function signUp(email, password) {
+async function signUp(email, password, fullName) {
     const { data, error } = await _supabase.auth.signUp({
         email,
         password,
         options: {
+            data: {
+                full_name: fullName || null
+            },
             emailRedirectTo: 'https://metacarbonics.com/login.html'
         }
     });
@@ -26,17 +51,9 @@ async function signUp(email, password) {
         throw error;
     }
 
-    // Safe no-op if trigger/function already handles profile creation.
-    if (data.user) {
-        const { error: profileError } = await _supabase
-            .from("profiles")
-            .upsert(
-                { id: data.user.id, email: data.user.email, role: "user" },
-                { onConflict: "id" }
-            );
-        if (profileError) {
-            console.warn("Profile upsert skipped:", profileError.message);
-        }
+    // When email confirmation is disabled and session exists, profile can be created now.
+    if (data.session?.user) {
+        await ensureProfileForCurrentUser();
     }
 
     alert("Verification email sent. Please confirm your email before logging in.");
@@ -63,10 +80,55 @@ async function sendReset(email) {
     alert("Password reset email sent.");
 }
 
+async function getCurrentUserWithProfile() {
+    const {
+        data: { user },
+        error: userError
+    } = await _supabase.auth.getUser();
+
+    if (userError || !user) return null;
+
+    const { data: profile } = await _supabase
+        .from("profiles")
+        .select("id, email, full_name, role, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    return {
+        user,
+        profile
+    };
+}
+
+async function requestAccountDeletion(reason) {
+    const current = await getCurrentUserWithProfile();
+    if (!current?.user) {
+        throw new Error("You must be logged in to request account deletion.");
+    }
+
+    const { user, profile } = current;
+
+    const payload = {
+        user_id: user.id,
+        email: user.email,
+        full_name: profile?.full_name || user.user_metadata?.full_name || null,
+        reason: reason || null,
+        status: "requested"
+    };
+
+    const { error } = await _supabase
+        .from("account_deletion_requests")
+        .insert([payload]);
+
+    if (error) throw error;
+    return true;
+}
+
 // PROTECT PAGE
 async function protectPage() {
     const { data: { session } } = await _supabase.auth.getSession();
     if (!session) window.location.href = "index.html";
+    await ensureProfileForCurrentUser();
     return session.user;
 }
 
@@ -119,6 +181,9 @@ window.metaAuth = {
     login,
     signUp,
     resendVerification,
+    ensureProfileForCurrentUser,
+    getCurrentUserWithProfile,
+    requestAccountDeletion,
     sendReset,
     protectPage,
     uploadAvatar,
