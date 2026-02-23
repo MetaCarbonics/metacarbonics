@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>NBSHub — MetaCarbonics</title><link rel="stylesheet" href="styles.css"/></head>
 <body>
-  <header class="site-header"><div class="wrap header-inner"><div class="brand">META<span class="brand-accent">CARBONICS</span></div><nav class="main-nav"><a href="index.html">Home</a></nav></div></header>
+  <header class="site-header"><div class="wrap header-inner"><div class="brand">META<span class="brand-accent">CARBONICS</span></div><nav class="main-nav"><a href="index.html">Home</a><a href="#" id="logoutBtn">Logout</a></nav></div></header>
 
   <main>
     <section class="section">
@@ -16,19 +16,41 @@
   </main>
 
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
-<script src="global-auth-ui.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <script>
   // Primary target: Cloudflare Worker serving Nbshub private repository files.
   const NBS_TARGET_URL = "https://nbshub-app-worker.metacarbonics.workers.dev/frontend/index.html";
   // Local fallback for workspace testing.
   const NBS_LOCAL_URL = "../Nbshub/index.html";
   const link = document.getElementById("dmrvLink");
+  const logoutBtn = document.getElementById("logoutBtn");
   link.href = NBS_TARGET_URL;
-  try {
-    window.location.replace(NBS_TARGET_URL);
-  } catch (err) {
-    window.location.replace(NBS_LOCAL_URL);
+
+  async function init() {
+    const { data } = await window._supabase.auth.getSession();
+    const session = data?.session || null;
+
+    if (!session) {
+      const next = encodeURIComponent("nbshub.html");
+      window.location.href = `login.html?next=${next}`;
+      return;
+    }
+
+    logoutBtn.addEventListener("click", async (event) => {
+      event.preventDefault();
+      await window._supabase.auth.signOut({ scope: "local" });
+      window.location.href = "login.html";
+    });
+
+    try {
+      window.location.replace(NBS_TARGET_URL);
+    } catch (err) {
+      window.location.replace(NBS_LOCAL_URL);
+    }
   }
+
+  init();
 </script>
 </body>
 </html>
