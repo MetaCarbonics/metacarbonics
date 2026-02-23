@@ -8,13 +8,21 @@
     <section class="section">
       <div class="wrap" style="text-align:center;padding:80px 20px">
         <h1>NBSHub</h1>
-        <h2>Coming Soon…</h2>
-        <p class="muted">Nature-Based Solutions hub: resources, case studies and toolkits will be published here.</p>
+        <h2>Redirecting to DMRV Workspace…</h2>
+        <p class="muted">This NBSHub entry now routes to the linked private DMRV repository pages.</p>
+        <p class="muted"><a id="dmrvLink" href="../dmrv-system/frontend/index.html">Open DMRV now</a></p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
 <script src="global-auth-ui.js"></script>
+<script>
+  // Update this URL when the private NBS/DMRV repository deploy URL changes.
+  const NBS_TARGET_URL = "../dmrv-system/frontend/index.html";
+  const link = document.getElementById("dmrvLink");
+  link.href = NBS_TARGET_URL;
+  window.location.replace(NBS_TARGET_URL);
+</script>
 </body>
 </html>
