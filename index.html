@@ -56,8 +56,13 @@
     <!-- Header & Navigation -->
     <header class="sticky top-0 z-50 bg-primary-dark shadow-lg transition duration-300">
         <div class="wrap flex items-center justify-between py-4 header-inner">
-            <div class="brand text-2xl font-extrabold text-white">
-                META<span class="brand-accent">CARBONICS</span>
+            <div class="flex items-center gap-3">
+                <button id="logoutTopLeftBtn" class="hidden bg-white text-primary-dark font-semibold py-1 px-3 rounded-full hover:bg-gray-200 transition duration-150">
+                    Logout
+                </button>
+                <div class="brand text-2xl font-extrabold text-white">
+                    META<span class="brand-accent">CARBONICS</span>
+                </div>
             </div>
             <nav class="main-nav space-x-6 hidden md:flex text-sm font-medium">
                 <a href="#about" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">About</a>
@@ -351,14 +356,18 @@
 
                     authNavSlot.innerHTML = `
                         <span class="text-white font-semibold mr-2">Hi, ${safeName}</span>
-                        <a href="profile.html" class="bg-white text-primary-dark font-semibold py-1 px-3 rounded-full hover:bg-gray-200 transition duration-150 mr-2">My Account</a>
-                        <button id="logoutInlineBtn" class="bg-primary-mid text-white font-semibold py-1 px-3 rounded-full hover:bg-primary-dark transition duration-150">Logout</button>
+                        <a href="profile.html" class="bg-white text-primary-dark font-semibold py-1 px-3 rounded-full hover:bg-gray-200 transition duration-150">My Account</a>
                     `;
 
-                    const logoutInlineBtn = document.getElementById('logoutInlineBtn');
-                    if (logoutInlineBtn) {
-                        logoutInlineBtn.addEventListener('click', async () => {
-                            await window.metaAuth.logout();
+                    const logoutTopLeftBtn = document.getElementById('logoutTopLeftBtn');
+                    if (logoutTopLeftBtn) {
+                        logoutTopLeftBtn.classList.remove('hidden');
+                        logoutTopLeftBtn.addEventListener('click', async () => {
+                            try {
+                                await window.metaAuth.logout();
+                            } catch (error) {
+                                console.error('Logout failed:', error?.message || error);
+                            }
                         });
                     }
                 } catch (error) {

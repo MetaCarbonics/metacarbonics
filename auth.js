@@ -173,7 +173,8 @@ async function adminDeleteUser(userId) {
 }
 
 async function logout() {
-    await _supabase.auth.signOut();
+    const { error } = await _supabase.auth.signOut({ scope: "local" });
+    if (error) throw error;
     window.location.href = "index.html";
 }
 
