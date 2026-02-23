@@ -7,6 +7,8 @@
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="auth.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
 
@@ -76,13 +78,6 @@ body {
 </div>
 
 <script>
-// =====================
-// 🔐 SUPABASE CONFIG
-// =====================
-const SB_URL = "https://trytdfqeokraxklxygnc.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyeXRkZnFlb2tyYXhrbHh5Z25jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1OTUyMDcsImV4cCI6MjA4NzE3MTIwN30.wnDUZjmG1X84ayGgiyyON32nsQ8KAA_gnASkVLPw1ww";
-const supabase = window.supabase.createClient(SB_URL, SB_KEY);
-
 const form = document.getElementById("signupForm");
 const errorMsg = document.getElementById("errorMsg");
 
@@ -94,35 +89,13 @@ form.addEventListener("submit", async (e) => {
 
     errorMsg.classList.add("hidden");
 
-    const { data, error } = await supabase.auth.signUp({
-        email,
-        password
-    });
-
-    if (error) {
+    try {
+        await window.metaAuth.signUp(email, password);
+    } catch (error) {
         errorMsg.textContent = error.message;
         errorMsg.classList.remove("hidden");
         return;
     }
-
-    if (data.user) {
-
-        const { error: profileError } = await supabase
-            .from("profiles")
-            .insert([
-                {
-                    id: data.user.id,
-                    email: data.user.email,
-                    role: "user"
-                }
-            ]);
-
-        if (profileError) {
-            console.error("Profile insert error:", profileError.message);
-        }
-    }
-
-    alert("Signup successful! Please check your email to confirm your account.");
 
     window.location.href = "login.html";
 });
@@ -131,8 +104,8 @@ form.addEventListener("submit", async (e) => {
 // ✅ Redirect if already logged in
 // =====================
 (async () => {
-    const { data } = await supabase.auth.getUser();
-    if (data.user) {
+    const { data } = await window._supabase.auth.getSession();
+    if (data.session) {
         window.location.href = "index.html";
     }
 })();

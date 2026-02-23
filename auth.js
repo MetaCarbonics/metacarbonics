@@ -1,26 +1,40 @@
-// CONFIG
-const SB_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-const SB_KEY = 'YOUR_ANON_PUBLIC_KEY';
-const _supabase = supabase.createClient(SB_URL, SB_KEY);
+if (!window._supabase) {
+    throw new Error("Supabase client is not initialized. Load supabase-client.js before auth.js");
+}
+const _supabase = window._supabase;
 
 // LOGIN
 async function login(email, password) {
     const { error } = await _supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    window.location.href = 'dashboard.html';
+    window.location.href = 'index.html';
 }
 
 // SIGNUP + Welcome Email
 async function signUp(email, password) {
-    const { error } = await _supabase.auth.signUp({
+    const { data, error } = await _supabase.auth.signUp({
         email,
         password,
         options: {
-            emailRedirectTo: 'https://metacarbonics.com/dashboard.html'
+            emailRedirectTo: 'https://metacarbonics.com/login.html'
         }
     });
     if (error) throw error;
-    alert("Verification email sent. Welcome to Metacarbonics 🚀");
+
+    // Safe no-op if trigger/function already handles profile creation.
+    if (data.user) {
+        const { error: profileError } = await _supabase
+            .from("profiles")
+            .upsert(
+                { id: data.user.id, email: data.user.email, role: "user" },
+                { onConflict: "id" }
+            );
+        if (profileError) {
+            console.warn("Profile upsert skipped:", profileError.message);
+        }
+    }
+
+    alert("Verification email sent. Please confirm your email before logging in.");
 }
 
 // PASSWORD RESET EMAIL
@@ -83,3 +97,13 @@ async function logout() {
     await _supabase.auth.signOut();
     window.location.href = "index.html";
 }
+
+window.metaAuth = {
+    login,
+    signUp,
+    sendReset,
+    protectPage,
+    uploadAvatar,
+    adminDeleteUser,
+    logout
+};

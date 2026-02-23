@@ -3,6 +3,7 @@
 <head>
     <title>Admin Panel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
     <script src="auth.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -18,7 +19,7 @@ protectPage().then(async user => {
 
     if (profile.role !== 'admin') {
         alert("Admins only.");
-        window.location.href = "dashboard.html";
+        window.location.href = "index.html";
     } else {
         loadUsers();
     }
