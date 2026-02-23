@@ -119,9 +119,12 @@ form.addEventListener("submit", async (e) => {
     const password = document.getElementById("password").value.trim();
 
     errorMsg.classList.add("hidden");
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next");
+    const nextPage = next && /^[a-zA-Z0-9._-]+\.html$/.test(next) ? next : "index.html";
 
     try {
-        await window.metaAuth.login(email, password);
+        await window.metaAuth.login(email, password, nextPage);
     } catch (error) {
         errorMsg.textContent = error.message;
         errorMsg.classList.remove("hidden");
@@ -139,5 +142,6 @@ form.addEventListener("submit", async (e) => {
 })();
 </script>
 
+<script src="global-auth-ui.js"></script>
 </body>
 </html>

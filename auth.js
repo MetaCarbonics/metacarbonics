@@ -2,6 +2,16 @@ if (!window._supabase) {
     throw new Error("Supabase client is not initialized. Load supabase-client.js before auth.js");
 }
 const _supabase = window._supabase;
+const INACTIVITY_LIMIT_MS = 10 * 60 * 1000;
+const ACTIVITY_KEY = "mc:last-activity-ts";
+const ACTIVE_TAB_KEY = "mc:active-tab-id";
+const FORCE_LOGOUT_KEY = "mc:force-logout";
+const TAB_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+let sessionGuardStarted = false;
+let logoutInProgress = false;
+let inactivityInterval = null;
+let lastActivityWrite = 0;
 
 async function ensureProfileForCurrentUser() {
     const {
@@ -25,11 +35,14 @@ async function ensureProfileForCurrentUser() {
 }
 
 // LOGIN
-async function login(email, password) {
+async function login(email, password, redirectTo) {
     const { error } = await _supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    // Keep only the most recent login session active across devices/browsers.
+    await _supabase.auth.signOut({ scope: "others" });
     await ensureProfileForCurrentUser();
-    window.location.href = 'index.html';
+    startSessionGuards();
+    window.location.href = redirectTo || "index.html";
 }
 
 // SIGNUP + Welcome Email
@@ -129,6 +142,7 @@ async function protectPage() {
     const { data: { session } } = await _supabase.auth.getSession();
     if (!session) window.location.href = "index.html";
     await ensureProfileForCurrentUser();
+    startSessionGuards();
     return session.user;
 }
 
@@ -173,9 +187,87 @@ async function adminDeleteUser(userId) {
 }
 
 async function logout() {
+    if (logoutInProgress) return;
+    logoutInProgress = true;
+    try {
+        localStorage.setItem(
+            FORCE_LOGOUT_KEY,
+            JSON.stringify({ sourceTab: TAB_ID, at: Date.now(), reason: "manual" })
+        );
+    } catch (_err) {
+        // Ignore storage failures and continue sign-out.
+    }
     const { error } = await _supabase.auth.signOut({ scope: "local" });
+    logoutInProgress = false;
     if (error) throw error;
     window.location.href = "index.html";
+}
+
+function touchActivity() {
+    const now = Date.now();
+    if (now - lastActivityWrite < 5000) return;
+    lastActivityWrite = now;
+    localStorage.setItem(ACTIVITY_KEY, String(now));
+}
+
+async function forceLogout(reason) {
+    if (logoutInProgress) return;
+    logoutInProgress = true;
+    clearInterval(inactivityInterval);
+    inactivityInterval = null;
+    try {
+        await _supabase.auth.signOut({ scope: "local" });
+    } finally {
+        logoutInProgress = false;
+        window.location.href = `login.html?reason=${encodeURIComponent(reason || "session")}`;
+    }
+}
+
+function startSessionGuards() {
+    if (sessionGuardStarted) return;
+    sessionGuardStarted = true;
+
+    // New tab takes ownership; previous active tab will be logged out.
+    localStorage.setItem(ACTIVE_TAB_KEY, TAB_ID);
+    touchActivity();
+
+    const activityEvents = ["click", "keydown", "mousemove", "scroll", "touchstart"];
+    activityEvents.forEach((eventName) => {
+        window.addEventListener(eventName, touchActivity, { passive: true });
+    });
+
+    window.addEventListener("storage", (event) => {
+        if (event.key === ACTIVE_TAB_KEY && event.newValue && event.newValue !== TAB_ID) {
+            forceLogout("new_tab_opened");
+            return;
+        }
+
+        if (event.key === FORCE_LOGOUT_KEY && event.newValue) {
+            try {
+                const payload = JSON.parse(event.newValue);
+                if (payload.sourceTab !== TAB_ID) {
+                    forceLogout(payload.reason || "signed_out_elsewhere");
+                }
+            } catch (_err) {
+                forceLogout("signed_out_elsewhere");
+            }
+        }
+    });
+
+    inactivityInterval = window.setInterval(() => {
+        const last = Number(localStorage.getItem(ACTIVITY_KEY) || "0");
+        if (!last) {
+            touchActivity();
+            return;
+        }
+        if (Date.now() - last >= INACTIVITY_LIMIT_MS) {
+            localStorage.setItem(
+                FORCE_LOGOUT_KEY,
+                JSON.stringify({ sourceTab: TAB_ID, at: Date.now(), reason: "inactivity_10m" })
+            );
+            forceLogout("inactivity_10m");
+        }
+    }, 10000);
 }
 
 window.metaAuth = {
@@ -185,6 +277,7 @@ window.metaAuth = {
     ensureProfileForCurrentUser,
     getCurrentUserWithProfile,
     requestAccountDeletion,
+    startSessionGuards,
     sendReset,
     protectPage,
     uploadAvatar,
