@@ -1,0 +1,22 @@
+{
+  "fromYear": 2019,
+  "toYear": 2020,
+  "matrix": [
+    {
+      "from": "forest",
+      "to": [
+        { "class": "forest", "areaHa": 104000 },
+        { "class": "cropland", "areaHa": 6800 },
+        { "class": "settlement", "areaHa": 1200 }
+      ]
+    },
+    {
+      "from": "cropland",
+      "to": [
+        { "class": "forest", "areaHa": 2100 },
+        { "class": "cropland", "areaHa": 79000 },
+        { "class": "settlement", "areaHa": 3000 }
+      ]
+    }
+  ]
+}

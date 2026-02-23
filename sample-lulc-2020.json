@@ -1,0 +1,10 @@
+{
+  "year": 2020,
+  "classAreasHa": {
+    "forest": 120000,
+    "cropland": 83000,
+    "water": 5400,
+    "settlement": 2100,
+    "grassland": 15000
+  }
+}

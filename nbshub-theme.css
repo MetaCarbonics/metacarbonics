@@ -1,0 +1,67 @@
+:root{
+  --green-dark:#0b3d2e;
+  --green-mid:#0f5f44;
+  --green-light:#daf7e8;
+  --offwhite:#f6f8f6;
+  --muted:#6b7a73;
+  --card-bg:#ffffff;
+}
+
+/* Reset & layout helpers */
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter, Arial, sans-serif;background:var(--offwhite);color:#123;line-height:1.45}
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+
+/* Header */
+.site-header{background:var(--green-dark);color:white;position:sticky;top:0;z-index:50;box-shadow:0 6px 18px rgba(0,0,0,0.18)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+.brand{font-weight:700;font-size:20px;letter-spacing:0.6px}
+.brand-accent{color:var(--green-light);margin-left:6px}
+.main-nav a{color:white;margin-left:20px;text-decoration:none;opacity:.95}
+.main-nav a:hover{opacity:.8}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,var(--green-dark),var(--green-mid));padding:100px 0;color:white;text-align:center}
+.eyebrow{margin:0;font-weight:600;opacity:.9}
+.hero-title{font-size:56px;margin:14px 0 6px;letter-spacing:1px}
+.hero-sub{margin:0;opacity:.92}
+
+/* Sections */
+.section{padding:56px 0}
+.section.light{background:rgba(255,255,255,0.95)}
+.section-title{text-align:left;font-size:28px;margin-bottom:22px;color:var(--green-dark)}
+
+/* Cards row */
+.cards-row{display:flex;gap:22px;flex-wrap:wrap}
+.cards-row.small{gap:14px}
+.card{background:var(--card-bg);border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(20,30,20,0.06);flex:1 1 300px;display:flex;flex-direction:column;text-decoration:none;color:inherit;border:2px solid rgba(13,60,46,0.03);transition:transform .22s,box-shadow .22s}
+.card.small{min-width:220px;max-width:360px}
+.card:hover{transform:translateY(-6px);box-shadow:0 14px 30px rgba(20,30,20,0.12)}
+.card-media{height:150px;background-size:cover;background-position:center;border-bottom:1px solid rgba(0,0,0,0.04)}
+.card-body{padding:18px 16px 22px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-size:20px;color:var(--green-mid)}
+.card h4{margin:0;font-size:18px;color:var(--green-dark)}
+.muted{color:var(--muted);font-size:14px}
+
+/* Buttons */
+.btn{display:inline-block;background:var(--green-light);color:#062e22;padding:10px 16px;border-radius:999px;font-weight:600;cursor:pointer}
+.btn-outline{display:inline-block;border:2px solid var(--green-mid);color:var(--green-mid);padding:8px 12px;border-radius:999px;font-weight:600}
+.card-actions{margin-top:auto}
+
+/* Blog / dmrv cards */
+.blog-row{display:flex;gap:18px;flex-wrap:wrap}
+.blog-card{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;background:white;box-shadow:0 6px 16px rgba(0,0,0,0.06);flex:1 1 320px}
+.blog-icon{width:54px;height:54px;border-radius:10px;background:var(--green-dark);display:flex;align-items:center;justify-content:center;color:white;font-size:20px}
+.dmrv-card{display:inline-block;padding:14px 18px;border-radius:10px;background:white;color:var(--green-dark);font-weight:600;text-decoration:none;min-width:180px;text-align:center;border:2px solid rgba(15,95,68,0.06)}
+.dmrv-card:hover{background:var(--green-mid);color:white}
+
+/* Footer */
+.site-footer{background:var(--green-dark);color:white;padding:22px 0;text-align:center;margin-top:32px}
+
+/* Responsive tweaks */
+@media (max-width:880px){
+  .hero-title{font-size:34px}
+  .cards-row{flex-direction:column}
+  .main-nav{display:none}
+  .card-media{height:160px}
+}

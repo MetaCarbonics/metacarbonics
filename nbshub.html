@@ -1,34 +1,106 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>NBSHub — MetaCarbonics</title><link rel="stylesheet" href="styles.css"/></head>
-<body>
-  <header class="site-header"><div class="wrap header-inner"><div class="brand">META<span class="brand-accent">CARBONICS</span></div><nav class="main-nav"><a href="index.html">Home</a></nav></div></header>
-
-  <main>
-    <section class="section">
-      <div class="wrap" style="text-align:center;padding:80px 20px">
-        <h1>NBSHub</h1>
-        <h2>Redirecting to NBSHub…</h2>
-        <p class="muted">This NBSHub entry now routes directly to the NBSHub HTML app.</p>
-        <p class="muted"><a id="dmrvLink" href="https://nbshub-app-worker.metacarbonics.workers.dev/frontend/index.html">Open NBSHub now</a></p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NBSHub DMRV</title>
+    <link rel="stylesheet" href="./nbshub-theme.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <link rel="stylesheet" href="./nbshub-styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <div class="brand">META<span class="brand-accent">CARBONICS</span></div>
+        <nav class="main-nav">
+          <a href="index.html">Home</a>
+        </nav>
       </div>
-    </section>
-  </main>
+    </header>
 
-  <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
-<script src="global-auth-ui.js"></script>
-<script>
-  // Primary target: Cloudflare Worker serving Nbshub private repository files.
-  const NBS_TARGET_URL = "https://nbshub-app-worker.metacarbonics.workers.dev/frontend/index.html";
-  // Local fallback for workspace testing.
-  const NBS_LOCAL_URL = "../Nbshub/index.html";
-  const link = document.getElementById("dmrvLink");
-  link.href = NBS_TARGET_URL;
-  try {
-    window.location.replace(NBS_TARGET_URL);
-  } catch (err) {
-    window.location.replace(NBS_LOCAL_URL);
-  }
-</script>
-</body>
+    <div class="app wrap">
+      <aside class="sidebar">
+        <h1>NBSHub DMRV</h1>
+        <small>Draw one or many polygons, layer them, save per user, upload/export KML, run early LULC/biomass analysis.</small>
+
+        <h2>Auth</h2>
+        <div class="card">
+          <label>Email</label>
+          <input id="email" type="email" placeholder="user@example.com" />
+          <label>Password</label>
+          <input id="password" type="password" placeholder="min 8 chars" />
+          <div class="row" style="margin-top:8px;">
+            <button id="registerBtn">Register</button>
+            <button id="loginBtn" class="secondary">Login</button>
+          </div>
+          <small id="authState">Not logged in</small>
+        </div>
+
+        <h2>Projects & Layers</h2>
+        <div class="card">
+          <label>New Project</label>
+          <input id="projectName" placeholder="My DMRV Site" />
+          <button id="createProjectBtn" style="margin-top:8px;">Create Project</button>
+          <label style="margin-top:8px;">Project</label>
+          <select id="projectSelect"></select>
+          <label style="margin-top:8px;">Active Layer</label>
+          <input id="activeLayer" placeholder="lulc-2020" value="default" />
+          <div class="row" style="margin-top:8px;">
+            <button id="saveFeaturesBtn">Save Polygons</button>
+            <button id="loadFeaturesBtn" class="secondary">Load Polygons</button>
+          </div>
+        </div>
+
+        <h2>KML</h2>
+        <div class="card">
+          <input id="kmlFile" type="file" accept=".kml" />
+          <button id="uploadKmlBtn" style="margin-top:8px;">Upload KML</button>
+          <button id="exportKmlBtn" class="secondary" style="margin-top:8px;">Export KML</button>
+        </div>
+
+        <h2>LULC Sources</h2>
+        <div class="card">
+          <label>Year</label>
+          <input id="lulcYear" type="number" placeholder="2020" />
+          <label>Stats URL (JSON)</label>
+          <input id="lulcUrl" placeholder="https://.../lulc_2020_stats.json" />
+          <button id="addLulcSourceBtn" style="margin-top:8px;">Add LULC Source</button>
+          <button id="runLulcTotalBtn" class="secondary" style="margin-top:8px;">Run Total Area Analysis</button>
+          <label style="margin-top:8px;">Transition URL (JSON)</label>
+          <input id="lulcTransitionUrl" placeholder="https://.../transition_2019_2020.json" />
+          <button id="runLulcTransitionBtn" class="warn" style="margin-top:8px;">Run Transition Analysis</button>
+        </div>
+
+        <h2>Biomass Sources</h2>
+        <div class="card">
+          <label>Year</label>
+          <input id="biomassYear" type="number" placeholder="2020" />
+          <label>Stats URL (JSON)</label>
+          <input id="biomassUrl" placeholder="https://.../biomass_2020_stats.json" />
+          <button id="addBiomassSourceBtn" style="margin-top:8px;">Add Biomass Source</button>
+          <button id="runBiomassBtn" class="secondary" style="margin-top:8px;">Run 10y Forest/Non-Forest Analysis</button>
+        </div>
+
+        <h2>PDF</h2>
+        <div class="card">
+          <label>Report Title</label>
+          <input id="reportTitle" placeholder="DMRV Analysis Report" />
+          <button id="downloadPdfBtn">Download PDF from Current Results</button>
+        </div>
+
+        <h2>Results</h2>
+        <pre id="resultBox">{}</pre>
+      </aside>
+
+      <main>
+        <div id="map"></div>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="./nbshub-app.js" type="module"></script>
+    <script src="global-auth-ui.js"></script>
+  </body>
 </html>
