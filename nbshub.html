@@ -10,7 +10,7 @@
         <h1>NBSHub</h1>
         <h2>Redirecting to NBSHub Repository…</h2>
         <p class="muted">This NBSHub entry now routes to the linked NBSHub repository and pages.</p>
-        <p class="muted"><a id="dmrvLink" href="https://github.com/MetaCarbonics/Nbshub">Open NBSHub now</a></p>
+        <p class="muted"><a id="dmrvLink" href="../Nbshub/index.html">Open NBSHub now</a></p>
       </div>
     </section>
   </main>
@@ -18,16 +18,11 @@
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
 <script src="global-auth-ui.js"></script>
 <script>
-  // Primary target: NBSHub repository. Fallback target: local checkout page.
-  const NBS_TARGET_URL = "https://github.com/MetaCarbonics/Nbshub";
-  const NBS_LOCAL_FALLBACK_URL = "../Nbshub/index.html";
+  // Primary target: NBSHub index page.
+  const NBS_TARGET_URL = "../Nbshub/index.html";
   const link = document.getElementById("dmrvLink");
   link.href = NBS_TARGET_URL;
-  try {
-    window.location.replace(NBS_TARGET_URL);
-  } catch (err) {
-    window.location.replace(NBS_LOCAL_FALLBACK_URL);
-  }
+  window.location.replace(NBS_TARGET_URL);
 </script>
 </body>
 </html>
