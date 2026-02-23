@@ -72,11 +72,10 @@ body {
         </button>
 
         <p class="text-center text-sm mt-4">
-            <span id="toggleText">Don't have an account?</span>
-            <button type="button" id="toggleAuth"
-                class="text-primary-dark font-semibold ml-1">
+            <span>Don't have an account?</span>
+            <a href="signup.html" class="text-primary-dark font-semibold ml-1">
                 Sign up
-            </button>
+            </a>
         </p>
 
     </form>
@@ -84,30 +83,9 @@ body {
 </div>
 
 <script>
-let isLogin = true;
-
 const form = document.getElementById("authForm");
-const toggleBtn = document.getElementById("toggleAuth");
-const authBtn = document.getElementById("authBtn");
-const toggleText = document.getElementById("toggleText");
 const errorMsg = document.getElementById("errorMsg");
 const forgotPasswordBtn = document.getElementById("forgotPassword");
-
-toggleBtn.addEventListener("click", () => {
-    isLogin = !isLogin;
-
-    if (isLogin) {
-        authBtn.textContent = "Login";
-        toggleText.textContent = "Don't have an account?";
-        toggleBtn.textContent = "Sign up";
-    } else {
-        authBtn.textContent = "Sign up";
-        toggleText.textContent = "Already have an account?";
-        toggleBtn.textContent = "Login";
-    }
-
-    errorMsg.classList.add("hidden");
-});
 
 forgotPasswordBtn.addEventListener("click", async () => {
     const email = document.getElementById("email").value.trim();
@@ -137,27 +115,11 @@ form.addEventListener("submit", async (e) => {
 
     errorMsg.classList.add("hidden");
 
-    if (isLogin) {
-
-        try {
-            await window.metaAuth.login(email, password);
-        } catch (error) {
-            errorMsg.textContent = error.message;
-            errorMsg.classList.remove("hidden");
-        }
-    } else {
-        try {
-            await window.metaAuth.signUp(email, password);
-        } catch (error) {
-            errorMsg.textContent = error.message;
-            errorMsg.classList.remove("hidden");
-            return;
-        }
-
-        isLogin = true;
-        authBtn.textContent = "Login";
-        toggleText.textContent = "Don't have an account?";
-        toggleBtn.textContent = "Sign up";
+    try {
+        await window.metaAuth.login(email, password);
+    } catch (error) {
+        errorMsg.textContent = error.message;
+        errorMsg.classList.remove("hidden");
     }
 });
 
