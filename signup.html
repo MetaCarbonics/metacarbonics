@@ -66,6 +66,11 @@ body {
             Sign Up
         </button>
 
+        <button type="button" id="resendVerification"
+            class="w-full text-sm text-primary-dark hover:underline">
+            Resend verification email
+        </button>
+
         <p class="text-center text-sm mt-4">
             Already have an account?
             <a href="login.html" class="text-primary-dark font-semibold ml-1">
@@ -80,6 +85,7 @@ body {
 <script>
 const form = document.getElementById("signupForm");
 const errorMsg = document.getElementById("errorMsg");
+const resendBtn = document.getElementById("resendVerification");
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -98,6 +104,30 @@ form.addEventListener("submit", async (e) => {
     }
 
     window.location.href = "login.html";
+});
+
+resendBtn.addEventListener("click", async () => {
+    const email = document.getElementById("email").value.trim();
+    errorMsg.classList.add("hidden");
+
+    if (!email) {
+        errorMsg.textContent = "Enter your email first, then click resend verification.";
+        errorMsg.classList.remove("hidden");
+        return;
+    }
+
+    try {
+        await window.metaAuth.resendVerification(email);
+        errorMsg.textContent = "Verification email sent. Check inbox/spam.";
+        errorMsg.classList.remove("hidden");
+        errorMsg.classList.remove("text-red-500");
+        errorMsg.classList.add("text-green-600");
+    } catch (error) {
+        errorMsg.textContent = error.message;
+        errorMsg.classList.remove("hidden");
+        errorMsg.classList.remove("text-green-600");
+        errorMsg.classList.add("text-red-500");
+    }
 });
 
 // =====================

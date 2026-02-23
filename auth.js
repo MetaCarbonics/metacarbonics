@@ -19,7 +19,12 @@ async function signUp(email, password) {
             emailRedirectTo: 'https://metacarbonics.com/login.html'
         }
     });
-    if (error) throw error;
+    if (error) {
+        if (error.message && error.message.toLowerCase().includes("already registered")) {
+            throw new Error("This email is already registered. Try login, reset password, or resend verification.");
+        }
+        throw error;
+    }
 
     // Safe no-op if trigger/function already handles profile creation.
     if (data.user) {
@@ -35,6 +40,18 @@ async function signUp(email, password) {
     }
 
     alert("Verification email sent. Please confirm your email before logging in.");
+}
+
+async function resendVerification(email) {
+    const { error } = await _supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+            emailRedirectTo: "https://metacarbonics.com/login.html"
+        }
+    });
+    if (error) throw error;
+    return true;
 }
 
 // PASSWORD RESET EMAIL
@@ -101,6 +118,7 @@ async function logout() {
 window.metaAuth = {
     login,
     signUp,
+    resendVerification,
     sendReset,
     protectPage,
     uploadAvatar,
