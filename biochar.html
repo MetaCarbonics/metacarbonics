@@ -1,33 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Biochar — MetaCarbonics</title>
-  <link rel="stylesheet" href="styles.css"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Biochar Workflow — MetaCarbonics</title>
+<link rel="stylesheet" href="styles.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+#progressBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: #3a7d44;
+  width: 0%;
+  z-index: 9999;
+  transition: width 0.2s ease;
+}
+
+.section {
+  padding: 100px 20px;
+  background: linear-gradient(to bottom, #f8faf7, #eef3ec);
+  min-height: 120vh;
+}
+
+.workflow-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 25px;
+  margin-top: 70px;
+  perspective: 1000px;
+}
+
+.workflow-step {
+  width: 230px;
+  background: #f4f6f3;
+  border-radius: 16px;
+  padding: 35px 20px;
+  text-align: center;
+  border: 1px solid #e0e5df;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+}
+
+.workflow-step:hover {
+  box-shadow: 0 20px 40px rgba(58, 125, 68, 0.2);
+  background: #eaf1e7;
+}
+
+.step-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #3a7d44;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  font-size: 22px;
+  margin-bottom: 15px;
+  transition: 0.3s ease;
+}
+
+.workflow-step:hover .step-icon {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(58, 125, 68, 0.5);
+}
+
+.arrow {
+  width: 60px;
+  height: 2px;
+  background: #3a7d44;
+  position: relative;
+  overflow: hidden;
+}
+
+.arrow::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: -3px;
+  width: 20px;
+  height: 8px;
+  background: #3a7d44;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  animation: moveArrow 1.5s linear infinite;
+}
+
+@keyframes moveArrow {
+  0% { left: -20px; }
+  100% { left: 80px; }
+}
+
+@media (max-width: 900px) {
+  .workflow-container {
+    flex-direction: column;
+  }
+
+  .arrow {
+    width: 2px;
+    height: 60px;
+  }
+
+  .arrow::before {
+    top: -20px;
+    left: -3px;
+    width: 8px;
+    height: 20px;
+    clip-path: polygon(0 0, 50% 100%, 100% 0);
+    animation: moveArrowVertical 1.5s linear infinite;
+  }
+
+  @keyframes moveArrowVertical {
+    0% { top: -20px; }
+    100% { top: 80px; }
+  }
+}
+</style>
 </head>
 <body>
-  <header class="site-header"><div class="wrap header-inner"><div class="brand">META<span class="brand-accent">CARBONICS</span></div><nav class="main-nav"><a href="index.html">Home</a></nav></div></header>
 
-  <main>
-    <section class="section">
-      <div class="wrap">
-        <h1>Biochar</h1>
-        <p class="muted">Biochar is a stable carbon product produced from biomass through pyrolysis. It can sequester carbon for decades and improve soil health.</p>
+<div id="progressBar"></div>
 
-        <h3>What we do</h3>
-        <ul>
-          <li>Technology selection & certification</li>
-          <li>Feedstock sourcing & supply-chain planning</li>
-          <li>MRV design for long-term carbon accounting</li>
-        </ul>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <div class="brand">META<span class="brand-accent">CARBONICS</span></div>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+    </nav>
+  </div>
+</header>
 
-        <h3>Key docs</h3>
-        <p class="muted">Upload PDFs to the project repo in the docs/ folder and link them here for stakeholders.</p>
-      </div>
-    </section>
-  </main>
+<main>
+<section class="section">
+<div class="wrap">
+  <h1>Carbon Biochar Project Workflow</h1>
+  <p class="muted">From feedstock feasibility to verified CORC credit issuance.</p>
 
-  <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
+  <div class="workflow-container">
+
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-leaf"></i></div>
+      <h3>Feasibility</h3>
+      <p>Feedstock and baseline assessment</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-file-contract"></i></div>
+      <h3>Design & Registration</h3>
+      <p>PDD & validation plan</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-industry"></i></div>
+      <h3>Implementation</h3>
+      <p>Machine operationalisation & LCA</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-chart-line"></i></div>
+      <h3>Monitoring</h3>
+      <p>MRV & verification</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-certificate"></i></div>
+      <h3>Credit Issuance</h3>
+      <p>Verified CORC</p>
+    </div>
+  </div>
+</div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div>
+</footer>
+
+<script>
+window.onscroll = function() {
+  const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+  const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  const scrolled = (winScroll / height) * 100;
+  document.getElementById("progressBar").style.width = scrolled + "%";
+};
+
+document.querySelectorAll(".workflow-step").forEach(function(card) {
+  card.addEventListener("mousemove", function(e) {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = -(y - centerY) / 15;
+    const rotateY = (x - centerX) / 15;
+    card.style.transform = "rotateX(" + rotateX + "deg) rotateY(" + rotateY + "deg)";
+  });
+
+  card.addEventListener("mouseleave", function() {
+    card.style.transform = "rotateX(0deg) rotateY(0deg)";
+  });
+});
+</script>
+
 <script src="global-auth-ui.js"></script>
 </body>
 </html>
