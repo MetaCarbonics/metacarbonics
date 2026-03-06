@@ -1,0 +1,62 @@
+name: Sync Biochar Checklist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+
+      - name: Checkout private Biochar repo
+        uses: actions/checkout@v4
+        with:
+          repository: MetaCarbonics/Biochar
+          token: ${{ secrets.BIOCHAR_REPO_TOKEN }}
+          path: biochar-private
+
+      - name: Sync checklist content (allowlist only)
+        run: |
+          set -euo pipefail
+          mkdir -p biochar-checklist
+
+          copied_any=0
+
+          if [ -f "biochar-private/README.md" ]; then
+            cp "biochar-private/README.md" "biochar-checklist/README.md"
+            copied_any=1
+          fi
+
+          if [ -d "biochar-private/checklist" ]; then
+            mkdir -p "biochar-checklist/checklist"
+            rsync -av --delete "biochar-private/checklist/" "biochar-checklist/checklist/"
+            copied_any=1
+          fi
+
+          if [ -d "biochar-private/docs/checklist" ]; then
+            mkdir -p "biochar-checklist/docs/checklist"
+            rsync -av --delete "biochar-private/docs/checklist/" "biochar-checklist/docs/checklist/"
+            copied_any=1
+          fi
+
+          if [ "$copied_any" -eq 0 ]; then
+            echo "No allowlisted checklist files found in private repo."
+            echo "Expected one of: README.md, checklist/, docs/checklist/"
+            exit 1
+          fi
+
+      - name: Commit and push changes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add biochar-checklist
+          git commit -m "Sync checklist from private Biochar repo" || echo "No changes to commit"
+          git push
