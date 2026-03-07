@@ -980,13 +980,13 @@ function loadStates(countryCode) {
 }
 
 function loadCities(countryCode, stateCode = "") {
-  const filteredCities = cities
-    .filter((city) => {
-      if (city.countryCode !== countryCode) return false;
-      if (!stateCode) return true;
-      return city.stateCode === stateCode;
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const inCountry = cities.filter((city) => city.countryCode === countryCode);
+  let filteredCities = inCountry;
+  if (stateCode) {
+    const byState = inCountry.filter((city) => city.stateCode === stateCode);
+    filteredCities = byState.length ? byState : inCountry;
+  }
+  filteredCities = filteredCities.sort((a, b) => a.name.localeCompare(b.name));
 
   clearAndSetDefault(citySelect, filteredCities.length ? "Select city" : "No city data available");
   citySelect.disabled = !filteredCities.length;
@@ -1074,7 +1074,7 @@ countrySelect.addEventListener("change", () => {
   }
 
   loadStates(countryCode);
-  if (stateSelect.disabled) loadCities(countryCode);
+  loadCities(countryCode);
   if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) geocodeProjectLocation();
   renderSummary();
   saveUserToLocalStorage();
@@ -1082,7 +1082,7 @@ countrySelect.addEventListener("change", () => {
 
 stateSelect.addEventListener("change", () => {
   if (!countrySelect.value) return;
-  loadCities(countrySelect.value, stateSelect.value);
+  loadCities(countrySelect.value, stateSelect.value || "");
   if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) geocodeProjectLocation();
   renderSummary();
   saveUserToLocalStorage();
