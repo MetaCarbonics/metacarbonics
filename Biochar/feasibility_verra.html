@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verra Tentative Credits Calculator</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-registry="verra">
+    <main class="page">
+      <section class="card">
+        <h1>Verra Tentative Credits Calculator</h1>
+        <p class="small">Registry: <strong id="registryName">Verra</strong></p>
+        <div class="grid">
+          <div>
+            <label>Annual Biochar (t/year)</label>
+            <input id="annualBiochar" type="number" readonly />
+          </div>
+          <div>
+            <label>Carbon Content (%)</label>
+            <input id="carbonContent" type="number" readonly />
+          </div>
+          <div>
+            <label>Permanence Factor</label>
+            <input id="permanenceFactor" type="number" readonly />
+          </div>
+          <div>
+            <label>Tentative Credits (tCO2e/year)</label>
+            <input id="tentativeCredits" type="number" readonly />
+          </div>
+          <div>
+            <label>Issuance Factor</label>
+            <input id="issuanceFactor" type="number" min="0" max="1" step="0.01" />
+          </div>
+          <div>
+            <label>Buffer (%)</label>
+            <input id="bufferPercent" type="number" min="0" max="100" step="0.1" />
+          </div>
+        </div>
+        <label>Final Credits (tCO2e/year)</label>
+        <input id="finalCredits" type="number" readonly />
+        <div class="btn-row">
+          <button id="backToFeasibilityBtn" class="btn btn-secondary" type="button">Back to Step 7</button>
+          <button id="useResultBtn" class="btn" type="button">Use Result in Step 7</button>
+        </div>
+      </section>
+    </main>
+    <script src="./feasibility_registry_calculator.js"></script>
+  </body>
+</html>

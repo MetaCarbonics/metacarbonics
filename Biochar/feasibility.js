@@ -134,6 +134,8 @@ const addAdditionalInfoBtn = document.getElementById("addAdditionalInfoBtn");
 const tentativeSection = document.getElementById("tentativeSection");
 const tentativePermanenceFactor = document.getElementById("tentativePermanenceFactor");
 const tentativeCreditsValue = document.getElementById("tentativeCreditsValue");
+const openRegistryCalculatorBtn = document.getElementById("openRegistryCalculatorBtn");
+const finalCreditsValue = document.getElementById("finalCreditsValue");
 const refreshPreviewBtn = document.getElementById("refreshPreviewBtn");
 const projectPreview = document.getElementById("projectPreview");
 const contractSignedCheckbox = document.getElementById("contractSignedCheckbox");
@@ -153,6 +155,10 @@ let facilityLng = null;
 let mapEditMode = false;
 let facilityMap = null;
 let facilityMarker = null;
+let finalRegistryCredits = null;
+
+const FINAL_CREDITS_STORAGE_KEY = "biochar-feasibility-final-credits";
+const TRANSFER_STORAGE_PREFIX = "biochar-feasibility-transfer:";
 
 let draftFeedstockName = "";
 let draftFeedstockIndex = -1;
@@ -314,6 +320,15 @@ function isAccepted(value) {
 
 function getSelectedRegistry() {
   return REGISTRIES.find((r) => r.id === registrySelect.value);
+}
+
+function getRegistryCalculatorPage(registryId) {
+  return {
+    verra: "feasibility_verra.html",
+    gs: "feasibility_gs.html",
+    puro: "feasibility_puro.html",
+    isometric: "feasibility_isometric.html",
+  }[registryId] || "";
 }
 
 function getCurrentSectionFromUrl() {
@@ -612,6 +627,28 @@ function renderTentativeCredits() {
   tentativeCreditsValue.textContent = computeTentativeCredits().toFixed(2);
 }
 
+function loadFinalRegistryCredits() {
+  try {
+    const raw = localStorage.getItem(FINAL_CREDITS_STORAGE_KEY);
+    if (!raw) {
+      finalRegistryCredits = null;
+      finalCreditsValue.textContent = "Not calculated yet.";
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.registry_id !== registrySelect.value) {
+      finalRegistryCredits = null;
+      finalCreditsValue.textContent = "Not calculated yet.";
+      return;
+    }
+    finalRegistryCredits = parsed;
+    finalCreditsValue.textContent = `${Number(parsed.final_credits_tco2e || 0).toFixed(2)} tCO2e/year`;
+  } catch {
+    finalRegistryCredits = null;
+    finalCreditsValue.textContent = "Not calculated yet.";
+  }
+}
+
 function renderProjectPreview() {
   const data = getFormData();
   const feedstockLines = feedstockEntries.length
@@ -621,11 +658,11 @@ function renderProjectPreview() {
     ? additionalInfoEntries.map((item, idx) => `${idx + 1}. ${item.text || "-"}`).join("\n")
     : "No additional info.";
   const preview = [
-    `User: ${data.user_id || "N/A"}`,
     `Location: ${data.country_name || "N/A"} | ${data.state_name || "N/A"} | ${data.city_name || "N/A"}`,
     `Registry: ${data.registry_name || "N/A"}`,
     `Biomass total (t/year): ${data.biomass_total_tpy || "0"}`,
     `Tentative credits (tCO2e/year): ${computeTentativeCredits().toFixed(2)}`,
+    `Final credits (tCO2e/year): ${finalRegistryCredits ? Number(finalRegistryCredits.final_credits_tco2e || 0).toFixed(2) : "Not calculated yet"}`,
     "",
     "Feedstocks:",
     feedstockLines,
@@ -665,6 +702,7 @@ function updateContractLockState() {
   const locked = contractSignedCheckbox.checked;
   addFeedstockBtn.disabled = locked;
   addAdditionalInfoBtn.disabled = locked;
+  openRegistryCalculatorBtn.disabled = locked;
 }
 
 function sectionToStep(sectionName) {
@@ -765,6 +803,30 @@ function openStep1Editor() {
   step1Card.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function openRegistryCalculator() {
+  if (!registrySelect.value) {
+    alert("Select registry before opening calculator.");
+    return;
+  }
+  const page = getRegistryCalculatorPage(registrySelect.value);
+  if (!page) {
+    alert("No calculator configured for this registry.");
+    return;
+  }
+
+  const transferToken = `${Date.now()}`;
+  const payload = {
+    transfer_token: transferToken,
+    registry_id: registrySelect.value,
+    registry_name: selectedText(registrySelect),
+    tentative_permanence_factor: tentativePermanenceFactor.value,
+    tentative_credits_tco2e: computeTentativeCredits().toFixed(2),
+    form_data: getFormData(),
+  };
+  sessionStorage.setItem(`${TRANSFER_STORAGE_PREFIX}${transferToken}`, JSON.stringify(payload));
+  window.location.href = `./${page}?token=${encodeURIComponent(transferToken)}`;
+}
+
 function renderPreviousSectionSummary() {
   const parts = [];
   if (selectedText(countrySelect)) parts.push(`Country: ${selectedText(countrySelect)}`);
@@ -839,6 +901,7 @@ function getFormData() {
     q22_financial_model_evidence: financeQ22.value,
     q23_tentative_permanence_factor: tentativePermanenceFactor.value,
     q24_tentative_credits_tco2e: computeTentativeCredits().toFixed(2),
+    q25_final_credits_tco2e: finalRegistryCredits ? String(finalRegistryCredits.final_credits_tco2e) : "",
 
     additional_info_json: JSON.stringify(additionalInfoEntries),
     contract_signed: contractSignedCheckbox.checked ? "yes" : "no",
@@ -862,6 +925,7 @@ function renderSummary() {
   renderPyrolysisSummary();
   renderFinancialSummary();
   renderTentativeCredits();
+  loadFinalRegistryCredits();
   renderProjectPreview();
 }
 
@@ -956,6 +1020,7 @@ function loadUserFromLocalStorage() {
     renderBiocharCriticalInfo();
     if (facilityMap) setFacilityMarker(facilityLat, facilityLng, true);
     updateFacilityLocationSummary();
+    loadFinalRegistryCredits();
     renderSummary();
   } catch (error) {
     console.error("Failed to load saved data", error);
@@ -1120,6 +1185,7 @@ registrySelect.addEventListener("change", () => {
   if (registrySelect.value) {
     feedstockFeedback.textContent = "Registry selected. Select a feedstock and open the form.";
   }
+  loadFinalRegistryCredits();
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -1224,9 +1290,16 @@ toAdditionalPageBtn.addEventListener("click", () => {
 toTentativePageBtn.addEventListener("click", () => {
   navigateToSection("tentative");
 });
+openRegistryCalculatorBtn.addEventListener("click", openRegistryCalculator);
 
 backToStep1Btn.addEventListener("click", navigateBackByHistory);
 window.addEventListener("popstate", applySectionFromUrl);
+window.addEventListener("storage", (event) => {
+  if (event.key === FINAL_CREDITS_STORAGE_KEY) {
+    loadFinalRegistryCredits();
+    renderProjectPreview();
+  }
+});
 
 progressStep1.addEventListener("click", () => navigateToSection("step1"));
 progressStep2.addEventListener("click", () => navigateToSection("feedstock"));
