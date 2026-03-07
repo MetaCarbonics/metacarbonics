@@ -329,6 +329,11 @@ textarea {
   transform: translateY(-6px);
 }
 
+#feedstockSharePieChart,
+#feedstockContributionChart {
+  max-height: 220px;
+}
+
 a {
   color: #1d4ed8;
 }

@@ -680,7 +680,7 @@ function renderFeedstockContributionViews(baseResult) {
       feedstockSharePieChart = new window.Chart(feedstockSharePieChartEl, {
         type: "pie",
         data: { labels, datasets: [{ label: "Feedstock share (%)", data: vals, backgroundColor: colors }] },
-        options: { responsive: true, plugins: { legend: { display: true, position: "right" } } },
+        options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.9, plugins: { legend: { display: true, position: "right" } } },
       });
     }
     if (feedstockContributionChartEl && rows.length) {
@@ -690,7 +690,7 @@ function renderFeedstockContributionViews(baseResult) {
       feedstockContributionChart = new window.Chart(feedstockContributionChartEl, {
         type: "pie",
         data: { labels, datasets: [{ label: "Annual credits (tCO2e/year)", data: vals, backgroundColor: colors }] },
-        options: { responsive: true, plugins: { legend: { display: true, position: "right" } } },
+        options: { responsive: true, maintainAspectRatio: true, aspectRatio: 1.9, plugins: { legend: { display: true, position: "right" } } },
       });
     }
   }

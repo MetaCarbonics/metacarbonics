@@ -830,17 +830,6 @@ function buildContractPreviewLines() {
     lines.push(`Carbon content default used: ${fmt(cdr.feedstock)} (${fmt(cdr.region)}) = ${fmt(cdr.default_pct)}% [range ${fmt(cdr.range_pct)}%]`);
     if (cdr.source_label || cdr.source_url) lines.push(`  Source: ${fmt(cdr.source_label)} ${fmt(cdr.source_url)}`);
   }
-  if (finalRegistryCredits?.breakdown) {
-    lines.push("Runtime breakdown values:");
-    lines.push(`  Gross: ${fmt(finalRegistryCredits.breakdown.gross)}`);
-    lines.push(`  Process deduction: ${fmt(finalRegistryCredits.breakdown.process)}`);
-    lines.push(`  Transport deduction: ${fmt(finalRegistryCredits.breakdown.transport)}`);
-    lines.push(`  Leakage deduction: ${fmt(finalRegistryCredits.breakdown.leakage)}`);
-    lines.push(`  Uncertainty deduction: ${fmt(finalRegistryCredits.breakdown.uncertainty_loss)}`);
-    lines.push(`  Buffer deduction: ${fmt(finalRegistryCredits.breakdown.buffer_loss)}`);
-    lines.push(`  Issuance deduction: ${fmt(finalRegistryCredits.breakdown.issuance_loss)}`);
-    lines.push(`  Final: ${fmt(finalRegistryCredits.breakdown.final)}`);
-  }
   if (finalRegistryCredits?.sensitivity?.details && Array.isArray(finalRegistryCredits.sensitivity.details)) {
     lines.push("Sensitivity scenarios:");
     finalRegistryCredits.sensitivity.details.forEach((s) => {
@@ -850,10 +839,6 @@ function buildContractPreviewLines() {
     });
   } else if (finalRegistryCredits?.sensitivity) {
     lines.push(`Sensitivity: variable=${fmt(finalRegistryCredits.sensitivity.variable)}, range=${fmt(finalRegistryCredits.sensitivity.low_pct)}% to ${fmt(finalRegistryCredits.sensitivity.high_pct)}%, low=${fmt(finalRegistryCredits.sensitivity.low_final)}, high=${fmt(finalRegistryCredits.sensitivity.high_final)}`);
-  }
-  if (Array.isArray(finalRegistryCredits?.assumptions_used)) {
-    lines.push("Assumptions used:");
-    finalRegistryCredits.assumptions_used.forEach((a, i) => lines.push(`  ${i + 1}. ${a}`));
   }
   lines.push("");
   lines.push(`Contract sign status: ${data.contract_signed === "yes" ? "SIGNED" : "PENDING"}`);
