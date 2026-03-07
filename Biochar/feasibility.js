@@ -31,6 +31,8 @@ const citySelect = document.getElementById("citySelect");
 const multiStateCheckbox = document.getElementById("multiStateCheckbox");
 const multiStateWrap = document.getElementById("multiStateWrap");
 const multiStateSelect = document.getElementById("multiStateSelect");
+const multiStateLocationList = document.getElementById("multiStateLocationList");
+const addMultiStateLocationBtn = document.getElementById("addMultiStateLocationBtn");
 const registrySelect = document.getElementById("registrySelect");
 const registryMeta = document.getElementById("registryMeta");
 const summary = document.getElementById("summary");
@@ -147,6 +149,8 @@ const step7MonitoringBody = document.getElementById("step7MonitoringBody");
 const refreshPreviewBtn = document.getElementById("refreshPreviewBtn");
 const downloadPreviewPdfBtn = document.getElementById("downloadPreviewPdfBtn");
 const projectPreview = document.getElementById("projectPreview");
+const previewFacilityMapEl = document.getElementById("previewFacilityMap");
+const previewFacilityTableBody = document.getElementById("previewFacilityTableBody");
 const contractSignedCheckbox = document.getElementById("contractSignedCheckbox");
 
 const backToStep1Btn = document.getElementById("backToStep1Btn");
@@ -162,9 +166,12 @@ let showStep1Editor = false;
 let facilityLat = null;
 let facilityLng = null;
 let facilityPoints = [];
+let multiStateLocations = [];
 let mapEditMode = false;
 let facilityMap = null;
 let facilityMarkersLayer = null;
+let previewFacilityMap = null;
+let previewFacilityMarkersLayer = null;
 let stateBoundaryLayer = null;
 let stateBoundaryFeatures = [];
 let finalRegistryCredits = null;
@@ -204,6 +211,117 @@ function setMultiValues(selectEl, values) {
   const set = new Set(values || []);
   Array.from(selectEl.options).forEach((opt) => {
     opt.selected = set.has(opt.value);
+  });
+}
+
+function getCountryStates(countryCode) {
+  return states
+    .filter((state) => state.countryCode === countryCode)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function getStateNameFromCode(countryCode, stateCode) {
+  const hit = states.find((s) => s.countryCode === countryCode && s.isoCode === stateCode);
+  return hit?.name || "";
+}
+
+function getCitiesForState(countryCode, stateCode) {
+  const inCountry = cities.filter((city) => city.countryCode === countryCode);
+  const inState = inCountry.filter((city) => city.stateCode === stateCode);
+  const list = (inState.length ? inState : inCountry).slice();
+  list.sort((a, b) => a.name.localeCompare(b.name));
+  return list;
+}
+
+function syncMultiStateSelectFromLocations() {
+  const names = [...new Set(multiStateLocations.map((m) => m.state_name).filter(Boolean))];
+  setMultiValues(multiStateSelect, names);
+}
+
+function getBoundaryStateNames() {
+  if (!multiStateCheckbox?.checked) return [selectedText(stateSelect)].filter(Boolean);
+  const names = [...new Set(multiStateLocations.map((m) => m.state_name).filter(Boolean))];
+  if (names.length) return names;
+  return getMultiValues(multiStateSelect);
+}
+
+function renderMultiStateLocationRows() {
+  if (!multiStateLocationList) return;
+  if (!multiStateCheckbox?.checked) {
+    multiStateLocationList.innerHTML = "";
+    return;
+  }
+  const countryCode = countrySelect.value;
+  const countryStates = getCountryStates(countryCode);
+  if (!multiStateLocations.length) multiStateLocations.push({ state_code: "", state_name: "", city_name: "" });
+  multiStateLocationList.innerHTML = "";
+  multiStateLocations.forEach((row, idx) => {
+    const wrap = document.createElement("div");
+    wrap.className = "questionnaire-card";
+    wrap.style.margin = "8px 0";
+    const cityOptions = row.state_code ? getCitiesForState(countryCode, row.state_code) : [];
+    const stateOptionsHtml = countryStates
+      .map((s) => `<option value="${s.isoCode}" ${row.state_code === s.isoCode ? "selected" : ""}>${s.name}</option>`)
+      .join("");
+    const cityOptionsHtml = cityOptions
+      .map((c) => `<option value="${c.name}" ${row.city_name === c.name ? "selected" : ""}>${c.name}</option>`)
+      .join("");
+    wrap.innerHTML = `
+      <div class="grid">
+        <div>
+          <label>State ${idx + 1}</label>
+          <select data-ms-state-idx="${idx}">
+            <option value="">Select state</option>
+            ${stateOptionsHtml}
+          </select>
+        </div>
+        <div>
+          <label>City ${idx + 1}</label>
+          <select data-ms-city-idx="${idx}" ${row.state_code ? "" : "disabled"}>
+            <option value="">Select city</option>
+            ${cityOptionsHtml}
+          </select>
+        </div>
+      </div>
+      ${multiStateLocations.length > 1 ? `<div class="btn-row"><button type="button" class="btn btn-secondary btn-sm" data-ms-remove-idx="${idx}">Remove</button></div>` : ""}
+    `;
+    multiStateLocationList.appendChild(wrap);
+  });
+  multiStateLocationList.querySelectorAll("select[data-ms-state-idx]").forEach((el) => {
+    el.addEventListener("change", () => {
+      const idx = Number(el.dataset.msStateIdx);
+      if (!Number.isInteger(idx) || !multiStateLocations[idx]) return;
+      const code = el.value || "";
+      multiStateLocations[idx].state_code = code;
+      multiStateLocations[idx].state_name = getStateNameFromCode(countrySelect.value, code);
+      multiStateLocations[idx].city_name = "";
+      syncMultiStateSelectFromLocations();
+      renderMultiStateLocationRows();
+      refreshStateBoundaryLayer();
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  });
+  multiStateLocationList.querySelectorAll("select[data-ms-city-idx]").forEach((el) => {
+    el.addEventListener("change", () => {
+      const idx = Number(el.dataset.msCityIdx);
+      if (!Number.isInteger(idx) || !multiStateLocations[idx]) return;
+      multiStateLocations[idx].city_name = el.value || "";
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  });
+  multiStateLocationList.querySelectorAll("button[data-ms-remove-idx]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.msRemoveIdx);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= multiStateLocations.length) return;
+      multiStateLocations.splice(idx, 1);
+      syncMultiStateSelectFromLocations();
+      renderMultiStateLocationRows();
+      refreshStateBoundaryLayer();
+      renderSummary();
+      saveUserToLocalStorage();
+    });
   });
 }
 
@@ -269,7 +387,7 @@ function pointInFeature(lat, lng, feature) {
 
 function getPlacementError(lat, lng) {
   if (multiStateCheckbox?.checked) {
-    const selected = getMultiValues(multiStateSelect);
+    const selected = getBoundaryStateNames();
     if (!selected.length) return "Select one or more allowed states before adding facility marker(s).";
     if (!stateBoundaryFeatures.length) return "State boundary is still loading. Try again in a moment.";
   }
@@ -285,17 +403,69 @@ function renderFacilityMarkerDates() {
     facilityMarkerDates.textContent = "Add marker(s) in edit mode, then set operation start date below.";
     return;
   }
+  const countryCode = countrySelect.value;
+  const countryStates = getCountryStates(countryCode);
+  const stateNameSet = new Set(getBoundaryStateNames());
+  const allowedStates = multiStateCheckbox?.checked
+    ? countryStates.filter((s) => stateNameSet.has(s.name))
+    : countryStates.filter((s) => s.isoCode === stateSelect.value);
+  const allowedStateList = allowedStates.length ? allowedStates : countryStates;
   facilityMarkerDates.innerHTML = facilityPoints
     .map((p, idx) => {
       const coords = `${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}`;
+      const stateOptions = allowedStateList
+        .map((s) => `<option value="${s.isoCode}" ${p.state_code === s.isoCode ? "selected" : ""}>${s.name}</option>`)
+        .join("");
+      const cityOptions = p.state_code ? getCitiesForState(countryCode, p.state_code) : [];
+      const cityOptionsHtml = cityOptions
+        .map((c) => `<option value="${c.name}" ${p.city_name === c.name ? "selected" : ""}>${c.name}</option>`)
+        .join("");
       return `<div class="questionnaire-card" style="margin:8px 0;padding:8px;">
         <strong>Facility ${idx + 1}</strong><br>
         <span class="small">Coordinates: ${coords}</span><br>
+        <div class="grid">
+          <div>
+            <label for="facilityState${idx}">State</label>
+            <select id="facilityState${idx}" data-marker-state-idx="${idx}">
+              <option value="">Select state</option>
+              ${stateOptions}
+            </select>
+          </div>
+          <div>
+            <label for="facilityCity${idx}">City</label>
+            <select id="facilityCity${idx}" data-marker-city-idx="${idx}" ${p.state_code ? "" : "disabled"}>
+              <option value="">Select city</option>
+              ${cityOptionsHtml}
+            </select>
+          </div>
+        </div>
         <label for="facilityStartDate${idx}">Operation start date</label>
         <input id="facilityStartDate${idx}" type="date" data-marker-date-idx="${idx}" value="${p.start_date || ""}" />
       </div>`;
     })
     .join("");
+  facilityMarkerDates.querySelectorAll("select[data-marker-state-idx]").forEach((inputEl) => {
+    inputEl.addEventListener("change", () => {
+      const idx = Number(inputEl.dataset.markerStateIdx);
+      if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
+      const code = inputEl.value || "";
+      facilityPoints[idx].state_code = code;
+      facilityPoints[idx].state_name = getStateNameFromCode(countryCode, code);
+      facilityPoints[idx].city_name = "";
+      renderFacilityMarkerDates();
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  });
+  facilityMarkerDates.querySelectorAll("select[data-marker-city-idx]").forEach((inputEl) => {
+    inputEl.addEventListener("change", () => {
+      const idx = Number(inputEl.dataset.markerCityIdx);
+      if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
+      facilityPoints[idx].city_name = inputEl.value || "";
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  });
   facilityMarkerDates.querySelectorAll("input[data-marker-date-idx]").forEach((inputEl) => {
     inputEl.addEventListener("change", () => {
       const idx = Number(inputEl.dataset.markerDateIdx);
@@ -323,7 +493,14 @@ function renderFacilityMarkers(recenter = false) {
         marker.setLatLng([p.lat, p.lng]);
         return;
       }
-      facilityPoints[idx] = { lat: Number(pos.lat), lng: Number(pos.lng), start_date: p.start_date || "" };
+      facilityPoints[idx] = {
+        lat: Number(pos.lat),
+        lng: Number(pos.lng),
+        start_date: p.start_date || "",
+        state_code: p.state_code || "",
+        state_name: p.state_name || "",
+        city_name: p.city_name || "",
+      };
       syncPrimaryFacilityPoint();
       updateFacilityLocationSummary();
       renderSummary();
@@ -352,8 +529,23 @@ function setFacilityMarker(lat, lng, recenter = true) {
   if (!Number.isFinite(la) || !Number.isFinite(ln)) return;
   const placementError = getPlacementError(la, ln);
   if (placementError) return;
-  if (!facilityPoints.length) facilityPoints.push({ lat: la, lng: ln, start_date: "" });
-  else facilityPoints[0] = { lat: la, lng: ln, start_date: facilityPoints[0]?.start_date || "" };
+  const defaultStateCode = multiStateCheckbox?.checked
+    ? (multiStateLocations.find((m) => m.state_code)?.state_code || "")
+    : (stateSelect.value || "");
+  const defaultStateName = getStateNameFromCode(countrySelect.value, defaultStateCode) || selectedText(stateSelect);
+  const defaultCity = citySelect.value || "";
+  if (!facilityPoints.length) {
+    facilityPoints.push({ lat: la, lng: ln, start_date: "", state_code: defaultStateCode, state_name: defaultStateName, city_name: defaultCity });
+  } else {
+    facilityPoints[0] = {
+      lat: la,
+      lng: ln,
+      start_date: facilityPoints[0]?.start_date || "",
+      state_code: facilityPoints[0]?.state_code || defaultStateCode,
+      state_name: facilityPoints[0]?.state_name || defaultStateName,
+      city_name: facilityPoints[0]?.city_name || defaultCity,
+    };
+  }
   syncPrimaryFacilityPoint();
   renderFacilityMarkers(recenter);
   updateFacilityLocationSummary();
@@ -379,9 +571,7 @@ async function fetchStateBoundaryFeature(stateName, countryName) {
 
 async function refreshStateBoundaryLayer() {
   if (!facilityMap || !window.L) return;
-  const stateNames = multiStateCheckbox?.checked
-    ? getMultiValues(multiStateSelect)
-    : [selectedText(stateSelect)].filter(Boolean);
+  const stateNames = getBoundaryStateNames();
   stateBoundaryFeatures = [];
   if (!stateNames.length) {
     if (stateBoundaryLayer) stateBoundaryLayer.clearLayers();
@@ -440,7 +630,17 @@ function initFacilityMap() {
       alert(placementError);
       return;
     }
-    facilityPoints.push({ lat: Number(e.latlng.lat), lng: Number(e.latlng.lng), start_date: "" });
+    const defaultStateCode = multiStateCheckbox?.checked
+      ? (multiStateLocations.find((m) => m.state_code)?.state_code || "")
+      : (stateSelect.value || "");
+    facilityPoints.push({
+      lat: Number(e.latlng.lat),
+      lng: Number(e.latlng.lng),
+      start_date: "",
+      state_code: defaultStateCode,
+      state_name: getStateNameFromCode(countrySelect.value, defaultStateCode) || selectedText(stateSelect),
+      city_name: citySelect.value || "",
+    });
     syncPrimaryFacilityPoint();
     renderFacilityMarkers(false);
     renderSummary();
@@ -967,7 +1167,9 @@ function buildContractPreviewLines() {
   lines.push(`Registry: ${fmt(data.registry_name)}`);
   lines.push(`Facility markers count: ${facilityPoints.length}`);
   facilityPoints.forEach((p, i) =>
-    lines.push(`  Marker ${i + 1}: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)} | Start date: ${fmt(p.start_date)}`)
+    lines.push(
+      `  Marker ${i + 1}: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)} | State: ${fmt(p.state_name)} | City: ${fmt(p.city_name)} | Start date: ${fmt(p.start_date)}`
+    )
   );
   if (facilityPoints.length) {
     const p0 = facilityPoints[0];
@@ -1055,6 +1257,55 @@ function buildContractPreviewLines() {
 
 function renderProjectPreview() {
   projectPreview.textContent = buildContractPreviewLines().join("\n");
+  renderPreviewFacilityBlock();
+}
+
+function initPreviewFacilityMap() {
+  if (!previewFacilityMapEl || !window.L || previewFacilityMap) return;
+  previewFacilityMap = window.L.map(previewFacilityMapEl, {
+    zoomControl: true,
+    attributionControl: true,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    tap: false,
+  }).setView([20, 0], 2);
+  window.L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 19,
+    attribution: "Tiles &copy; Esri",
+  }).addTo(previewFacilityMap);
+  previewFacilityMarkersLayer = window.L.layerGroup().addTo(previewFacilityMap);
+}
+
+function renderPreviewFacilityBlock() {
+  if (previewFacilityTableBody) {
+    if (!facilityPoints.length) {
+      previewFacilityTableBody.innerHTML = '<tr><td colspan="6">No facility markers yet.</td></tr>';
+    } else {
+      previewFacilityTableBody.innerHTML = facilityPoints
+        .map(
+          (p, idx) =>
+            `<tr><td>Facility ${idx + 1}</td><td>${fmt(p.state_name || selectedText(stateSelect))}</td><td>${fmt(p.city_name || citySelect.value)}</td><td>${Number(p.lat).toFixed(6)}</td><td>${Number(p.lng).toFixed(6)}</td><td>${fmt(p.start_date)}</td></tr>`
+        )
+        .join("");
+    }
+  }
+  if (!previewFacilityMap || !window.L || !previewFacilityMarkersLayer) return;
+  previewFacilityMap.invalidateSize();
+  previewFacilityMarkersLayer.clearLayers();
+  if (!facilityPoints.length) {
+    previewFacilityMap.setView([20, 0], 2);
+    return;
+  }
+  const latlngs = facilityPoints.map((p) => [Number(p.lat), Number(p.lng)]);
+  facilityPoints.forEach((p, idx) => {
+    const marker = window.L.marker([Number(p.lat), Number(p.lng)]).addTo(previewFacilityMarkersLayer);
+    marker.bindPopup(`Facility ${idx + 1}<br>State: ${fmt(p.state_name)}<br>City: ${fmt(p.city_name)}<br>Start: ${fmt(p.start_date)}`);
+  });
+  const bounds = window.L.latLngBounds(latlngs);
+  if (bounds.isValid()) previewFacilityMap.fitBounds(bounds.pad(0.15));
 }
 
 function getCoordsExtentFromFeature(feature) {
@@ -1366,7 +1617,13 @@ async function downloadPreviewPdf() {
     y += 14;
     const pointsForPdf = facilityPoints.length
       ? facilityPoints
-      : [{ lat: Number(data.facility_lat), lng: Number(data.facility_lng), start_date: data.facility_start_date || "" }].filter(
+      : [{
+          lat: Number(data.facility_lat),
+          lng: Number(data.facility_lng),
+          start_date: data.facility_start_date || "",
+          state_name: data.state_name || "",
+          city_name: data.city_name || "",
+        }].filter(
           (p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)
         );
     const p0 = pointsForPdf[0] || null;
@@ -1451,6 +1708,21 @@ async function downloadPreviewPdf() {
     doc.text("Legend: red marker = facility location on satellite imagery", mapX, mapY + mapH + 12);
     y = mapY + mapH + 18;
     doc.setFontSize(9);
+    drawTable(
+      "Facility Locations",
+      ["Facility", "State", "City", "Lat", "Lng", "Operation Start Date"],
+      pointsForPdf.map((pt, idx) => ({
+        cells: [
+          `Facility ${idx + 1}`,
+          fmt(pt.state_name),
+          fmt(pt.city_name),
+          Number(pt.lat).toFixed(6),
+          Number(pt.lng).toFixed(6),
+          fmt(pt.start_date),
+        ],
+      })),
+      [55, 100, 100, 80, 80, 100]
+    );
   }
 
   if (finalRegistryCredits?.breakdown) {
@@ -1719,7 +1991,9 @@ function renderPreviousSectionSummary() {
   const parts = [];
   if (selectedText(countrySelect)) parts.push(`Country: ${selectedText(countrySelect)}`);
   if (multiStateCheckbox?.checked) {
-    const ms = getMultiValues(multiStateSelect);
+    const ms = multiStateLocations
+      .filter((m) => m.state_name)
+      .map((m) => (m.city_name ? `${m.state_name} (${m.city_name})` : m.state_name));
     if (ms.length) parts.push(`States: ${ms.join(", ")}`);
   } else if (selectedText(stateSelect)) parts.push(`State: ${selectedText(stateSelect)}`);
   if (citySelect.value) parts.push(`City: ${citySelect.value}`);
@@ -1763,7 +2037,8 @@ function getFormData() {
     state_code: stateSelect.value,
     state_name: selectedText(stateSelect),
     multi_state_mode: multiStateCheckbox?.checked ? "yes" : "no",
-    selected_states_json: JSON.stringify(getMultiValues(multiStateSelect)),
+    selected_states_json: JSON.stringify(getBoundaryStateNames()),
+    multi_state_locations_json: JSON.stringify(multiStateLocations),
     city_name: citySelect.value,
     registry_id: registrySelect.value,
     registry_name: selectedText(registrySelect),
@@ -1864,24 +2139,44 @@ function loadUserFromLocalStorage() {
     multiStateCheckbox.checked = data.multi_state_mode === "yes";
     multiStateWrap.classList.toggle("hidden", !multiStateCheckbox.checked);
     try {
-      const ms = JSON.parse(data.selected_states_json || "[]");
-      setMultiValues(multiStateSelect, Array.isArray(ms) ? ms : []);
+      const msLoc = JSON.parse(data.multi_state_locations_json || "[]");
+      if (Array.isArray(msLoc) && msLoc.length) {
+        multiStateLocations = msLoc.map((m) => ({
+          state_code: String(m.state_code || ""),
+          state_name: String(m.state_name || ""),
+          city_name: String(m.city_name || ""),
+        }));
+      } else {
+        const ms = JSON.parse(data.selected_states_json || "[]");
+        multiStateLocations = Array.isArray(ms) ? ms.map((name) => ({ state_code: "", state_name: String(name || ""), city_name: "" })) : [];
+      }
     } catch {
-      setMultiValues(multiStateSelect, []);
+      multiStateLocations = [];
     }
+    syncMultiStateSelectFromLocations();
+    renderMultiStateLocationRows();
     try {
       const pts = JSON.parse(data.facility_points_json || "[]");
       if (Array.isArray(pts) && pts.length) {
         facilityPoints = pts
-          .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng), start_date: String(p.start_date || "") }))
+          .map((p) => ({
+            lat: Number(p.lat),
+            lng: Number(p.lng),
+            start_date: String(p.start_date || ""),
+            state_code: String(p.state_code || ""),
+            state_name: String(p.state_name || ""),
+            city_name: String(p.city_name || ""),
+          }))
           .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
       } else if (Number.isFinite(facilityLat) && Number.isFinite(facilityLng)) {
-        facilityPoints = [{ lat: facilityLat, lng: facilityLng, start_date: "" }];
+        facilityPoints = [{ lat: facilityLat, lng: facilityLng, start_date: "", state_code: "", state_name: "", city_name: "" }];
       } else {
         facilityPoints = [];
       }
     } catch {
-      facilityPoints = Number.isFinite(facilityLat) && Number.isFinite(facilityLng) ? [{ lat: facilityLat, lng: facilityLng, start_date: "" }] : [];
+      facilityPoints = Number.isFinite(facilityLat) && Number.isFinite(facilityLng)
+        ? [{ lat: facilityLat, lng: facilityLng, start_date: "", state_code: "", state_name: "", city_name: "" }]
+        : [];
     }
     syncPrimaryFacilityPoint();
     updateRegistryMeta();
@@ -1969,9 +2264,7 @@ function downloadCsv() {
 }
 
 function loadStates(countryCode) {
-  const countryStates = states
-    .filter((state) => state.countryCode === countryCode)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const countryStates = getCountryStates(countryCode);
 
   clearAndSetDefault(
     stateSelect,
@@ -1988,6 +2281,18 @@ function loadStates(countryCode) {
     countryStates.forEach((state) => multiStateSelect.appendChild(option(state.name, state.name)));
     multiStateSelect.disabled = false;
   }
+  if (multiStateCheckbox?.checked) {
+    multiStateLocations = multiStateLocations
+      .map((m) => {
+        const code = m.state_code || countryStates.find((s) => s.name === m.state_name)?.isoCode || "";
+        const name = getStateNameFromCode(countryCode, code) || m.state_name || "";
+        return { state_code: code, state_name: name, city_name: m.city_name || "" };
+      })
+      .filter((m) => m.state_code || m.state_name);
+    if (!multiStateLocations.length && countryStates.length) multiStateLocations.push({ state_code: "", state_name: "", city_name: "" });
+  }
+  syncMultiStateSelectFromLocations();
+  renderMultiStateLocationRows();
 }
 
 function loadCities(countryCode, stateCode = "") {
@@ -2089,6 +2394,8 @@ countrySelect.addEventListener("change", () => {
   if (!countryCode) {
     clearAndSetDefault(stateSelect, "Select country first");
     stateSelect.disabled = true;
+    multiStateLocations = [];
+    renderMultiStateLocationRows();
     renderSummary();
     return;
   }
@@ -2118,6 +2425,14 @@ citySelect.addEventListener("change", () => {
 
 multiStateCheckbox.addEventListener("change", () => {
   multiStateWrap.classList.toggle("hidden", !multiStateCheckbox.checked);
+  if (multiStateCheckbox.checked && !multiStateLocations.length) {
+    multiStateLocations.push({ state_code: "", state_name: "", city_name: "" });
+  }
+  if (!multiStateCheckbox.checked) {
+    multiStateLocations = [];
+  }
+  syncMultiStateSelectFromLocations();
+  renderMultiStateLocationRows();
   refreshStateBoundaryLayer();
   renderSummary();
   saveUserToLocalStorage();
@@ -2128,6 +2443,15 @@ multiStateSelect.addEventListener("change", () => {
   renderSummary();
   saveUserToLocalStorage();
 });
+
+if (addMultiStateLocationBtn) {
+  addMultiStateLocationBtn.addEventListener("click", () => {
+    multiStateLocations.push({ state_code: "", state_name: "", city_name: "" });
+    renderMultiStateLocationRows();
+    renderSummary();
+    saveUserToLocalStorage();
+  });
+}
 
 registrySelect.addEventListener("change", () => {
   updateRegistryMeta();
@@ -2311,6 +2635,7 @@ saveCsvBtn.addEventListener("click", downloadCsv);
 
 Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
   initFacilityMap();
+  initPreviewFacilityMap();
   renderAdditionalInfo();
   loadUserFromLocalStorage();
   renderAllFeedstockTables();

@@ -55,11 +55,16 @@
               Project spans multiple states
             </label>
             <div id="multiStateWrap" class="hidden">
+              <label>Project States and Cities</label>
+              <div id="multiStateLocationList" class="questionnaire-list"></div>
+              <div class="btn-row">
+                <button id="addMultiStateLocationBtn" class="btn btn-secondary btn-sm" type="button">Add Another State</button>
+              </div>
               <label for="multiStateSelect">Allowed States for Facility Markers</label>
-              <select id="multiStateSelect" class="multi-select" multiple disabled>
+              <select id="multiStateSelect" class="multi-select hidden" multiple disabled>
                 <option value="">Select country first</option>
               </select>
-              <p class="small">If enabled, facility markers can only be placed inside selected state boundaries.</p>
+              <p class="small">Facility markers can only be placed inside selected state boundaries.</p>
             </div>
 
             <div class="grid">
@@ -459,6 +464,18 @@
             <button id="refreshPreviewBtn" class="btn btn-secondary btn-sm" type="button">Refresh Preview</button>
             <button id="downloadPreviewPdfBtn" class="btn btn-secondary btn-sm" type="button">Download PDF</button>
           </div>
+        </div>
+        <div class="questionnaire-card">
+          <h4>Facility Map & Table</h4>
+          <div id="previewFacilityMap" class="facility-map" aria-label="Preview facility map"></div>
+          <table class="feedstock-table">
+            <thead>
+              <tr><th>Facility</th><th>State</th><th>City</th><th>Lat</th><th>Lng</th><th>Operation Start Date</th></tr>
+            </thead>
+            <tbody id="previewFacilityTableBody">
+              <tr><td colspan="6">No facility markers yet.</td></tr>
+            </tbody>
+          </table>
         </div>
         <pre id="projectPreview" class="preview-box">No data yet.</pre>
 
