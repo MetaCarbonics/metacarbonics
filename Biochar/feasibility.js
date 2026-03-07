@@ -784,7 +784,14 @@ function buildContractPreviewLines() {
     lines.push(`  Issuance deduction: ${fmt(finalRegistryCredits.breakdown.issuance_loss)}`);
     lines.push(`  Final: ${fmt(finalRegistryCredits.breakdown.final)}`);
   }
-  if (finalRegistryCredits?.sensitivity) {
+  if (finalRegistryCredits?.sensitivity?.details && Array.isArray(finalRegistryCredits.sensitivity.details)) {
+    lines.push("Sensitivity scenarios:");
+    finalRegistryCredits.sensitivity.details.forEach((s) => {
+      lines.push(
+        `  ${fmt(s.label || s.variable)}: low ${fmt(s.low_pct)}%=${fmt(s.low_final)}, base=${fmt(s.base_final)}, high ${fmt(s.high_pct)}%=${fmt(s.high_final)}`
+      );
+    });
+  } else if (finalRegistryCredits?.sensitivity) {
     lines.push(`Sensitivity: variable=${fmt(finalRegistryCredits.sensitivity.variable)}, range=${fmt(finalRegistryCredits.sensitivity.low_pct)}% to ${fmt(finalRegistryCredits.sensitivity.high_pct)}%, low=${fmt(finalRegistryCredits.sensitivity.low_final)}, high=${fmt(finalRegistryCredits.sensitivity.high_final)}`);
   }
   if (Array.isArray(finalRegistryCredits?.assumptions_used)) {

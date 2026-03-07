@@ -76,11 +76,37 @@
 
       <section class="card">
         <h3>Sensitivity Calculator</h3>
-        <div class="grid">
-          <div><label>Variable</label><select id="sensitivityVariable"><option value="carbonContent">Carbon Content</option><option value="permanence">Permanence</option><option value="stableCarbon">Stable Carbon Fraction</option><option value="processE">Process Emissions</option></select></div>
-          <div><label>Low variation (%)</label><input id="sensitivityLow" type="number" value="-20" step="1" /></div>
-          <div><label>High variation (%)</label><input id="sensitivityHigh" type="number" value="20" step="1" /></div>
-        </div>
+        <table class="feedstock-table">
+          <thead>
+            <tr><th>Parameter</th><th>Low variation (%)</th><th>High variation (%)</th><th>Result line (tCO2e/year)</th></tr>
+          </thead>
+          <tbody id="sensitivityRowsBody">
+            <tr>
+              <td>Carbon Content</td>
+              <td><input id="sensitivityLow_carbonContent" data-sensitivity-input="true" type="number" value="-20" step="1" /></td>
+              <td><input id="sensitivityHigh_carbonContent" data-sensitivity-input="true" type="number" value="20" step="1" /></td>
+              <td id="sensitivityLine_carbonContent" class="small"></td>
+            </tr>
+            <tr>
+              <td>Permanence</td>
+              <td><input id="sensitivityLow_permanence" data-sensitivity-input="true" type="number" value="-20" step="1" /></td>
+              <td><input id="sensitivityHigh_permanence" data-sensitivity-input="true" type="number" value="20" step="1" /></td>
+              <td id="sensitivityLine_permanence" class="small"></td>
+            </tr>
+            <tr>
+              <td>Stable Carbon Fraction</td>
+              <td><input id="sensitivityLow_stableCarbon" data-sensitivity-input="true" type="number" value="-20" step="1" /></td>
+              <td><input id="sensitivityHigh_stableCarbon" data-sensitivity-input="true" type="number" value="20" step="1" /></td>
+              <td id="sensitivityLine_stableCarbon" class="small"></td>
+            </tr>
+            <tr>
+              <td>Process Emissions</td>
+              <td><input id="sensitivityLow_processE" data-sensitivity-input="true" type="number" value="-20" step="1" /></td>
+              <td><input id="sensitivityHigh_processE" data-sensitivity-input="true" type="number" value="20" step="1" /></td>
+              <td id="sensitivityLine_processE" class="small"></td>
+            </tr>
+          </tbody>
+        </table>
         <div id="sensitivityValue" class="small"></div>
         <canvas id="sensitivityChart"></canvas>
       </section>

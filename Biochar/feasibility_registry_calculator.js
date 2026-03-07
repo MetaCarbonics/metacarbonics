@@ -31,9 +31,6 @@ const grossCreditsEl = document.getElementById("grossCredits");
 const netBeforeBufferEl = document.getElementById("netBeforeBuffer");
 const finalCreditsEl = document.getElementById("finalCredits");
 
-const sensitivityVariableEl = document.getElementById("sensitivityVariable");
-const sensitivityLowEl = document.getElementById("sensitivityLow");
-const sensitivityHighEl = document.getElementById("sensitivityHigh");
 const sensitivityValueEl = document.getElementById("sensitivityValue");
 
 const carbonGuideBody = document.getElementById("carbonGuideBody");
@@ -49,6 +46,13 @@ let breakdownChart = null;
 let sensitivityChart = null;
 let payload = null;
 let feedstockEntries = [];
+
+const SENSITIVITY_CONFIG = [
+  { key: "carbonContent", label: "Carbon Content" },
+  { key: "permanence", label: "Permanence" },
+  { key: "stableCarbon", label: "Stable Carbon Fraction" },
+  { key: "processE", label: "Process Emissions" },
+];
 
 const REGISTRY_CONFIG = {
   verra: {
@@ -127,6 +131,27 @@ const ASSUMPTIONS = [
 function num(el, fallback = 0) {
   const v = Number(el.value);
   return Number.isFinite(v) ? v : fallback;
+}
+
+function getSensitivityLowEl(key) {
+  return document.getElementById(`sensitivityLow_${key}`);
+}
+
+function getSensitivityHighEl(key) {
+  return document.getElementById(`sensitivityHigh_${key}`);
+}
+
+function getSensitivityLineEl(key) {
+  return document.getElementById(`sensitivityLine_${key}`);
+}
+
+function sensitivityOverrides(key, multiplier) {
+  const overrides = {};
+  if (key === "carbonContent") overrides.carbonContent = num(inputCarbonContent) * multiplier;
+  if (key === "permanence") overrides.permanence = num(inputPermanence) * multiplier;
+  if (key === "stableCarbon") overrides.stableCarbon = num(inputStableCarbon) * multiplier;
+  if (key === "processE") overrides.processE = num(inputProcessEmissions) * multiplier;
+  return overrides;
 }
 
 function dominantFeedstockName() {
@@ -302,26 +327,49 @@ function renderBreakdownChart(result) {
 
 function renderSensitivityChart() {
   if (!window.Chart) return;
-  const variable = sensitivityVariableEl.value;
-  const low = num(sensitivityLowEl, -20);
-  const high = num(sensitivityHighEl, 20);
-  const points = [];
-  for (let p = low; p <= high; p += 5) {
-    const m = 1 + p / 100;
-    const o = {};
-    if (variable === "carbonContent") o.carbonContent = num(inputCarbonContent) * m;
-    if (variable === "permanence") o.permanence = num(inputPermanence) * m;
-    if (variable === "stableCarbon") o.stableCarbon = num(inputStableCarbon) * m;
-    if (variable === "processE") o.processE = num(inputProcessEmissions) * m;
-    points.push({ x: p, y: calculateCredits(o).final });
-  }
-  sensitivityValueEl.textContent = `${calculateCredits().final.toFixed(2)} tCO2e/year at current inputs`;
+  const baseFinal = calculateCredits().final;
+  const datasets = [];
+  const summaryLines = [];
+
+  SENSITIVITY_CONFIG.forEach((cfg) => {
+    const lowEl = getSensitivityLowEl(cfg.key);
+    const highEl = getSensitivityHighEl(cfg.key);
+    const lowRaw = num(lowEl, -20);
+    const highRaw = num(highEl, 20);
+    const low = Math.min(lowRaw, highRaw);
+    const high = Math.max(lowRaw, highRaw);
+    const points = [];
+    for (let p = low; p <= high; p += 5) {
+      const m = 1 + p / 100;
+      points.push({ x: p, y: calculateCredits(sensitivityOverrides(cfg.key, m)).final });
+    }
+    if (!points.length || points[points.length - 1]?.x !== high) {
+      const mHigh = 1 + high / 100;
+      points.push({ x: high, y: calculateCredits(sensitivityOverrides(cfg.key, mHigh)).final });
+    }
+    const lowFinal = calculateCredits(sensitivityOverrides(cfg.key, 1 + low / 100)).final;
+    const highFinal = calculateCredits(sensitivityOverrides(cfg.key, 1 + high / 100)).final;
+    const lineEl = getSensitivityLineEl(cfg.key);
+    if (lineEl) {
+      lineEl.textContent = `Low ${low}%: ${lowFinal.toFixed(2)} | Base: ${baseFinal.toFixed(2)} | High ${high}%: ${highFinal.toFixed(2)}`;
+    }
+    summaryLines.push(`${cfg.label}: low ${low}%=${lowFinal.toFixed(2)}, base=${baseFinal.toFixed(2)}, high ${high}%=${highFinal.toFixed(2)} tCO2e/year`);
+    datasets.push({
+      data: points,
+      parsing: false,
+      borderWidth: 2,
+      label: cfg.label,
+      tension: 0.2,
+      pointRadius: 1.5,
+    });
+  });
+  sensitivityValueEl.innerHTML = `<strong>Base final credits:</strong> ${baseFinal.toFixed(2)} tCO2e/year<br>${summaryLines.join("<br>")}`;
 
   const ctx = document.getElementById("sensitivityChart");
   if (sensitivityChart) sensitivityChart.destroy();
   sensitivityChart = new window.Chart(ctx, {
     type: "line",
-    data: { datasets: [{ data: points, parsing: false, borderWidth: 2, label: "Final credits" }] },
+    data: { datasets },
     options: { responsive: true, scales: { x: { type: "linear", title: { display: true, text: "Input variation (%)" } }, y: { beginAtZero: true } } },
   });
 }
@@ -335,6 +383,29 @@ function renderAll() {
   renderTenYearTable(res.final);
   renderBreakdownChart(res);
   renderSensitivityChart();
+}
+
+function collectSensitivityDetails() {
+  const baseFinal = calculateCredits().final;
+  return SENSITIVITY_CONFIG.map((cfg) => {
+    const lowEl = getSensitivityLowEl(cfg.key);
+    const highEl = getSensitivityHighEl(cfg.key);
+    const lowRaw = num(lowEl, -20);
+    const highRaw = num(highEl, 20);
+    const lowPct = Math.min(lowRaw, highRaw);
+    const highPct = Math.max(lowRaw, highRaw);
+    const lowFinal = calculateCredits(sensitivityOverrides(cfg.key, 1 + lowPct / 100)).final;
+    const highFinal = calculateCredits(sensitivityOverrides(cfg.key, 1 + highPct / 100)).final;
+    return {
+      variable: cfg.key,
+      label: cfg.label,
+      low_pct: lowPct,
+      high_pct: highPct,
+      base_final: Number(baseFinal.toFixed(2)),
+      low_final: Number(lowFinal.toFixed(2)),
+      high_final: Number(highFinal.toFixed(2)),
+    };
+  });
 }
 
 function init() {
@@ -378,10 +449,11 @@ transportFactorSelect.addEventListener("change", () => {
   inputBufferPct,
   inputIssuance,
   inputAdditionalityAdj,
-  sensitivityVariableEl,
-  sensitivityLowEl,
-  sensitivityHighEl,
 ].forEach((el) => el.addEventListener("input", renderAll));
+
+document.querySelectorAll('[data-sensitivity-input="true"]').forEach((el) => {
+  el.addEventListener("input", renderAll);
+});
 
 backBtn.addEventListener("click", () => {
   window.location.href = "./biochar-phase1-feasibility-tool.html?section=tentative";
@@ -389,31 +461,7 @@ backBtn.addEventListener("click", () => {
 
 useResultBtn.addEventListener("click", () => {
   const result = calculateCredits();
-  const lowPct = num(sensitivityLowEl, -20);
-  const highPct = num(sensitivityHighEl, 20);
-  const variable = sensitivityVariableEl.value;
-  const lowMultiplier = 1 + lowPct / 100;
-  const highMultiplier = 1 + highPct / 100;
-  const lowOverrides = {};
-  const highOverrides = {};
-  if (variable === "carbonContent") {
-    lowOverrides.carbonContent = num(inputCarbonContent) * lowMultiplier;
-    highOverrides.carbonContent = num(inputCarbonContent) * highMultiplier;
-  }
-  if (variable === "permanence") {
-    lowOverrides.permanence = num(inputPermanence) * lowMultiplier;
-    highOverrides.permanence = num(inputPermanence) * highMultiplier;
-  }
-  if (variable === "stableCarbon") {
-    lowOverrides.stableCarbon = num(inputStableCarbon) * lowMultiplier;
-    highOverrides.stableCarbon = num(inputStableCarbon) * highMultiplier;
-  }
-  if (variable === "processE") {
-    lowOverrides.processE = num(inputProcessEmissions) * lowMultiplier;
-    highOverrides.processE = num(inputProcessEmissions) * highMultiplier;
-  }
-  const lowFinal = calculateCredits(lowOverrides).final;
-  const highFinal = calculateCredits(highOverrides).final;
+  const sensitivityDetails = collectSensitivityDetails();
 
   localStorage.setItem(
     FINAL_CREDITS_STORAGE_KEY,
@@ -440,11 +488,8 @@ useResultBtn.addEventListener("click", () => {
       },
       assumptions_used: ASSUMPTIONS,
       sensitivity: {
-        variable,
-        low_pct: lowPct,
-        high_pct: highPct,
-        low_final: Number(lowFinal.toFixed(2)),
-        high_final: Number(highFinal.toFixed(2)),
+        base_final: Number(result.final.toFixed(2)),
+        details: sensitivityDetails,
       },
       calculated_at_utc: new Date().toISOString(),
     })
