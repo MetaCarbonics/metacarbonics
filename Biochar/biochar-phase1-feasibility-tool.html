@@ -82,10 +82,11 @@
               <th>Feedstock</th>
               <th>Qty (t/year)</th>
               <th>Distance (km)</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="feedstockTableBodyFeedstock">
-            <tr><td colspan="3">No feedstock added yet.</td></tr>
+            <tr><td colspan="4">No feedstock added yet.</td></tr>
           </tbody>
         </table>
 
@@ -98,8 +99,7 @@
           <label id="copyPreviousWrap" for="copyPreviousCheckbox">
             <input id="copyPreviousCheckbox" type="checkbox" /> Copy previous feedstock information
           </label>
-          <button id="editFeedstockBtn" class="btn btn-secondary" type="button">Edit Feedstock Info</button>
-          <button id="addFeedstockBtn" class="btn" type="button">Add New Feedstock</button>
+          <button id="addFeedstockBtn" class="btn" type="button">Open Feedstock Form</button>
         </div>
 
         <div id="activeFeedstockCard" class="questionnaire-card hidden">
@@ -122,6 +122,10 @@
 
           <label for="feedstockNotes">Notes</label>
           <textarea id="feedstockNotes" rows="3"></textarea>
+
+          <div class="btn-row">
+            <button id="saveFeedstockInfoBtn" class="btn" type="button">Save Info</button>
+          </div>
         </div>
 
         <div class="btn-row">

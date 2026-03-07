@@ -41,10 +41,10 @@ const editPreviousInfoCheckbox = document.getElementById("editPreviousInfoCheckb
 const feedstockType = document.getElementById("feedstockType");
 const copyPreviousWrap = document.getElementById("copyPreviousWrap");
 const copyPreviousCheckbox = document.getElementById("copyPreviousCheckbox");
-const editFeedstockBtn = document.getElementById("editFeedstockBtn");
 const addFeedstockBtn = document.getElementById("addFeedstockBtn");
 const activeFeedstockCard = document.getElementById("activeFeedstockCard");
 const activeFeedstockTitle = document.getElementById("activeFeedstockTitle");
+const saveFeedstockInfoBtn = document.getElementById("saveFeedstockInfoBtn");
 
 const q1SourceSupply = document.getElementById("q1SourceSupply");
 const q2SupplierRelation = document.getElementById("q2SupplierRelation");
@@ -98,8 +98,10 @@ let states = [];
 let cities = [];
 let feedstockMatrix = [];
 let feedstockEntries = [];
-let activeFeedstockName = "";
 let additionalInfoEntries = [];
+
+let draftFeedstockName = "";
+let draftFeedstockIndex = -1;
 
 function option(label, value) {
   const opt = document.createElement("option");
@@ -114,13 +116,11 @@ function clearAndSetDefault(selectEl, text) {
 }
 
 function selectedText(selectEl) {
-  return selectEl.selectedOptions[0]?.textContent || "";
+  return selectEl?.selectedOptions?.[0]?.textContent || "";
 }
 
 function getMultiValues(selectEl) {
-  return Array.from(selectEl.selectedOptions)
-    .map((opt) => opt.value)
-    .filter(Boolean);
+  return Array.from(selectEl.selectedOptions).map((o) => o.value).filter(Boolean);
 }
 
 function setMultiValues(selectEl, values) {
@@ -135,10 +135,7 @@ function parseCsvLine(line) {
 }
 
 function parseFeedstockCsv(csvText) {
-  const rows = csvText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const rows = csvText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   if (!rows.length) return [];
   const headers = parseCsvLine(rows[0]);
   return rows.slice(1).map((line) => {
@@ -159,9 +156,21 @@ function getSelectedRegistry() {
   return REGISTRIES.find((r) => r.id === registrySelect.value);
 }
 
+function getCurrentSectionFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const section = params.get("section") || "feedstock";
+  return ["feedstock", "biochar", "pyrolysis", "corc"].includes(section)
+    ? section
+    : "feedstock";
+}
+
+function canEnterFeedstockSection() {
+  return Boolean(registrySelect.value);
+}
+
 function computeTotalBiomass() {
-  return feedstockEntries.reduce((sum, entry) => {
-    const qty = Number(entry.quantity_tpy || 0);
+  return feedstockEntries.reduce((sum, row) => {
+    const qty = Number(row.quantity_tpy || 0);
     return sum + (Number.isFinite(qty) ? qty : 0);
   }, 0);
 }
@@ -171,26 +180,36 @@ function updatePlantCapacityFromBiomass() {
   plantCapacity.value = total > 0 ? String(total) : "";
 }
 
-function renderFeedstockTable(tbodyEl) {
+function updateCopyOptionState() {
+  const hasPrevious = feedstockEntries.length > 0;
+  copyPreviousCheckbox.checked = hasPrevious ? copyPreviousCheckbox.checked : false;
+  copyPreviousCheckbox.disabled = !hasPrevious;
+  copyPreviousWrap.style.display = hasPrevious ? "inline-flex" : "none";
+}
+
+function renderFeedstockTable(tbodyEl, withActions = false) {
   tbodyEl.innerHTML = "";
   if (!feedstockEntries.length) {
     const tr = document.createElement("tr");
-    tr.innerHTML = '<td colspan="3">No feedstock added yet.</td>';
+    tr.innerHTML = `<td colspan="${withActions ? 4 : 3}">No feedstock added yet.</td>`;
     tbodyEl.appendChild(tr);
     return;
   }
 
-  feedstockEntries.forEach((entry) => {
+  feedstockEntries.forEach((entry, idx) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${entry.feedstock}</td><td>${entry.quantity_tpy || ""}</td><td>${entry.q4_transport_km || ""}</td>`;
+    const actionCell = withActions
+      ? `<td><button class="btn btn-secondary" type="button" data-edit-feedstock-index="${idx}">Edit</button></td>`
+      : "";
+    tr.innerHTML = `<td>${entry.feedstock}</td><td>${entry.quantity_tpy || ""}</td><td>${entry.q4_transport_km || ""}</td>${actionCell}`;
     tbodyEl.appendChild(tr);
   });
 }
 
 function renderAllFeedstockTables() {
-  renderFeedstockTable(feedstockTableBodyFeedstock);
-  renderFeedstockTable(feedstockTableBodyBiochar);
-  renderFeedstockTable(feedstockTableBodyPyro);
+  renderFeedstockTable(feedstockTableBodyFeedstock, true);
+  renderFeedstockTable(feedstockTableBodyBiochar, false);
+  renderFeedstockTable(feedstockTableBodyPyro, false);
 
   const total = computeTotalBiomass();
   biomassTotalFeedstock.textContent = String(total);
@@ -201,22 +220,21 @@ function renderAllFeedstockTables() {
   updateCopyOptionState();
 }
 
-function getActiveFeedstockIndex() {
-  return feedstockEntries.findIndex((x) => x.feedstock === activeFeedstockName);
+function hideFeedstockForm() {
+  draftFeedstockIndex = -1;
+  draftFeedstockName = "";
+  activeFeedstockCard.classList.add("hidden");
+  q1SourceSupply.value = "";
+  q2SupplierRelation.value = "";
+  q3CurrentUse.value = "";
+  q4TransportKm.value = "";
+  feedstockQty.value = "";
+  feedstockNotes.value = "";
 }
 
-function setActiveFeedstock(feedstockName) {
-  activeFeedstockName = feedstockName;
-  const idx = getActiveFeedstockIndex();
-  if (idx < 0) {
-    activeFeedstockCard.classList.add("hidden");
-    return;
-  }
-
-  const entry = feedstockEntries[idx];
+function showFeedstockForm(entry, modeLabel) {
   activeFeedstockCard.classList.remove("hidden");
-  activeFeedstockTitle.textContent = `Feedstock Questionnaire: ${entry.feedstock}`;
-
+  activeFeedstockTitle.textContent = `${modeLabel}: ${entry.feedstock}`;
   q1SourceSupply.value = entry.q1_source_supply || "";
   q2SupplierRelation.value = entry.q2_suppliers_relation || "";
   q3CurrentUse.value = entry.q3_current_use || "";
@@ -225,117 +243,84 @@ function setActiveFeedstock(feedstockName) {
   feedstockNotes.value = entry.notes || "";
 }
 
-function updateCopyOptionState() {
-  const hasPrevious = feedstockEntries.length > 0;
-  copyPreviousCheckbox.checked = hasPrevious ? copyPreviousCheckbox.checked : false;
-  copyPreviousCheckbox.disabled = !hasPrevious;
-  copyPreviousWrap.style.display = hasPrevious ? "inline-flex" : "none";
+function openFeedstockFormBySelection() {
+  const selected = feedstockType.value;
+  if (!selected) {
+    hideFeedstockForm();
+    return;
+  }
+
+  const existingIdx = feedstockEntries.findIndex((x) => x.feedstock === selected);
+  if (existingIdx >= 0) {
+    draftFeedstockIndex = existingIdx;
+    draftFeedstockName = selected;
+    showFeedstockForm(feedstockEntries[existingIdx], "Edit Feedstock");
+    return;
+  }
+
+  const previous = feedstockEntries[feedstockEntries.length - 1] || null;
+  const copy = copyPreviousCheckbox.checked && previous;
+  const draft = {
+    feedstock: selected,
+    quantity_tpy: copy ? previous.quantity_tpy : "",
+    q1_source_supply: copy ? previous.q1_source_supply : "",
+    q2_suppliers_relation: copy ? previous.q2_suppliers_relation : "",
+    q3_current_use: copy ? previous.q3_current_use : "",
+    q4_transport_km: copy ? previous.q4_transport_km : "",
+    notes: copy ? previous.notes : "",
+  };
+
+  draftFeedstockIndex = -1;
+  draftFeedstockName = selected;
+  showFeedstockForm(draft, "New Feedstock");
 }
 
-function validateFeedstockEntries() {
-  if (!feedstockEntries.length) {
-    return "Add at least one feedstock before moving to Biochar section.";
-  }
-
-  for (const entry of feedstockEntries) {
-    const missing = [];
-    if (!entry.quantity_tpy) missing.push("quantity");
-    if (!entry.q1_source_supply) missing.push("Q1");
-    if (!entry.q2_suppliers_relation) missing.push("Q2");
-    if (!entry.q3_current_use) missing.push("Q3");
-    if (!entry.q4_transport_km) missing.push("Q4");
-    if (missing.length) {
-      return `Complete ${entry.feedstock}: ${missing.join(", ")} before moving to Biochar section.`;
-    }
-  }
+function validateFeedstockDraft() {
+  if (!draftFeedstockName) return "Select a feedstock type first.";
+  if (!feedstockQty.value) return "Enter feedstock quantity.";
+  if (!q1SourceSupply.value) return "Fill Q1.";
+  if (!q2SupplierRelation.value) return "Fill Q2.";
+  if (!q3CurrentUse.value) return "Fill Q3.";
+  if (!q4TransportKm.value) return "Fill Q4.";
   return "";
 }
 
-function updateActiveFeedstockField(field, value) {
-  const idx = getActiveFeedstockIndex();
-  if (idx < 0) return;
-  feedstockEntries[idx][field] = value;
+function saveFeedstockInfo() {
+  const err = validateFeedstockDraft();
+  if (err) {
+    alert(err);
+    return;
+  }
+
+  const row = {
+    feedstock: draftFeedstockName,
+    quantity_tpy: feedstockQty.value,
+    q1_source_supply: q1SourceSupply.value,
+    q2_suppliers_relation: q2SupplierRelation.value,
+    q3_current_use: q3CurrentUse.value,
+    q4_transport_km: q4TransportKm.value,
+    notes: feedstockNotes.value,
+  };
+
+  if (draftFeedstockIndex >= 0) {
+    feedstockEntries[draftFeedstockIndex] = row;
+  } else {
+    feedstockEntries.push(row);
+  }
+
   renderAllFeedstockTables();
   renderSummary();
   saveUserToLocalStorage();
+  hideFeedstockForm();
 }
 
-function renderBiocharCriticalInfo() {
-  const certs = getMultiValues(biocharCertification).join(", ") || "N/A";
-  const content = biocharCarbonContent.value || "N/A";
-  const hcorg = biocharHcorg.value || "N/A";
-  const annual = plantCapacity.value || "0";
-
-  biocharCriticalInfo.textContent = `Annual biochar (t): ${annual} | Carbon content (%): ${content} | H/Corg: ${hcorg} | Certifications: ${certs}`;
-}
-
-function renderAdditionalInfo() {
-  additionalInfoList.innerHTML = "";
-  if (!additionalInfoEntries.length) {
-    additionalInfoEntries.push({ text: "" });
-  }
-
-  additionalInfoEntries.forEach((item, idx) => {
-    const card = document.createElement("div");
-    card.className = "questionnaire-card";
-    card.innerHTML = `<label>Additional Info ${idx + 1}</label><textarea data-idx="${idx}" rows="3">${item.text || ""}</textarea>`;
-    additionalInfoList.appendChild(card);
-  });
-
-  additionalInfoList.querySelectorAll("textarea[data-idx]").forEach((el) => {
-    el.addEventListener("input", () => {
-      const idx = Number(el.dataset.idx);
-      if (!Number.isInteger(idx) || !additionalInfoEntries[idx]) return;
-      additionalInfoEntries[idx].text = el.value;
-      saveUserToLocalStorage();
-    });
-  });
-}
-
-function updateContractLockState() {
-  const locked = contractSignedCheckbox.checked;
-  addFeedstockBtn.disabled = locked;
-  editFeedstockBtn.disabled = locked;
-  addAdditionalInfoBtn.disabled = locked;
-}
-
-function showSectionsFor(sectionName) {
-  const showFeedstock = sectionName === "feedstock";
-  const showBiochar = sectionName === "biochar";
-  const showPyrolysis = sectionName === "pyrolysis";
-  const showCorc = sectionName === "corc";
-
-  const hideStep1 = showBiochar || showPyrolysis || showCorc || (showFeedstock && !editPreviousInfoCheckbox.checked);
-  step1Card.classList.toggle("hidden", hideStep1);
-  feedstockSection.classList.toggle("hidden", !showFeedstock);
-  biocharSection.classList.toggle("hidden", !showBiochar);
-  pyrolysisSection.classList.toggle("hidden", !showPyrolysis);
-  corcSection.classList.toggle("hidden", !showCorc);
-
-  if (showPyrolysis) {
-    renderBiocharCriticalInfo();
-  }
-}
-
-function getCurrentSectionFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  const section = params.get("section") || "feedstock";
-  if (["feedstock", "biochar", "pyrolysis", "corc"].includes(section)) {
-    return section;
-  }
-  return "feedstock";
-}
-
-function navigateToSection(sectionName) {
-  if (sectionName === "feedstock" && !canEnterFeedstockSection()) {
-    alert("Select registry before opening feedstock section.");
-    return;
-  }
-  const currentSection = getCurrentSectionFromUrl();
-  const url = new URL(window.location.href);
-  url.searchParams.set("section", sectionName);
-  url.searchParams.set("prev", currentSection);
-  window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
+function openFeedstockFormForEdit(index) {
+  if (!Number.isInteger(index) || index < 0 || index >= feedstockEntries.length) return;
+  const entry = feedstockEntries[index];
+  feedstockType.value = entry.feedstock;
+  draftFeedstockIndex = index;
+  draftFeedstockName = entry.feedstock;
+  showFeedstockForm(entry, "Edit Feedstock");
 }
 
 function updateRegistryMeta() {
@@ -369,55 +354,124 @@ function renderFeedstockOptions(registryId) {
     return;
   }
 
+  feedstockType.appendChild(option("Select feedstock", ""));
   allowed.forEach((name) => feedstockType.appendChild(option(name, name)));
   feedstockType.disabled = false;
 }
 
-function addSelectedFeedstock() {
-  const selected = feedstockType.value;
-  if (!selected) {
-    alert("Select one feedstock type first.");
-    return;
+function validateFeedstockEntriesBeforeBiochar() {
+  if (!feedstockEntries.length) return "Add at least one feedstock before moving to Biochar section.";
+  for (const entry of feedstockEntries) {
+    const missing = [];
+    if (!entry.quantity_tpy) missing.push("quantity");
+    if (!entry.q1_source_supply) missing.push("Q1");
+    if (!entry.q2_suppliers_relation) missing.push("Q2");
+    if (!entry.q3_current_use) missing.push("Q3");
+    if (!entry.q4_transport_km) missing.push("Q4");
+    if (missing.length) return `Complete ${entry.feedstock}: ${missing.join(", ")}.`;
   }
-
-  const existingIdx = feedstockEntries.findIndex((x) => x.feedstock === selected);
-  if (existingIdx >= 0) {
-    setActiveFeedstock(selected);
-    return;
-  }
-
-  const previous = feedstockEntries[feedstockEntries.length - 1] || null;
-  const copy = copyPreviousCheckbox.checked && previous;
-  const newEntry = {
-    feedstock: selected,
-    quantity_tpy: copy ? previous.quantity_tpy : "",
-    q1_source_supply: copy ? previous.q1_source_supply : "",
-    q2_suppliers_relation: copy ? previous.q2_suppliers_relation : "",
-    q3_current_use: copy ? previous.q3_current_use : "",
-    q4_transport_km: copy ? previous.q4_transport_km : "",
-    notes: copy ? previous.notes : "",
-  };
-
-  feedstockEntries.push(newEntry);
-  setActiveFeedstock(selected);
-  renderAllFeedstockTables();
-  renderSummary();
-  saveUserToLocalStorage();
+  return "";
 }
 
-function editSelectedFeedstock() {
-  const selected = feedstockType.value;
-  if (!selected) {
-    alert("Select a feedstock type to edit.");
+function renderBiocharCriticalInfo() {
+  const certs = getMultiValues(biocharCertification).join(", ") || "N/A";
+  const content = biocharCarbonContent.value || "N/A";
+  const hcorg = biocharHcorg.value || "N/A";
+  const annual = plantCapacity.value || "0";
+  biocharCriticalInfo.textContent = `Annual biochar (t): ${annual} | Carbon content (%): ${content} | H/Corg: ${hcorg} | Certifications: ${certs}`;
+}
+
+function renderAdditionalInfo() {
+  additionalInfoList.innerHTML = "";
+  if (!additionalInfoEntries.length) additionalInfoEntries.push({ text: "" });
+
+  additionalInfoEntries.forEach((item, idx) => {
+    const card = document.createElement("div");
+    card.className = "questionnaire-card";
+    card.innerHTML = `<label>Additional Info ${idx + 1}</label><textarea data-idx="${idx}" rows="3">${item.text || ""}</textarea>`;
+    additionalInfoList.appendChild(card);
+  });
+
+  additionalInfoList.querySelectorAll("textarea[data-idx]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const idx = Number(el.dataset.idx);
+      if (!Number.isInteger(idx) || !additionalInfoEntries[idx]) return;
+      additionalInfoEntries[idx].text = el.value;
+      saveUserToLocalStorage();
+    });
+  });
+}
+
+function updateContractLockState() {
+  const locked = contractSignedCheckbox.checked;
+  addFeedstockBtn.disabled = locked;
+  addAdditionalInfoBtn.disabled = locked;
+}
+
+function showSectionsFor(sectionName) {
+  const showFeedstock = sectionName === "feedstock";
+  const showBiochar = sectionName === "biochar";
+  const showPyro = sectionName === "pyrolysis";
+  const showCorc = sectionName === "corc";
+
+  const hideStep1 = showBiochar || showPyro || showCorc || (showFeedstock && !editPreviousInfoCheckbox.checked);
+  step1Card.classList.toggle("hidden", hideStep1);
+  feedstockSection.classList.toggle("hidden", !showFeedstock);
+  biocharSection.classList.toggle("hidden", !showBiochar);
+  pyrolysisSection.classList.toggle("hidden", !showPyro);
+  corcSection.classList.toggle("hidden", !showCorc);
+
+  if (showPyro) renderBiocharCriticalInfo();
+}
+
+function navigateToSection(sectionName) {
+  if (sectionName === "feedstock" && !canEnterFeedstockSection()) {
+    alert("Select registry before opening feedstock section.");
+    return;
+  }
+  const current = getCurrentSectionFromUrl();
+  const url = new URL(window.location.href);
+  url.searchParams.set("section", sectionName);
+  url.searchParams.set("prev", current);
+  window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
+}
+
+function navigateBackByHistory() {
+  const params = new URLSearchParams(window.location.search);
+  const prev = params.get("prev");
+  if (prev && ["feedstock", "biochar", "pyrolysis", "corc"].includes(prev)) {
+    navigateToSection(prev);
     return;
   }
 
-  const existingIdx = feedstockEntries.findIndex((x) => x.feedstock === selected);
-  if (existingIdx < 0) {
-    alert("Selected feedstock has not been added yet. Use Add New Feedstock first.");
-    return;
+  const current = getCurrentSectionFromUrl();
+  const fallback = {
+    corc: "pyrolysis",
+    pyrolysis: "biochar",
+    biochar: "feedstock",
+    feedstock: "feedstock",
+  }[current];
+  navigateToSection(fallback);
+}
+
+function renderPreviousSectionSummary() {
+  const parts = [];
+  if (selectedText(countrySelect)) parts.push(`Country: ${selectedText(countrySelect)}`);
+  if (selectedText(stateSelect)) parts.push(`State: ${selectedText(stateSelect)}`);
+  if (citySelect.value) parts.push(`City: ${citySelect.value}`);
+  if (selectedText(registrySelect)) parts.push(`Registry: ${selectedText(registrySelect)}`);
+  previousSummaryInFeedstock.textContent = parts.length ? parts.join(" | ") : "Select country, location, and registry.";
+}
+
+function updateFeedstockAvailability() {
+  const enabled = canEnterFeedstockSection();
+  toFeedstockBtn.disabled = !enabled;
+  if (!enabled) {
+    feedstockSection.classList.add("hidden");
+    editPreviousInfoCheckbox.checked = false;
+    step1Card.classList.remove("hidden");
+    hideFeedstockForm();
   }
-  setActiveFeedstock(selected);
 }
 
 function getFormData() {
@@ -473,31 +527,6 @@ function renderSummary() {
   renderPreviousSectionSummary();
 }
 
-function renderPreviousSectionSummary() {
-  const parts = [];
-  if (selectedText(countrySelect)) parts.push(`Country: ${selectedText(countrySelect)}`);
-  if (selectedText(stateSelect)) parts.push(`State: ${selectedText(stateSelect)}`);
-  if (citySelect.value) parts.push(`City: ${citySelect.value}`);
-  if (selectedText(registrySelect)) parts.push(`Registry: ${selectedText(registrySelect)}`);
-  previousSummaryInFeedstock.textContent = parts.length
-    ? parts.join(" | ")
-    : "Select country, location, and registry.";
-}
-
-function canEnterFeedstockSection() {
-  return Boolean(registrySelect.value);
-}
-
-function updateFeedstockAvailability() {
-  const enabled = canEnterFeedstockSection();
-  toFeedstockBtn.disabled = !enabled;
-  if (!enabled) {
-    feedstockSection.classList.add("hidden");
-    editPreviousInfoCheckbox.checked = false;
-    step1Card.classList.remove("hidden");
-  }
-}
-
 function csvEscape(value) {
   const str = String(value ?? "");
   if (str.includes(",") || str.includes('"') || str.includes("\n")) {
@@ -536,7 +565,6 @@ function loadUserFromLocalStorage() {
     registrySelect.value = data.registry_id || "";
     updateRegistryMeta();
     renderFeedstockOptions(registrySelect.value);
-    updateFeedstockAvailability();
 
     try {
       feedstockEntries = JSON.parse(data.feedstock_entries_json || "[]");
@@ -546,19 +574,14 @@ function loadUserFromLocalStorage() {
     }
 
     renderAllFeedstockTables();
-    if (feedstockEntries.length) {
-      setActiveFeedstock(feedstockEntries[feedstockEntries.length - 1].feedstock);
-    }
+    hideFeedstockForm();
 
     plantCapacity.value = data.q5_annual_biochar_t || "";
     biocharCarbonContent.value = data.q6_biochar_carbon_content_pct || "";
     biocharHcorg.value = data.q7_biochar_h_corg_ratio || "";
     setMultiValues(
       biocharCertification,
-      String(data.q8_biochar_certifications || "")
-        .split(/;|,/)
-        .map((v) => v.trim())
-        .filter(Boolean)
+      String(data.q8_biochar_certifications || "").split(/;|,/).map((v) => v.trim()).filter(Boolean)
     );
     biocharEndUse.value = data.q9_end_use_application || "";
     biocharEndUseShare.value = data.q10_end_use_share_pct || "";
@@ -572,10 +595,7 @@ function loadUserFromLocalStorage() {
     pyroQ17.value = data.q17_avg_yearly_temp || "";
     setMultiValues(
       pyroQ18,
-      String(data.q18_facility_certifications || "")
-        .split(/;|,/)
-        .map((v) => v.trim())
-        .filter(Boolean)
+      String(data.q18_facility_certifications || "").split(/;|,/).map((v) => v.trim()).filter(Boolean)
     );
     pyroQ19.value = data.q19_energy_used_mwh_a || "";
     pyroQ20.value = data.q20_energy_source || "";
@@ -592,6 +612,7 @@ function loadUserFromLocalStorage() {
 
     contractSignedCheckbox.checked = data.contract_signed === "yes";
     updateContractLockState();
+    updateFeedstockAvailability();
 
     renderBiocharCriticalInfo();
     renderSummary();
@@ -717,41 +738,21 @@ function applySectionFromUrl() {
     return;
   }
 
-  if (["feedstock", "biochar", "pyrolysis", "corc"].includes(section)) {
-    showSectionsFor(section);
-  } else {
-    showSectionsFor("feedstock");
-  }
-}
-
-function navigateBackByHistory() {
-  const params = new URLSearchParams(window.location.search);
-  const prev = params.get("prev");
-  if (prev && ["feedstock", "biochar", "pyrolysis", "corc"].includes(prev)) {
-    navigateToSection(prev);
-    return;
-  }
-
-  const current = getCurrentSectionFromUrl();
-  const fallbackPrev = {
-    corc: "pyrolysis",
-    pyrolysis: "biochar",
-    biochar: "feedstock",
-    feedstock: "feedstock",
-  }[current];
-  navigateToSection(fallbackPrev);
+  showSectionsFor(section);
 }
 
 countrySelect.addEventListener("change", () => {
   const countryCode = countrySelect.value;
   clearAndSetDefault(citySelect, "Select state first");
   citySelect.disabled = true;
+
   if (!countryCode) {
     clearAndSetDefault(stateSelect, "Select country first");
     stateSelect.disabled = true;
     renderSummary();
     return;
   }
+
   loadStates(countryCode);
   if (stateSelect.disabled) loadCities(countryCode);
   renderSummary();
@@ -774,6 +775,7 @@ registrySelect.addEventListener("change", () => {
   updateRegistryMeta();
   renderFeedstockOptions(registrySelect.value);
   updateFeedstockAvailability();
+  hideFeedstockForm();
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -798,13 +800,21 @@ editPreviousInfoCheckbox.addEventListener("change", () => {
   }
 });
 
-addFeedstockBtn.addEventListener("click", addSelectedFeedstock);
-editFeedstockBtn.addEventListener("click", editSelectedFeedstock);
+feedstockType.addEventListener("change", openFeedstockFormBySelection);
+addFeedstockBtn.addEventListener("click", openFeedstockFormBySelection);
+saveFeedstockInfoBtn.addEventListener("click", saveFeedstockInfo);
+
+feedstockTableBodyFeedstock.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-edit-feedstock-index]");
+  if (!button) return;
+  const index = Number(button.dataset.editFeedstockIndex);
+  openFeedstockFormForEdit(index);
+});
 
 toBiocharPageBtn.addEventListener("click", () => {
-  const validationError = validateFeedstockEntries();
-  if (validationError) {
-    alert(validationError);
+  const err = validateFeedstockEntriesBeforeBiochar();
+  if (err) {
+    alert(err);
     return;
   }
   navigateToSection("biochar");
@@ -818,30 +828,7 @@ toCorcSectionBtn.addEventListener("click", () => {
   navigateToSection("corc");
 });
 
-backToStep1Btn.addEventListener("click", () => {
-  navigateBackByHistory();
-});
-
-[
-  q1SourceSupply,
-  q2SupplierRelation,
-  q3CurrentUse,
-  q4TransportKm,
-  feedstockQty,
-  feedstockNotes,
-].forEach((el) => {
-  el.addEventListener("input", () => {
-    const idx = getActiveFeedstockIndex();
-    if (idx < 0) return;
-
-    updateActiveFeedstockField("q1_source_supply", q1SourceSupply.value);
-    updateActiveFeedstockField("q2_suppliers_relation", q2SupplierRelation.value);
-    updateActiveFeedstockField("q3_current_use", q3CurrentUse.value);
-    updateActiveFeedstockField("q4_transport_km", q4TransportKm.value);
-    updateActiveFeedstockField("quantity_tpy", feedstockQty.value);
-    updateActiveFeedstockField("notes", feedstockNotes.value);
-  });
-});
+backToStep1Btn.addEventListener("click", navigateBackByHistory);
 
 [
   biocharCarbonContent,
@@ -887,7 +874,6 @@ Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
   renderAdditionalInfo();
   loadUserFromLocalStorage();
   renderAllFeedstockTables();
-  updateCopyOptionState();
   renderBiocharCriticalInfo();
   updateFeedstockAvailability();
   applySectionFromUrl();
