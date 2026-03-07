@@ -38,15 +38,22 @@ const permanenceGuideBody = document.getElementById("permanenceGuideBody");
 const transportGuideBody = document.getElementById("transportGuideBody");
 const tenYearCreditsBody = document.getElementById("tenYearCreditsBody");
 const cumulative10YearEl = document.getElementById("cumulative10Year");
+const feedstockContributionSummaryEl = document.getElementById("feedstockContributionSummary");
+const feedstockContributionTableWrap = document.getElementById("feedstockContributionTableWrap");
+const feedstockChartsWrap = document.getElementById("feedstockChartsWrap");
+const feedstockContributionChartEl = document.getElementById("feedstockContributionChart");
 
 const backBtn = document.getElementById("backToFeasibilityBtn");
 const useResultBtn = document.getElementById("useResultBtn");
 
 let breakdownChart = null;
 let sensitivityChart = null;
+let feedstockContributionChart = null;
+let perFeedstockCharts = [];
 let payload = null;
 let feedstockEntries = [];
 let projectRegion = "Global";
+let lastFeedstockContributions = [];
 
 const SENSITIVITY_CONFIG = [
   { key: "carbonContent", label: "Carbon Content" },
@@ -356,14 +363,18 @@ function canonicalFeedstockName(rawName) {
 }
 
 function inferCarbonDefault() {
-  const canonical = canonicalFeedstockName(dominantFeedstockName()) || "Forestry residues";
-  const exactRegion = CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === canonical && r.region === projectRegion);
-  const global = CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === canonical && r.region === "Global");
-  const row = exactRegion || global || CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === "Forestry residues" && r.region === "Global");
+  const row = lookupCarbonDefault(dominantFeedstockName() || "Forestry residues");
   return {
     value: Number((Number(row?.carbon || 0.77) * 100).toFixed(2)),
     row,
   };
+}
+
+function lookupCarbonDefault(feedstockName) {
+  const canonical = canonicalFeedstockName(feedstockName) || "Forestry residues";
+  const exactRegion = CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === canonical && r.region === projectRegion);
+  const global = CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === canonical && r.region === "Global");
+  return exactRegion || global || CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === "Forestry residues" && r.region === "Global");
 }
 
 function averageTransportDistanceKm() {
@@ -503,6 +514,128 @@ function calculateCredits(overrides = {}) {
   };
 }
 
+function computeFeedstockContributions(baseResult) {
+  const entries = Array.isArray(feedstockEntries) ? feedstockEntries.filter((e) => Number(e.quantity_tpy || 0) > 0) : [];
+  const totalQty = entries.reduce((sum, e) => sum + Number(e.quantity_tpy || 0), 0);
+  if (!entries.length || totalQty <= 0) return [];
+
+  const annualBiochar = num(inputAnnualBiochar);
+  const stableCarbon = num(inputStableCarbon);
+  const permanence = num(inputPermanence);
+  const additionalityAdj = num(inputAdditionalityAdj);
+  const baseFinal = Number(baseResult?.final || 0);
+
+  const grossRows = entries.map((e) => {
+    const qty = Number(e.quantity_tpy || 0);
+    const share = qty / totalQty;
+    const annualBiocharShare = annualBiochar * share;
+    const carbonRef = lookupCarbonDefault(e.feedstock);
+    const carbonFraction = Number(carbonRef?.carbon || 0.77);
+    const gross = Math.max(0, annualBiocharShare * carbonFraction * stableCarbon * permanence * 3.667 * additionalityAdj);
+    return {
+      feedstock: String(e.feedstock || "Unknown"),
+      quantity_tpy: Number(qty.toFixed(3)),
+      share_pct: Number((share * 100).toFixed(2)),
+      carbon_default_pct: Number((carbonFraction * 100).toFixed(2)),
+      carbon_reference: carbonRef
+        ? {
+            region: carbonRef.region,
+            range_pct: `${Number((carbonRef.min * 100).toFixed(2))}-${Number((carbonRef.max * 100).toFixed(2))}`,
+            source_label: carbonRef.source_label,
+            source_url: carbonRef.source_url,
+          }
+        : null,
+      gross_raw: gross,
+    };
+  });
+
+  const grossTotal = grossRows.reduce((sum, r) => sum + r.gross_raw, 0);
+  return grossRows.map((r) => {
+    const weight = grossTotal > 0 ? r.gross_raw / grossTotal : r.share_pct / 100;
+    const annualCredits = baseFinal * weight;
+    return {
+      feedstock: r.feedstock,
+      quantity_tpy: r.quantity_tpy,
+      share_pct: r.share_pct,
+      carbon_default_pct: r.carbon_default_pct,
+      carbon_reference: r.carbon_reference,
+      annual_credits_tco2e: Number(annualCredits.toFixed(2)),
+      ten_year_credits_tco2e: Number((annualCredits * 10).toFixed(2)),
+      contribution_pct: Number((weight * 100).toFixed(2)),
+    };
+  });
+}
+
+function renderFeedstockContributionViews(baseResult) {
+  const rows = computeFeedstockContributions(baseResult);
+  if (feedstockContributionSummaryEl) {
+    feedstockContributionSummaryEl.textContent = rows.length
+      ? `Contributions allocated across ${rows.length} feedstock(s).`
+      : "Add feedstocks with quantity to view contribution graphs.";
+  }
+
+  if (feedstockContributionTableWrap) {
+    if (!rows.length) {
+      feedstockContributionTableWrap.innerHTML = "";
+    } else {
+      const tableRows = rows
+        .map(
+          (r) =>
+            `<tr><td>${r.feedstock}</td><td>${r.quantity_tpy}</td><td>${r.carbon_default_pct}%</td><td>${r.annual_credits_tco2e}</td><td>${r.contribution_pct}%</td></tr>`
+        )
+        .join("");
+      feedstockContributionTableWrap.innerHTML = `<table class="feedstock-table"><thead><tr><th>Feedstock</th><th>Qty (t/yr)</th><th>Carbon default</th><th>Annual credits</th><th>Contribution</th></tr></thead><tbody>${tableRows}</tbody></table>`;
+    }
+  }
+
+  if (window.Chart) {
+    perFeedstockCharts.forEach((c) => c.destroy());
+    perFeedstockCharts = [];
+    if (feedstockChartsWrap) {
+      feedstockChartsWrap.innerHTML = "";
+      rows.forEach((r, idx) => {
+        const card = document.createElement("div");
+        card.className = "questionnaire-card";
+        const title = document.createElement("div");
+        title.className = "small";
+        title.innerHTML = `<strong>${r.feedstock}</strong> | ${r.contribution_pct}% contribution`;
+        const cv = document.createElement("canvas");
+        cv.id = `feedstockChart_${idx}`;
+        card.appendChild(title);
+        card.appendChild(cv);
+        feedstockChartsWrap.appendChild(card);
+        const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
+        const chart = new window.Chart(cv, {
+          type: "bar",
+          data: {
+            labels: ["Annual", "10-Year"],
+            datasets: [{ label: "tCO2e", data: [r.annual_credits_tco2e, r.ten_year_credits_tco2e], backgroundColor: [color, color] }],
+          },
+          options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+        });
+        perFeedstockCharts.push(chart);
+      });
+    }
+
+    if (feedstockContributionChart) {
+      feedstockContributionChart.destroy();
+      feedstockContributionChart = null;
+    }
+    if (feedstockContributionChartEl && rows.length) {
+      const labels = rows.map((r) => r.feedstock);
+      const vals = rows.map((r) => r.annual_credits_tco2e);
+      const colors = rows.map((_, idx) => `hsl(${(idx * 67) % 360} 70% 45%)`);
+      feedstockContributionChart = new window.Chart(feedstockContributionChartEl, {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Annual credits (tCO2e/year)", data: vals, backgroundColor: colors }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+      });
+    }
+  }
+
+  return rows;
+}
+
 function renderTenYearTable(finalAnnual) {
   let cumulative = 0;
   tenYearCreditsBody.innerHTML = "";
@@ -590,6 +723,7 @@ function renderAll() {
     : `Provide annual output to activate full calculation.<br><strong>Methodology note:</strong> ${methodologyNote}`;
   renderTenYearTable(res.final);
   renderBreakdownChart(res);
+  lastFeedstockContributions = renderFeedstockContributionViews(res);
   renderSensitivityChart();
 }
 
@@ -695,6 +829,7 @@ useResultBtn.addEventListener("click", () => {
             source_url: inferred.row.source_url,
           }
         : null,
+      feedstock_contributions: lastFeedstockContributions,
       breakdown: {
         gross: Number(result.gross.toFixed(2)),
         process: Number(result.processE.toFixed(2)),

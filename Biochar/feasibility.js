@@ -789,6 +789,15 @@ function buildContractPreviewLines() {
     lines.push(`  Issuance deduction: ${fmt(finalRegistryCredits.breakdown.issuance_loss)}`);
     lines.push(`  Final: ${fmt(finalRegistryCredits.breakdown.final)}`);
   }
+  if (Array.isArray(finalRegistryCredits?.feedstock_contributions) && finalRegistryCredits.feedstock_contributions.length) {
+    lines.push("Feedstock contribution table:");
+    lines.push("  Feedstock | Qty(t/yr) | Carbon(%) | Annual credits | Contribution(%)");
+    finalRegistryCredits.feedstock_contributions.forEach((r) => {
+      lines.push(
+        `  ${fmt(r.feedstock)} | ${fmt(r.quantity_tpy)} | ${fmt(r.carbon_default_pct)} | ${fmt(r.annual_credits_tco2e)} | ${fmt(r.contribution_pct)}`
+      );
+    });
+  }
   if (finalRegistryCredits?.sensitivity?.details && Array.isArray(finalRegistryCredits.sensitivity.details)) {
     lines.push("Sensitivity scenarios:");
     finalRegistryCredits.sensitivity.details.forEach((s) => {
@@ -876,7 +885,8 @@ function downloadPreviewPdf() {
         String(w).startsWith("STEP ") ||
         String(w).startsWith("METACARBONICS BIOCHAR") ||
         String(w).startsWith("Assumptions used:") ||
-        String(w).startsWith("Runtime breakdown values:")
+        String(w).startsWith("Runtime breakdown values:") ||
+        String(w).startsWith("Feedstock contribution table:")
       ) {
         doc.setFont("helvetica", "bold");
       } else {
@@ -963,6 +973,57 @@ function downloadPreviewPdf() {
     doc.text("N", mapX + mapW - 26, mapY + mapH - 54);
     y = mapY + mapH + 12;
     doc.setFontSize(9);
+  }
+
+  if (Array.isArray(finalRegistryCredits?.feedstock_contributions) && finalRegistryCredits.feedstock_contributions.length) {
+    if (y > 700) {
+      doc.addPage();
+      y = 50;
+    }
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("Feedstock Contribution Table", marginX, y);
+    doc.setFont("helvetica", "normal");
+    y += 10;
+
+    const cols = [
+      { k: "feedstock", t: "Feedstock", w: 150 },
+      { k: "quantity_tpy", t: "Qty (t/yr)", w: 70 },
+      { k: "carbon_default_pct", t: "Carbon %", w: 70 },
+      { k: "annual_credits_tco2e", t: "Annual credits", w: 95 },
+      { k: "contribution_pct", t: "Contribution %", w: 90 },
+    ];
+    const tableX = marginX;
+    const rowH = 16;
+    let rowY = y;
+    doc.setDrawColor(148, 163, 184);
+    doc.setFillColor(241, 245, 249);
+    doc.rect(tableX, rowY, cols.reduce((s, c) => s + c.w, 0), rowH, "FD");
+    let cx = tableX;
+    cols.forEach((c) => {
+      doc.text(c.t, cx + 3, rowY + 11);
+      cx += c.w;
+      doc.line(cx, rowY, cx, rowY + rowH);
+    });
+    doc.line(tableX, rowY + rowH, tableX + cols.reduce((s, c) => s + c.w, 0), rowY + rowH);
+    rowY += rowH;
+
+    finalRegistryCredits.feedstock_contributions.forEach((r) => {
+      if (rowY > 790) {
+        doc.addPage();
+        rowY = 50;
+      }
+      doc.rect(tableX, rowY, cols.reduce((s, c) => s + c.w, 0), rowH);
+      let x = tableX;
+      cols.forEach((c) => {
+        const text = String(r[c.k] ?? "");
+        doc.text(text.slice(0, c.k === "feedstock" ? 26 : 14), x + 3, rowY + 11);
+        x += c.w;
+        doc.line(x, rowY, x, rowY + rowH);
+      });
+      rowY += rowH;
+    });
+    y = rowY + 6;
   }
 
   if (finalRegistryCredits?.breakdown) {
