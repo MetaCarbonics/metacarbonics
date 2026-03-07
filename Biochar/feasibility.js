@@ -175,6 +175,7 @@ let previewFacilityMarkersLayer = null;
 let stateBoundaryLayer = null;
 let stateBoundaryFeatures = [];
 let finalRegistryCredits = null;
+let editingFacilityIndex = -1;
 
 const FINAL_CREDITS_STORAGE_KEY = "biochar-feasibility-final-credits";
 const TRANSFER_STORAGE_PREFIX = "biochar-feasibility-transfer:";
@@ -400,7 +401,8 @@ function getPlacementError(lat, lng) {
 function renderFacilityMarkerDates() {
   if (!facilityMarkerDates) return;
   if (!facilityPoints.length) {
-    facilityMarkerDates.textContent = "Add marker(s) in edit mode, then set operation start date below.";
+    editingFacilityIndex = -1;
+    facilityMarkerDates.innerHTML = "Add facilities in edit mode. After adding, use the table below to edit state, city, and operation start date.";
     return;
   }
   const countryCode = countrySelect.value;
@@ -410,72 +412,120 @@ function renderFacilityMarkerDates() {
     ? countryStates.filter((s) => stateNameSet.has(s.name))
     : countryStates.filter((s) => s.isoCode === stateSelect.value);
   const allowedStateList = allowedStates.length ? allowedStates : countryStates;
-  facilityMarkerDates.innerHTML = facilityPoints
+  if (editingFacilityIndex < 0 || editingFacilityIndex >= facilityPoints.length) {
+    editingFacilityIndex = facilityPoints.findIndex((p) => !p.state_code || !p.start_date);
+  }
+  const tableRows = facilityPoints
     .map((p, idx) => {
-      const coords = `${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}`;
-      const stateOptions = allowedStateList
-        .map((s) => `<option value="${s.isoCode}" ${p.state_code === s.isoCode ? "selected" : ""}>${s.name}</option>`)
-        .join("");
-      const cityOptions = p.state_code ? getCitiesForState(countryCode, p.state_code) : [];
-      const cityOptionsHtml = cityOptions
-        .map((c) => `<option value="${c.name}" ${p.city_name === c.name ? "selected" : ""}>${c.name}</option>`)
-        .join("");
-      return `<div class="questionnaire-card" style="margin:8px 0;padding:8px;">
-        <strong>Facility ${idx + 1}</strong><br>
-        <span class="small">Coordinates: ${coords}</span><br>
-        <div class="grid">
-          <div>
-            <label for="facilityState${idx}">State</label>
-            <select id="facilityState${idx}" data-marker-state-idx="${idx}">
-              <option value="">Select state</option>
-              ${stateOptions}
-            </select>
-          </div>
-          <div>
-            <label for="facilityCity${idx}">City</label>
-            <select id="facilityCity${idx}" data-marker-city-idx="${idx}" ${p.state_code ? "" : "disabled"}>
-              <option value="">Select city</option>
-              ${cityOptionsHtml}
-            </select>
-          </div>
-        </div>
-        <label for="facilityStartDate${idx}">Operation start date</label>
-        <input id="facilityStartDate${idx}" type="date" data-marker-date-idx="${idx}" value="${p.start_date || ""}" />
-      </div>`;
+      const stateName = fmt(p.state_name || getStateNameFromCode(countryCode, p.state_code) || selectedText(stateSelect));
+      const cityName = fmt(p.city_name || citySelect.value);
+      const startDate = fmt(p.start_date);
+      return `<tr>
+        <td>Facility ${idx + 1}</td>
+        <td>${stateName}</td>
+        <td>${cityName}</td>
+        <td>${Number(p.lat).toFixed(6)}</td>
+        <td>${Number(p.lng).toFixed(6)}</td>
+        <td>${startDate}</td>
+        <td><button type="button" class="btn btn-secondary btn-sm" data-edit-facility-idx="${idx}">Edit</button></td>
+      </tr>`;
     })
     .join("");
-  facilityMarkerDates.querySelectorAll("select[data-marker-state-idx]").forEach((inputEl) => {
-    inputEl.addEventListener("change", () => {
-      const idx = Number(inputEl.dataset.markerStateIdx);
+  let editorHtml = "";
+  if (editingFacilityIndex >= 0 && facilityPoints[editingFacilityIndex]) {
+    const p = facilityPoints[editingFacilityIndex];
+    const stateOptions = allowedStateList
+      .map((s) => `<option value="${s.isoCode}" ${p.state_code === s.isoCode ? "selected" : ""}>${s.name}</option>`)
+      .join("");
+    const cityOptions = p.state_code ? getCitiesForState(countryCode, p.state_code) : [];
+    const cityOptionsHtml = cityOptions
+      .map((c) => `<option value="${c.name}" ${p.city_name === c.name ? "selected" : ""}>${c.name}</option>`)
+      .join("");
+    editorHtml = `<div class="questionnaire-card" style="margin-top:8px;">
+      <strong>Edit Facility ${editingFacilityIndex + 1}</strong>
+      <div class="grid">
+        <div>
+          <label for="facilityEditState">State</label>
+          <select id="facilityEditState">
+            <option value="">Select state</option>
+            ${stateOptions}
+          </select>
+        </div>
+        <div>
+          <label for="facilityEditCity">City</label>
+          <select id="facilityEditCity" ${p.state_code ? "" : "disabled"}>
+            <option value="">Select city</option>
+            ${cityOptionsHtml}
+          </select>
+        </div>
+      </div>
+      <label for="facilityEditStartDate">Operation start date</label>
+      <input id="facilityEditStartDate" type="date" value="${p.start_date || ""}" />
+      <div class="btn-row">
+        <button type="button" id="saveFacilityEditBtn" class="btn btn-secondary btn-sm">Save Facility</button>
+        <button type="button" id="cancelFacilityEditBtn" class="btn btn-secondary btn-sm">Cancel</button>
+      </div>
+    </div>`;
+  }
+  facilityMarkerDates.innerHTML = `
+    <table class="feedstock-table">
+      <thead><tr><th>Facility</th><th>State</th><th>City</th><th>Lat</th><th>Lng</th><th>Operation Start Date</th><th>Action</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+    ${editorHtml}
+  `;
+  facilityMarkerDates.querySelectorAll("button[data-edit-facility-idx]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.editFacilityIdx);
       if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
-      const code = inputEl.value || "";
-      facilityPoints[idx].state_code = code;
-      facilityPoints[idx].state_name = getStateNameFromCode(countryCode, code);
-      facilityPoints[idx].city_name = "";
+      editingFacilityIndex = idx;
+      renderFacilityMarkerDates();
+    });
+  });
+  const stateEl = document.getElementById("facilityEditState");
+  const cityEl = document.getElementById("facilityEditCity");
+  if (stateEl && cityEl) {
+    stateEl.addEventListener("change", () => {
+      const code = stateEl.value || "";
+      const citiesForState = code ? getCitiesForState(countryCode, code) : [];
+      cityEl.innerHTML = `<option value="">Select city</option>${citiesForState.map((c) => `<option value="${c.name}">${c.name}</option>`).join("")}`;
+      cityEl.disabled = !code;
+    });
+  }
+  const saveBtn = document.getElementById("saveFacilityEditBtn");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      const idx = editingFacilityIndex;
+      if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
+      const stateCode = stateEl?.value || "";
+      const cityName = cityEl?.value || "";
+      const startDate = String(document.getElementById("facilityEditStartDate")?.value || "");
+      if (!stateCode) {
+        alert("Select state.");
+        return;
+      }
+      if (!startDate) {
+        alert("Select operation start date.");
+        return;
+      }
+      facilityPoints[idx].state_code = stateCode;
+      facilityPoints[idx].state_name = getStateNameFromCode(countryCode, stateCode);
+      facilityPoints[idx].city_name = cityName;
+      facilityPoints[idx].start_date = startDate;
+      editingFacilityIndex = -1;
+      updateFacilityLocationSummary();
       renderFacilityMarkerDates();
       renderSummary();
       saveUserToLocalStorage();
     });
-  });
-  facilityMarkerDates.querySelectorAll("select[data-marker-city-idx]").forEach((inputEl) => {
-    inputEl.addEventListener("change", () => {
-      const idx = Number(inputEl.dataset.markerCityIdx);
-      if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
-      facilityPoints[idx].city_name = inputEl.value || "";
-      renderSummary();
-      saveUserToLocalStorage();
+  }
+  const cancelBtn = document.getElementById("cancelFacilityEditBtn");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => {
+      editingFacilityIndex = -1;
+      renderFacilityMarkerDates();
     });
-  });
-  facilityMarkerDates.querySelectorAll("input[data-marker-date-idx]").forEach((inputEl) => {
-    inputEl.addEventListener("change", () => {
-      const idx = Number(inputEl.dataset.markerDateIdx);
-      if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
-      facilityPoints[idx].start_date = inputEl.value || "";
-      updateFacilityLocationSummary();
-      renderSummary();
-      saveUserToLocalStorage();
-    });
-  });
+  }
 }
 
 function renderFacilityMarkers(recenter = false) {
@@ -509,6 +559,8 @@ function renderFacilityMarkers(recenter = false) {
     marker.on("click", () => {
       if (!mapEditMode) return;
       facilityPoints.splice(idx, 1);
+      if (editingFacilityIndex === idx) editingFacilityIndex = -1;
+      if (editingFacilityIndex > idx) editingFacilityIndex -= 1;
       syncPrimaryFacilityPoint();
       renderFacilityMarkers(false);
       updateFacilityLocationSummary();
@@ -536,6 +588,7 @@ function setFacilityMarker(lat, lng, recenter = true) {
   const defaultCity = citySelect.value || "";
   if (!facilityPoints.length) {
     facilityPoints.push({ lat: la, lng: ln, start_date: "", state_code: defaultStateCode, state_name: defaultStateName, city_name: defaultCity });
+    editingFacilityIndex = 0;
   } else {
     facilityPoints[0] = {
       lat: la,
@@ -545,6 +598,7 @@ function setFacilityMarker(lat, lng, recenter = true) {
       state_name: facilityPoints[0]?.state_name || defaultStateName,
       city_name: facilityPoints[0]?.city_name || defaultCity,
     };
+    editingFacilityIndex = 0;
   }
   syncPrimaryFacilityPoint();
   renderFacilityMarkers(recenter);
@@ -641,6 +695,7 @@ function initFacilityMap() {
       state_name: getStateNameFromCode(countrySelect.value, defaultStateCode) || selectedText(stateSelect),
       city_name: citySelect.value || "",
     });
+    editingFacilityIndex = facilityPoints.length - 1;
     syncPrimaryFacilityPoint();
     renderFacilityMarkers(false);
     renderSummary();
@@ -1447,6 +1502,8 @@ async function downloadPreviewPdf() {
   const data = getFormData();
   const methodology = getRegistryMethodologyMeta(data.registry_id);
   const lines = buildContractPreviewLines();
+  const step7StartIdx = lines.findIndex((line) => String(line).trim() === "STEP 7: CREDITS");
+  const linesBeforeStep7 = step7StartIdx >= 0 ? lines.slice(0, step7StartIdx) : lines.slice();
   const marginX = 40;
   let y = 52;
   const lineHeight = 14;
@@ -1613,7 +1670,7 @@ async function downloadPreviewPdf() {
   y += 16;
   doc.setFontSize(9);
 
-  lines.forEach((line) => {
+  linesBeforeStep7.forEach((line) => {
     const wrapped = doc.splitTextToSize(line, maxWidth);
     wrapped.forEach((w) => {
         if (y > 800) {
@@ -1964,8 +2021,13 @@ function showSectionsFor(sectionName) {
   if (showFinancial || showAdditional || showTentative) renderPyrolysisSummary();
   if (showAdditional || showTentative) renderFinancialSummary();
   if (showTentative) {
+    if (!previewFacilityMap) initPreviewFacilityMap();
     renderTentativeCredits();
     renderProjectPreview();
+    setTimeout(() => {
+      renderPreviewFacilityBlock();
+      if (previewFacilityMap) previewFacilityMap.invalidateSize();
+    }, 0);
   }
   if (showStep1 && facilityMap) {
     setTimeout(() => facilityMap.invalidateSize(), 0);
