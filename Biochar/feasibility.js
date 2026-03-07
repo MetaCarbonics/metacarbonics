@@ -802,7 +802,7 @@ function buildContractPreviewLines() {
     lines.push("Other parameter defaults:");
     finalRegistryCredits.parameter_defaults_summary.forEach((p) => {
       lines.push(
-        `  ${fmt(p.parameter)}: value=${fmt(p.value)}, default=${fmt(p.default_value)}, status=${p.used_default ? "Default" : "User override"}, basis=${fmt(p.guide)}`
+        `  ${fmt(p.parameter)}: value=${fmt(p.value)}, default=${fmt(p.default_value)}, status=${p.used_default ? "Default" : "User override"}, basis=${fmt(p.guide)}, source=${fmt(p.source_label)} ${fmt(p.source_url)}`
       );
     });
   }
@@ -1148,6 +1148,123 @@ async function downloadPreviewPdf() {
       doc.text(String(b.value.toFixed(2)), marginX + 380, y + 8);
       y += barGap;
     });
+  }
+
+  const feedstockDefaults = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
+  const parameterDefaults = Array.isArray(finalRegistryCredits?.parameter_defaults_summary) ? finalRegistryCredits.parameter_defaults_summary : [];
+  if (feedstockDefaults.length || parameterDefaults.length) {
+    doc.addPage();
+    y = 50;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Reference Tables: Defaults Used", marginX, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    y += 14;
+
+    if (feedstockDefaults.length) {
+      doc.setFont("helvetica", "bold");
+      doc.text("A) Feedstock Defaults (from Step 2 selections)", marginX, y);
+      doc.setFont("helvetica", "normal");
+      y += 10;
+      const colsA = [
+        { key: "feedstock", title: "Feedstock", w: 90 },
+        { key: "carbon_default_pct", title: "Default C%", w: 55 },
+        { key: "range", title: "Range%", w: 60 },
+        { key: "region", title: "Region", w: 65 },
+        { key: "source", title: "Source", w: 245 },
+      ];
+      const tableW = colsA.reduce((s, c) => s + c.w, 0);
+      const rowH = 16;
+      let rowY = y;
+      doc.setDrawColor(148, 163, 184);
+      doc.setFillColor(241, 245, 249);
+      doc.rect(marginX, rowY, tableW, rowH, "FD");
+      let xh = marginX;
+      colsA.forEach((c) => {
+        doc.text(c.title, xh + 3, rowY + 11);
+        xh += c.w;
+        doc.line(xh, rowY, xh, rowY + rowH);
+      });
+      rowY += rowH;
+      feedstockDefaults.forEach((r) => {
+        if (rowY > 790) {
+          doc.addPage();
+          rowY = 50;
+        }
+        doc.rect(marginX, rowY, tableW, rowH);
+        const vals = [
+          String(r.feedstock || ""),
+          String(r.carbon_default_pct ?? ""),
+          String(r?.carbon_reference?.range_pct || ""),
+          String(r?.carbon_reference?.region || ""),
+          `${String(r?.carbon_reference?.source_label || "")} ${String(r?.carbon_reference?.source_url || "")}`.trim(),
+        ];
+        let x = marginX;
+        vals.forEach((v, idx) => {
+          const maxLen = idx === 0 ? 14 : idx === 4 ? 58 : 12;
+          doc.text(v.slice(0, maxLen), x + 3, rowY + 11);
+          x += colsA[idx].w;
+          doc.line(x, rowY, x, rowY + rowH);
+        });
+        rowY += rowH;
+      });
+      y = rowY + 12;
+    }
+
+    if (parameterDefaults.length) {
+      if (y > 700) {
+        doc.addPage();
+        y = 50;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.text("B) Parameter Defaults", marginX, y);
+      doc.setFont("helvetica", "normal");
+      y += 10;
+      const colsB = [
+        { key: "parameter", title: "Parameter", w: 105 },
+        { key: "value", title: "Value", w: 45 },
+        { key: "default_value", title: "Default", w: 50 },
+        { key: "status", title: "Status", w: 60 },
+        { key: "source", title: "Source", w: 250 },
+      ];
+      const tableW = colsB.reduce((s, c) => s + c.w, 0);
+      const rowH = 16;
+      let rowY = y;
+      doc.setDrawColor(148, 163, 184);
+      doc.setFillColor(241, 245, 249);
+      doc.rect(marginX, rowY, tableW, rowH, "FD");
+      let xh = marginX;
+      colsB.forEach((c) => {
+        doc.text(c.title, xh + 3, rowY + 11);
+        xh += c.w;
+        doc.line(xh, rowY, xh, rowY + rowH);
+      });
+      rowY += rowH;
+      parameterDefaults.forEach((p) => {
+        if (rowY > 790) {
+          doc.addPage();
+          rowY = 50;
+        }
+        doc.rect(marginX, rowY, tableW, rowH);
+        const vals = [
+          String(p.parameter || ""),
+          String(p.value ?? ""),
+          String(p.default_value ?? ""),
+          p.used_default ? "Default" : "Override",
+          `${String(p.source_label || "")} ${String(p.source_url || "")}`.trim(),
+        ];
+        let x = marginX;
+        vals.forEach((v, idx) => {
+          const maxLen = idx === 0 ? 16 : idx === 4 ? 58 : 10;
+          doc.text(v.slice(0, maxLen), x + 3, rowY + 11);
+          x += colsB[idx].w;
+          doc.line(x, rowY, x, rowY + rowH);
+        });
+        rowY += rowH;
+      });
+      y = rowY + 8;
+    }
   }
 
   doc.save("metacarbonics_phase1_contract_preview.pdf");

@@ -644,7 +644,11 @@ function renderFeedstockContributionViews(baseResult) {
 
 function buildParameterDefaultsSummary() {
   const configDefaults = (REGISTRY_CONFIG[registryId] || REGISTRY_CONFIG.verra).defaults;
+  const cfg = REGISTRY_CONFIG[registryId] || REGISTRY_CONFIG.verra;
+  const registrySourceLabel = `${cfg.name} ${cfg.methodology} screening default`;
+  const registrySourceUrl = cfg.links?.[0]?.url || "";
   const pClass = PERMANENCE_GUIDE.find((p) => p.key === permanenceClassSelect.value) || PERMANENCE_GUIDE[1];
+  const transportSel = TRANSPORT_GUIDE.find((t) => t.key === transportFactorSelect.value) || TRANSPORT_GUIDE[0];
   const rows = [
     {
       parameter: "Permanence factor",
@@ -652,6 +656,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(pClass.factor.toFixed(3)),
       used_default: Math.abs(num(inputPermanence) - pClass.factor) < 1e-6,
       guide: `Permanence class: ${pClass.label}`,
+      source_label: "Permanence adjustment guide table",
+      source_url: registrySourceUrl,
     },
     {
       parameter: "Stable carbon fraction",
@@ -659,6 +665,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(configDefaults.stableCarbon.toFixed(3)),
       used_default: Math.abs(num(inputStableCarbon) - configDefaults.stableCarbon) < 1e-6,
       guide: "Registry default screening value",
+      source_label: registrySourceLabel,
+      source_url: registrySourceUrl,
     },
     {
       parameter: "Process emissions (tCO2e/yr)",
@@ -666,6 +674,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(configDefaults.processE.toFixed(2)),
       used_default: Math.abs(num(inputProcessEmissions) - configDefaults.processE) < 1e-6,
       guide: "Registry default screening value",
+      source_label: registrySourceLabel,
+      source_url: registrySourceUrl,
     },
     {
       parameter: "Transport emissions (tCO2e/yr)",
@@ -673,6 +683,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(num(inputTransportEmissions).toFixed(2)),
       used_default: true,
       guide: `Auto from ${transportFactorSelect.options[transportFactorSelect.selectedIndex]?.text || "transport mode"} and feedstock distance`,
+      source_label: `Transport factor guide: ${transportSel.mode} (${transportSel.factorKgTkm} kgCO2e/t-km)`,
+      source_url: registrySourceUrl,
     },
     {
       parameter: "Leakage (tCO2e/yr)",
@@ -680,6 +692,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(configDefaults.leakageE.toFixed(2)),
       used_default: Math.abs(num(inputLeakage) - configDefaults.leakageE) < 1e-6,
       guide: "Registry default screening value",
+      source_label: registrySourceLabel,
+      source_url: registrySourceUrl,
     },
     {
       parameter: "Uncertainty deduction (%)",
@@ -687,6 +701,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(configDefaults.uncertainty.toFixed(2)),
       used_default: Math.abs(num(inputUncertaintyPct) - configDefaults.uncertainty) < 1e-6,
       guide: "Registry default screening value",
+      source_label: registrySourceLabel,
+      source_url: registrySourceUrl,
     },
     {
       parameter: "Buffer deduction (%)",
@@ -694,6 +710,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(configDefaults.buffer.toFixed(2)),
       used_default: Math.abs(num(inputBufferPct) - configDefaults.buffer) < 1e-6,
       guide: "Registry default screening value",
+      source_label: registrySourceLabel,
+      source_url: registrySourceUrl,
     },
     {
       parameter: "Issuance factor",
@@ -701,6 +719,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(configDefaults.issuance.toFixed(3)),
       used_default: Math.abs(num(inputIssuance) - configDefaults.issuance) < 1e-6,
       guide: "Registry default screening value",
+      source_label: registrySourceLabel,
+      source_url: registrySourceUrl,
     },
     {
       parameter: "Additionality adjustment",
@@ -708,6 +728,8 @@ function buildParameterDefaultsSummary() {
       default_value: Number(configDefaults.additionalityAdj.toFixed(3)),
       used_default: Math.abs(num(inputAdditionalityAdj) - configDefaults.additionalityAdj) < 1e-6,
       guide: "Registry default screening value",
+      source_label: registrySourceLabel,
+      source_url: registrySourceUrl,
     },
   ];
   return rows;
