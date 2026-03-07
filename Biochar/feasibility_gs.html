@@ -22,32 +22,33 @@
         <p id="complianceText" class="small"></p>
       </section>
 
-      <section class="card">
-        <h3>Guide: Carbon Content Defaults</h3>
+      <section id="guidePanel" class="card guide-panel hidden">
+        <h3>Calculator Guide Tables</h3>
+        <h4>Carbon Content Defaults</h4>
         <table class="feedstock-table">
           <thead><tr><th>Feedstock</th><th>Default carbon fraction</th><th>Source/Guidance</th></tr></thead>
           <tbody id="carbonGuideBody"></tbody>
         </table>
-      </section>
-
-      <section class="card">
-        <h3>Guide: Permanence Adjustment</h3>
+        <h4>Permanence Adjustment</h4>
         <table class="feedstock-table">
           <thead><tr><th>Technology class</th><th>Permanence factor</th></tr></thead>
           <tbody id="permanenceGuideBody"></tbody>
         </table>
-      </section>
-
-      <section class="card">
-        <h3>Guide: Transport Emission Factor</h3>
+        <h4>Transport Emission Factor</h4>
         <table class="feedstock-table">
           <thead><tr><th>Mode</th><th>kgCO2e/t-km</th><th>Source/Guidance</th></tr></thead>
           <tbody id="transportGuideBody"></tbody>
         </table>
+        <div class="btn-row">
+          <button id="closeGuideBtn" class="btn btn-secondary btn-sm" type="button">OK</button>
+        </div>
       </section>
 
       <section class="card">
-        <h3>Stepwise Calculator</h3>
+        <div class="title-row">
+          <h3>Stepwise Calculator</h3>
+          <a id="openGuideLink" class="guide-link" href="#">Guide</a>
+        </div>
         <div class="grid">
           <div><label>1) Annual biochar output (t/year)</label><input id="inputAnnualBiochar" type="number" min="0" step="any" /></div>
           <div><label>2) Biochar carbon content (%)</label><input id="inputCarbonContent" type="number" min="0" max="100" step="any" /></div>
@@ -65,6 +66,7 @@
         </div>
         <div id="autoTransportNote" class="small"></div>
         <div id="calcStatus" class="small"></div>
+        <div id="parameterDefaultsSummary" class="small"></div>
         <div class="grid">
           <div><label>Gross removals (tCO2e/yr)</label><input id="grossCredits" type="number" readonly /></div>
           <div><label>Net before discounts (tCO2e/yr)</label><input id="netBeforeBuffer" type="number" readonly /></div>

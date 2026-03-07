@@ -42,6 +42,10 @@ const feedstockContributionSummaryEl = document.getElementById("feedstockContrib
 const feedstockContributionTableWrap = document.getElementById("feedstockContributionTableWrap");
 const feedstockChartsWrap = document.getElementById("feedstockChartsWrap");
 const feedstockContributionChartEl = document.getElementById("feedstockContributionChart");
+const parameterDefaultsSummaryEl = document.getElementById("parameterDefaultsSummary");
+const openGuideLink = document.getElementById("openGuideLink");
+const closeGuideBtn = document.getElementById("closeGuideBtn");
+const guidePanel = document.getElementById("guidePanel");
 
 const backBtn = document.getElementById("backToFeasibilityBtn");
 const useResultBtn = document.getElementById("useResultBtn");
@@ -54,6 +58,8 @@ let payload = null;
 let feedstockEntries = [];
 let projectRegion = "Global";
 let lastFeedstockContributions = [];
+let lastParameterDefaults = [];
+let guideOpen = false;
 
 const SENSITIVITY_CONFIG = [
   { key: "carbonContent", label: "Carbon Content" },
@@ -636,6 +642,105 @@ function renderFeedstockContributionViews(baseResult) {
   return rows;
 }
 
+function buildParameterDefaultsSummary() {
+  const configDefaults = (REGISTRY_CONFIG[registryId] || REGISTRY_CONFIG.verra).defaults;
+  const pClass = PERMANENCE_GUIDE.find((p) => p.key === permanenceClassSelect.value) || PERMANENCE_GUIDE[1];
+  const rows = [
+    {
+      parameter: "Permanence factor",
+      value: Number(num(inputPermanence).toFixed(3)),
+      default_value: Number(pClass.factor.toFixed(3)),
+      used_default: Math.abs(num(inputPermanence) - pClass.factor) < 1e-6,
+      guide: `Permanence class: ${pClass.label}`,
+    },
+    {
+      parameter: "Stable carbon fraction",
+      value: Number(num(inputStableCarbon).toFixed(3)),
+      default_value: Number(configDefaults.stableCarbon.toFixed(3)),
+      used_default: Math.abs(num(inputStableCarbon) - configDefaults.stableCarbon) < 1e-6,
+      guide: "Registry default screening value",
+    },
+    {
+      parameter: "Process emissions (tCO2e/yr)",
+      value: Number(num(inputProcessEmissions).toFixed(2)),
+      default_value: Number(configDefaults.processE.toFixed(2)),
+      used_default: Math.abs(num(inputProcessEmissions) - configDefaults.processE) < 1e-6,
+      guide: "Registry default screening value",
+    },
+    {
+      parameter: "Transport emissions (tCO2e/yr)",
+      value: Number(num(inputTransportEmissions).toFixed(2)),
+      default_value: Number(num(inputTransportEmissions).toFixed(2)),
+      used_default: true,
+      guide: `Auto from ${transportFactorSelect.options[transportFactorSelect.selectedIndex]?.text || "transport mode"} and feedstock distance`,
+    },
+    {
+      parameter: "Leakage (tCO2e/yr)",
+      value: Number(num(inputLeakage).toFixed(2)),
+      default_value: Number(configDefaults.leakageE.toFixed(2)),
+      used_default: Math.abs(num(inputLeakage) - configDefaults.leakageE) < 1e-6,
+      guide: "Registry default screening value",
+    },
+    {
+      parameter: "Uncertainty deduction (%)",
+      value: Number(num(inputUncertaintyPct).toFixed(2)),
+      default_value: Number(configDefaults.uncertainty.toFixed(2)),
+      used_default: Math.abs(num(inputUncertaintyPct) - configDefaults.uncertainty) < 1e-6,
+      guide: "Registry default screening value",
+    },
+    {
+      parameter: "Buffer deduction (%)",
+      value: Number(num(inputBufferPct).toFixed(2)),
+      default_value: Number(configDefaults.buffer.toFixed(2)),
+      used_default: Math.abs(num(inputBufferPct) - configDefaults.buffer) < 1e-6,
+      guide: "Registry default screening value",
+    },
+    {
+      parameter: "Issuance factor",
+      value: Number(num(inputIssuance).toFixed(3)),
+      default_value: Number(configDefaults.issuance.toFixed(3)),
+      used_default: Math.abs(num(inputIssuance) - configDefaults.issuance) < 1e-6,
+      guide: "Registry default screening value",
+    },
+    {
+      parameter: "Additionality adjustment",
+      value: Number(num(inputAdditionalityAdj).toFixed(3)),
+      default_value: Number(configDefaults.additionalityAdj.toFixed(3)),
+      used_default: Math.abs(num(inputAdditionalityAdj) - configDefaults.additionalityAdj) < 1e-6,
+      guide: "Registry default screening value",
+    },
+  ];
+  return rows;
+}
+
+function renderParameterDefaultsSummary() {
+  const rows = buildParameterDefaultsSummary();
+  lastParameterDefaults = rows;
+  if (!parameterDefaultsSummaryEl) return;
+  const lineRows = rows
+    .map((r) => `${r.parameter}: ${r.value} (${r.used_default ? "Default" : "User override"}, default ${r.default_value})`)
+    .join("<br>");
+  parameterDefaultsSummaryEl.innerHTML = `<strong>Parameter defaults check:</strong><br>${lineRows}`;
+}
+
+function showGuidePanel() {
+  if (!guidePanel) return;
+  guidePanel.classList.remove("hidden", "fading-out");
+  guideOpen = true;
+  guidePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function hideGuidePanel() {
+  if (!guidePanel || !guideOpen) return;
+  guidePanel.classList.add("fading-out");
+  setTimeout(() => {
+    if (!guidePanel) return;
+    guidePanel.classList.add("hidden");
+    guidePanel.classList.remove("fading-out");
+  }, 200);
+  guideOpen = false;
+}
+
 function renderTenYearTable(finalAnnual) {
   let cumulative = 0;
   tenYearCreditsBody.innerHTML = "";
@@ -724,6 +829,7 @@ function renderAll() {
   renderTenYearTable(res.final);
   renderBreakdownChart(res);
   lastFeedstockContributions = renderFeedstockContributionViews(res);
+  renderParameterDefaultsSummary();
   renderSensitivityChart();
 }
 
@@ -797,6 +903,21 @@ document.querySelectorAll('[data-sensitivity-input="true"]').forEach((el) => {
   el.addEventListener("input", renderAll);
 });
 
+if (openGuideLink) {
+  openGuideLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    showGuidePanel();
+  });
+}
+if (closeGuideBtn) {
+  closeGuideBtn.addEventListener("click", () => hideGuidePanel());
+}
+window.addEventListener("scroll", () => {
+  if (!guideOpen || !guidePanel) return;
+  const panelBottom = guidePanel.offsetTop + guidePanel.offsetHeight;
+  if (window.scrollY > panelBottom + 60) hideGuidePanel();
+});
+
 backBtn.addEventListener("click", () => {
   window.location.href = "./biochar-phase1-feasibility-tool.html?section=tentative";
 });
@@ -830,6 +951,7 @@ useResultBtn.addEventListener("click", () => {
           }
         : null,
       feedstock_contributions: lastFeedstockContributions,
+      parameter_defaults_summary: lastParameterDefaults,
       breakdown: {
         gross: Number(result.gross.toFixed(2)),
         process: Number(result.processE.toFixed(2)),

@@ -791,10 +791,18 @@ function buildContractPreviewLines() {
   }
   if (Array.isArray(finalRegistryCredits?.feedstock_contributions) && finalRegistryCredits.feedstock_contributions.length) {
     lines.push("Feedstock contribution table:");
-    lines.push("  Feedstock | Qty(t/yr) | Carbon(%) | Annual credits | Contribution(%)");
+    lines.push("  Feedstock | Qty(t/yr) | Carbon(%) | Annual credits | Contribution(%) | Carbon source");
     finalRegistryCredits.feedstock_contributions.forEach((r) => {
       lines.push(
-        `  ${fmt(r.feedstock)} | ${fmt(r.quantity_tpy)} | ${fmt(r.carbon_default_pct)} | ${fmt(r.annual_credits_tco2e)} | ${fmt(r.contribution_pct)}`
+        `  ${fmt(r.feedstock)} | ${fmt(r.quantity_tpy)} | ${fmt(r.carbon_default_pct)} | ${fmt(r.annual_credits_tco2e)} | ${fmt(r.contribution_pct)} | ${fmt(r?.carbon_reference?.source_label)}`
+      );
+    });
+  }
+  if (Array.isArray(finalRegistryCredits?.parameter_defaults_summary) && finalRegistryCredits.parameter_defaults_summary.length) {
+    lines.push("Other parameter defaults:");
+    finalRegistryCredits.parameter_defaults_summary.forEach((p) => {
+      lines.push(
+        `  ${fmt(p.parameter)}: value=${fmt(p.value)}, default=${fmt(p.default_value)}, status=${p.used_default ? "Default" : "User override"}, basis=${fmt(p.guide)}`
       );
     });
   }
@@ -821,7 +829,41 @@ function renderProjectPreview() {
   projectPreview.textContent = buildContractPreviewLines().join("\n");
 }
 
-function downloadPreviewPdf() {
+function makeSatelliteExportUrl(lat, lng, sizeW = 900, sizeH = 500) {
+  const deltaLat = 0.06;
+  const deltaLng = 0.08;
+  const minLat = lat - deltaLat;
+  const maxLat = lat + deltaLat;
+  const minLng = lng - deltaLng;
+  const maxLng = lng + deltaLng;
+  const url =
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export" +
+    `?bbox=${minLng},${minLat},${maxLng},${maxLat}` +
+    "&bboxSR=4326&imageSR=4326" +
+    `&size=${sizeW},${sizeH}` +
+    "&format=png32&transparent=false&f=image";
+  return { url, minLat, maxLat, minLng, maxLng };
+}
+
+async function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function fetchSatelliteMapDataUrl(lat, lng) {
+  const cfg = makeSatelliteExportUrl(lat, lng);
+  const res = await fetch(cfg.url);
+  if (!res.ok) throw new Error("Satellite map image fetch failed.");
+  const blob = await res.blob();
+  const dataUrl = await blobToDataUrl(blob);
+  return { dataUrl, ...cfg };
+}
+
+async function downloadPreviewPdf() {
   const jspdf = window.jspdf;
   if (!jspdf || !jspdf.jsPDF) {
     alert("PDF library not loaded. Try refresh.");
@@ -948,30 +990,45 @@ function downloadPreviewPdf() {
         y += lineHeight;
       });
     });
-    if (y > 760) {
+    if (y > 730) {
       doc.addPage();
       y = 50;
     }
     y += 6;
     const mapX = marginX;
     const mapY = y;
-    const mapW = 220;
-    const mapH = 140;
-    doc.setDrawColor(148, 163, 184);
-    doc.rect(mapX, mapY, mapW, mapH);
+    const mapW = 330;
+    const mapH = 190;
+    const lat = Number(data.facility_lat);
+    const lng = Number(data.facility_lng);
+    let renderedSatellite = false;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      try {
+        const sat = await fetchSatelliteMapDataUrl(lat, lng);
+        doc.addImage(sat.dataUrl, "PNG", mapX, mapY, mapW, mapH, undefined, "FAST");
+        const markerX = mapX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng)) * mapW;
+        const markerY = mapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat)) * mapH;
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(1.2);
+        doc.setFillColor(220, 38, 38);
+        doc.circle(markerX, markerY, 5, "FD");
+        renderedSatellite = true;
+      } catch {
+        renderedSatellite = false;
+      }
+    }
+    if (!renderedSatellite) {
+      doc.setDrawColor(148, 163, 184);
+      doc.rect(mapX, mapY, mapW, mapH);
+      doc.setFontSize(8);
+      doc.text("Satellite image unavailable in export. Use map link above.", mapX + 8, mapY + 14);
+      doc.setFillColor(220, 38, 38);
+      doc.circle(mapX + mapW * 0.5, mapY + mapH * 0.5, 4, "F");
+    }
     doc.setFontSize(8);
-    doc.text("Georeferenced schematic panel (not to scale)", mapX + 6, mapY + 12);
-    doc.setDrawColor(203, 213, 225);
-    for (let gx = mapX + 20; gx < mapX + mapW; gx += 20) doc.line(gx, mapY + 20, gx, mapY + mapH - 8);
-    for (let gy = mapY + 20; gy < mapY + mapH; gy += 20) doc.line(mapX + 8, gy, mapX + mapW - 8, gy);
-    doc.setFillColor(220, 38, 38);
-    doc.circle(mapX + mapW * 0.62, mapY + mapH * 0.58, 3, "F");
-    doc.setDrawColor(15, 23, 42);
-    doc.line(mapX + mapW - 22, mapY + mapH - 24, mapX + mapW - 22, mapY + mapH - 50);
-    doc.line(mapX + mapW - 22, mapY + mapH - 50, mapX + mapW - 26, mapY + mapH - 44);
-    doc.line(mapX + mapW - 22, mapY + mapH - 50, mapX + mapW - 18, mapY + mapH - 44);
-    doc.text("N", mapX + mapW - 26, mapY + mapH - 54);
-    y = mapY + mapH + 12;
+    doc.setTextColor(30, 41, 59);
+    doc.text("Legend: red marker = facility location on satellite imagery", mapX, mapY + mapH + 12);
+    y = mapY + mapH + 18;
     doc.setFontSize(9);
   }
 
@@ -987,11 +1044,12 @@ function downloadPreviewPdf() {
     y += 10;
 
     const cols = [
-      { k: "feedstock", t: "Feedstock", w: 150 },
-      { k: "quantity_tpy", t: "Qty (t/yr)", w: 70 },
-      { k: "carbon_default_pct", t: "Carbon %", w: 70 },
-      { k: "annual_credits_tco2e", t: "Annual credits", w: 95 },
-      { k: "contribution_pct", t: "Contribution %", w: 90 },
+      { k: "feedstock", t: "Feedstock", w: 120 },
+      { k: "quantity_tpy", t: "Qty", w: 55 },
+      { k: "carbon_default_pct", t: "Carbon %", w: 60 },
+      { k: "annual_credits_tco2e", t: "Annual", w: 75 },
+      { k: "contribution_pct", t: "Contrib %", w: 70 },
+      { k: "carbon_source", t: "Carbon source", w: 115 },
     ];
     const tableX = marginX;
     const rowH = 16;
@@ -1016,14 +1074,39 @@ function downloadPreviewPdf() {
       doc.rect(tableX, rowY, cols.reduce((s, c) => s + c.w, 0), rowH);
       let x = tableX;
       cols.forEach((c) => {
-        const text = String(r[c.k] ?? "");
-        doc.text(text.slice(0, c.k === "feedstock" ? 26 : 14), x + 3, rowY + 11);
+        const text = c.k === "carbon_source" ? String(r?.carbon_reference?.source_label || "") : String(r[c.k] ?? "");
+        const limit = c.k === "feedstock" ? 20 : c.k === "carbon_source" ? 22 : 12;
+        doc.text(text.slice(0, limit), x + 3, rowY + 11);
         x += c.w;
         doc.line(x, rowY, x, rowY + rowH);
       });
       rowY += rowH;
     });
     y = rowY + 6;
+  }
+
+  if (Array.isArray(finalRegistryCredits?.parameter_defaults_summary) && finalRegistryCredits.parameter_defaults_summary.length) {
+    if (y > 700) {
+      doc.addPage();
+      y = 50;
+    }
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text("Other Parameter Defaults", marginX, y);
+    doc.setFont("helvetica", "normal");
+    y += 12;
+    finalRegistryCredits.parameter_defaults_summary.forEach((p) => {
+      const text = `${p.parameter}: value ${p.value}, default ${p.default_value}, ${p.used_default ? "Default" : "User override"}, basis: ${p.guide}`;
+      const wrapped = doc.splitTextToSize(text, maxWidth);
+      wrapped.forEach((w) => {
+        if (y > 800) {
+          doc.addPage();
+          y = 50;
+        }
+        doc.text(w, marginX, y);
+        y += lineHeight;
+      });
+    });
   }
 
   if (finalRegistryCredits?.breakdown) {
