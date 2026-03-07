@@ -169,6 +169,7 @@ function renderFeedstockQtyTable() {
     input.placeholder = "Enter quantity";
     input.addEventListener("input", () => {
       feedstockQuantities[feedstock] = input.value;
+      updatePlantCapacityFromFeedstocks();
       renderSummary();
       saveUserToLocalStorage();
     });
@@ -178,6 +179,18 @@ function renderFeedstockQtyTable() {
     tr.appendChild(qtyTd);
     feedstockQtyBody.appendChild(tr);
   });
+}
+
+function computeTotalFeedstockQty() {
+  return getSelectedFeedstocks().reduce((sum, feedstock) => {
+    const qty = Number(feedstockQuantities[feedstock] || 0);
+    return sum + (Number.isFinite(qty) ? qty : 0);
+  }, 0);
+}
+
+function updatePlantCapacityFromFeedstocks() {
+  const totalQty = computeTotalFeedstockQty();
+  plantCapacity.value = totalQty > 0 ? String(totalQty) : "";
 }
 
 function setSelectedFeedstocks(selectedValues) {
@@ -291,7 +304,7 @@ function getFormData() {
       .join("; "),
     q_feedstock_qty_json: JSON.stringify(qtyRows),
     q_feedstock_sustainable: feedstockSustainable.value,
-    q_annual_output_tpy: plantCapacity.value,
+    q_annual_output_tpy: String(computeTotalFeedstockQty()),
     q_monitoring_plan: monitoringPlan.value,
     q_start_date: projectTimeline.value,
     saved_at_utc: new Date().toISOString(),
@@ -315,10 +328,7 @@ function renderSummary() {
   if (selectedFeedstocks.length) {
     parts.push(`Feedstocks: ${selectedFeedstocks.length}`);
   }
-  const totalQty = selectedFeedstocks.reduce((sum, feedstock) => {
-    const qty = Number(feedstockQuantities[feedstock] || 0);
-    return sum + (Number.isFinite(qty) ? qty : 0);
-  }, 0);
+  const totalQty = computeTotalFeedstockQty();
   if (totalQty > 0) {
     parts.push(`Total Feedstock Qty: ${totalQty} t/year`);
   }
@@ -498,10 +508,10 @@ function loadUserFromLocalStorage() {
     renderFeedstockOptions(registrySelect.value, parseStoredFeedstocks(data.q_feedstock_type));
 
     feedstockSustainable.value = data.q_feedstock_sustainable || "";
-    plantCapacity.value = data.q_annual_output_tpy || "";
     monitoringPlan.value = data.q_monitoring_plan || "";
     projectTimeline.value = data.q_start_date || "";
 
+    updatePlantCapacityFromFeedstocks();
     renderSummary();
   } catch (error) {
     console.error("Failed to parse saved user data", error);
@@ -570,6 +580,7 @@ registrySelect.addEventListener("change", () => {
   updateRegistryMeta();
   feedstockQuantities = {};
   renderFeedstockOptions(registrySelect.value);
+  updatePlantCapacityFromFeedstocks();
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -588,6 +599,7 @@ registrySelect.addEventListener("change", () => {
     }
     if (field === feedstockType) {
       renderFeedstockQtyTable();
+      updatePlantCapacityFromFeedstocks();
     }
     renderSummary();
     saveUserToLocalStorage();
@@ -601,5 +613,6 @@ saveCsvBtn.addEventListener("click", downloadCsv);
 Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
   loadUserFromLocalStorage();
   renderFeedstockQtyTable();
+  updatePlantCapacityFromFeedstocks();
   renderSummary();
 });
