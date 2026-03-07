@@ -83,33 +83,117 @@
             </tbody>
           </table>
 
-          <label for="feedstockType">1. Feedstock Type</label>
+          <label for="feedstockType">Feedstock Selection</label>
           <select id="feedstockType" class="multi-select" multiple disabled>
             <option value="">Select a registry first</option>
           </select>
-          <p class="small">Hold Cmd/Ctrl to select multiple feedstocks.</p>
+          <div class="btn-row">
+            <button id="addFeedstockBtn" class="btn" type="button">Add New Feedstock</button>
+          </div>
+          <p class="small">Select one or multiple feedstocks, then click Add New Feedstock.</p>
 
-          <label for="feedstockSustainable">2. Is feedstock sustainably sourced?</label>
-          <select id="feedstockSustainable">
-            <option value="">Select</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-            <option value="partial">Partially</option>
-          </select>
+          <div id="feedstockQuestionnaires" class="questionnaire-list"></div>
 
-          <label for="plantCapacity">3. Planned annual biochar output (t/year)</label>
+          <button id="toBiocharSectionBtn" class="btn" type="button">Next: Biochar Section</button>
+        </div>
+
+        <div id="biocharSection" class="checklist hidden">
+          <h3>Biochar Section</h3>
+          <label for="plantCapacity">5. How much biochar will be produced annually on the dry weight basis (t)?</label>
           <input id="plantCapacity" type="number" min="0" placeholder="Auto-calculated from selected feedstocks" readonly />
 
-          <label for="monitoringPlan">4. Monitoring and traceability plan available?</label>
-          <select id="monitoringPlan">
-            <option value="">Select</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-            <option value="in-progress">In progress</option>
+          <label for="biocharCarbonContent">6. Envisioned Carbon content of the biochar (%)?</label>
+          <input id="biocharCarbonContent" type="number" min="0" max="100" step="any" />
+
+          <label for="biocharHcorg">7. Please indicate the biochar's molar hydrogen to organic carbon ration (H/Corg) of the biochar?</label>
+          <input id="biocharHcorg" type="text" />
+
+          <label for="biocharCertification">8. Do you have certification of the biochar you produce? If so, indicate under which standard?</label>
+          <select id="biocharCertification" class="multi-select" multiple>
+            <option value="verra">Verra</option>
+            <option value="gs">Gold Standard (GS)</option>
+            <option value="puro">Puro.earth</option>
+            <option value="isometric">Isometric</option>
           </select>
 
-          <label for="projectTimeline">5. Expected start date</label>
-          <input id="projectTimeline" type="date" />
+          <label for="biocharEndUse">9. What is the end use application of the produced biochar?</label>
+          <textarea id="biocharEndUse" rows="3"></textarea>
+
+          <label for="biocharEndUseShare">10. Please indicate how much of the produced biochar is used in each of the mentioned end use applications (%)?</label>
+          <textarea id="biocharEndUseShare" rows="3"></textarea>
+
+          <label for="biocharEndUserRelation">11. Do you have a direct relationship with the end user of the biochar? Can you provide continous documentation where biochar is securely applied?</label>
+          <textarea id="biocharEndUserRelation" rows="3"></textarea>
+
+          <label for="biocharTransportDistance">12. What is the approximate average transportation distance from the biochar production facility to end-users (km)?</label>
+          <input id="biocharTransportDistance" type="number" min="0" step="any" />
+
+          <button id="toPyrolysisSectionBtn" class="btn" type="button">Next: Pyrolysis Technology</button>
+        </div>
+
+        <div id="pyrolysisSection" class="checklist hidden">
+          <h3>Pyrolysis Technology</h3>
+          <label for="pyroQ13">13. Are pollution controls such as the thermal oxidiser or other emissions conrols present that meet local, national or international emission thresholds?</label>
+          <textarea id="pyroQ13" rows="3"></textarea>
+
+          <label for="pyroQ14">14. Are you able to utilize &gt;70% of waste heat energy taking into account heat transfer inefficiencies (i.e. feedstock drying or heating)?</label>
+          <textarea id="pyroQ14" rows="3"></textarea>
+
+          <label for="pyroQ15">15. Are pyrolytic gases produced during pyrolysis recovered or burned avoiding pyrolysis gases escaping into the atmosphere? Please confirm that the thermal oxidizers meet relevent regulations and/ or emission thresholds.</label>
+          <textarea id="pyroQ15" rows="3"></textarea>
+
+          <label for="pyroQ16">16. Can you continously measure and report production temperatures?</label>
+          <textarea id="pyroQ16" rows="3"></textarea>
+
+          <label for="pyroQ17">17. What is the average yearly production temperature of the biochar?</label>
+          <input id="pyroQ17" type="number" min="0" step="any" />
+
+          <label for="pyroQ18">18. Is the production facility certified under any carbon standard? If yes which one?</label>
+          <select id="pyroQ18" class="multi-select" multiple>
+            <option value="verra">Verra</option>
+            <option value="gs">Gold Standard (GS)</option>
+            <option value="puro">Puro.earth</option>
+            <option value="isometric">Isometric</option>
+          </select>
+
+          <label for="pyroQ19">19. How much energy is utilized to operate the production facility per year (MWh/a)?</label>
+          <input id="pyroQ19" type="number" min="0" step="any" />
+
+          <label for="pyroQ20">20. Which energy source is used?</label>
+          <textarea id="pyroQ20" rows="3"></textarea>
+
+          <button id="toFinancingSectionBtn" class="btn" type="button">Next: Financing</button>
+        </div>
+
+        <div id="financingSection" class="checklist hidden">
+          <h3>Financing</h3>
+          <label for="financeQ21">21. What would happen to the project in the absence of any revenues from the sale of the credits?</label>
+          <textarea id="financeQ21" rows="3"></textarea>
+
+          <label for="financeQ22">22. Could you provide any financial model that gives you the evidence for the need of the carbon revenues?</label>
+          <textarea id="financeQ22" rows="3"></textarea>
+
+          <button id="toAdditionalInfoSectionBtn" class="btn" type="button">Next: Additional Information</button>
+        </div>
+
+        <div id="additionalInfoSection" class="checklist hidden">
+          <h3>Additional Information</h3>
+          <div id="additionalInfoList" class="questionnaire-list"></div>
+          <div class="btn-row">
+            <button id="addAdditionalInfoBtn" class="btn" type="button">Add New Information</button>
+          </div>
+
+          <label for="contractSignedCheckbox">
+            <input id="contractSignedCheckbox" type="checkbox" />
+            Project contract signed (move to new phase)
+          </label>
+
+          <button id="toCorcSectionBtn" class="btn" type="button">Next: CORC Calculation</button>
+        </div>
+
+        <div id="corcSection" class="checklist hidden">
+          <h3>CORC Calculation</h3>
+          <p class="small">Feedstock and feasibility details are captured. Continue to the next phase for CORC calculation and project progression.</p>
         </div>
 
         <div class="btn-row">

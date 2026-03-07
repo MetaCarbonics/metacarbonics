@@ -100,6 +100,16 @@ input {
   margin-bottom: 10px;
 }
 
+textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  margin-bottom: 10px;
+  resize: vertical;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -161,6 +171,23 @@ input {
 .btn-secondary {
   border-color: #334155;
   background: #334155;
+}
+
+.questionnaire-list {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.questionnaire-card {
+  border: 1px solid #dbe4ee;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.questionnaire-card h4 {
+  margin: 0 0 8px;
 }
 
 .hidden {
