@@ -290,6 +290,24 @@ function parseFeedstockCsv(csvText) {
   });
 }
 
+function normalizeCities(rawCities) {
+  if (!Array.isArray(rawCities)) return [];
+  if (!rawCities.length) return [];
+
+  if (Array.isArray(rawCities[0])) {
+    // Format: [name, countryCode, stateCode, latitude, longitude]
+    return rawCities.map((row) => ({
+      name: row[0] || "",
+      countryCode: row[1] || "",
+      stateCode: row[2] || "",
+      latitude: row[3] || "",
+      longitude: row[4] || "",
+    }));
+  }
+
+  return rawCities;
+}
+
 function isAccepted(value) {
   return ["yes", "y", "1", "true"].includes(String(value).toLowerCase().trim());
 }
@@ -1002,11 +1020,14 @@ async function loadGeoData() {
       throw new Error("Failed to fetch geo datasets.");
     }
 
-    [countries, states, cities] = await Promise.all([
+    const [countriesRaw, statesRaw, citiesRaw] = await Promise.all([
       countryRes.json(),
       stateRes.json(),
       cityRes.json(),
     ]);
+    countries = countriesRaw;
+    states = statesRaw;
+    cities = normalizeCities(citiesRaw);
 
     clearAndSetDefault(countrySelect, "Select country");
     [...countries]
