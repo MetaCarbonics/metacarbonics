@@ -173,6 +173,11 @@ function selectedText(selectEl) {
   return selectEl?.selectedOptions?.[0]?.textContent || "";
 }
 
+function getStorageUserId() {
+  const typed = (userIdInput?.value || "").trim();
+  return typed || "default";
+}
+
 function getMultiValues(selectEl) {
   return Array.from(selectEl.selectedOptions).map((o) => o.value).filter(Boolean);
 }
@@ -781,7 +786,7 @@ function updateFeedstockAvailability() {
 
 function getFormData() {
   return {
-    user_id: userIdInput.value.trim(),
+    user_id: (userIdInput?.value || "").trim(),
     country_code: countrySelect.value,
     country_name: selectedText(countrySelect),
     state_code: stateSelect.value,
@@ -826,7 +831,6 @@ function getFormData() {
 function renderSummary() {
   const data = getFormData();
   const parts = [];
-  if (data.user_id) parts.push(`User: ${data.user_id}`);
   if (data.country_name) parts.push(`Country: ${data.country_name}`);
   if (data.registry_name) parts.push(`Registry: ${data.registry_name}`);
   if (data.facility_lat && data.facility_lng) parts.push(`Facility: ${Number(data.facility_lat).toFixed(4)}, ${Number(data.facility_lng).toFixed(4)}`);
@@ -852,14 +856,12 @@ function csvEscape(value) {
 }
 
 function saveUserToLocalStorage() {
-  const userId = userIdInput.value.trim();
-  if (!userId) return;
+  const userId = getStorageUserId();
   localStorage.setItem(`${STORAGE_KEY_PREFIX}${userId}`, JSON.stringify(getFormData()));
 }
 
 function loadUserFromLocalStorage() {
-  const userId = userIdInput.value.trim();
-  if (!userId) return;
+  const userId = getStorageUserId();
   const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${userId}`);
   if (!raw) return;
 
@@ -944,18 +946,13 @@ function loadUserFromLocalStorage() {
 
 function downloadCsv() {
   const data = getFormData();
-  if (!data.user_id) {
-    alert("Enter User ID/Email before saving CSV.");
-    return;
-  }
-
   const headers = Object.keys(data);
   const values = headers.map((k) => csvEscape(data[k]));
   const csv = `${headers.join(",")}\n${values.join(",")}\n`;
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const safeUser = data.user_id.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeUser = String(data.user_id || "project").replace(/[^a-zA-Z0-9_-]/g, "_");
   link.href = url;
   link.download = `feasibility_${safeUser}.csv`;
   document.body.appendChild(link);
@@ -1106,11 +1103,13 @@ registrySelect.addEventListener("change", () => {
   saveUserToLocalStorage();
 });
 
-userIdInput.addEventListener("change", () => {
-  loadUserFromLocalStorage();
-  renderSummary();
-  saveUserToLocalStorage();
-});
+if (userIdInput) {
+  userIdInput.addEventListener("change", () => {
+    loadUserFromLocalStorage();
+    renderSummary();
+    saveUserToLocalStorage();
+  });
+}
 
 editFacilityMarkerBtn.addEventListener("click", () => {
   if (!mapEditMode) {
