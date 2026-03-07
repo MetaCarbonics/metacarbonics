@@ -65,6 +65,18 @@
               </div>
             </div>
 
+            <label for="multiStateCheckbox">
+              <input id="multiStateCheckbox" type="checkbox" />
+              Project spans multiple states
+            </label>
+            <div id="multiStateWrap" class="hidden">
+              <label for="multiStateSelect">Allowed States for Facility Markers</label>
+              <select id="multiStateSelect" class="multi-select" multiple disabled>
+                <option value="">Select country first</option>
+              </select>
+              <p class="small">When enabled, facility markers can only be placed inside selected state boundaries.</p>
+            </div>
+
             <label for="registrySelect">Registry</label>
             <select id="registrySelect">
               <option value="">Select registry</option>
@@ -79,10 +91,11 @@
           <aside class="questionnaire-card step1-map-panel">
             <div class="title-row">
               <h4>Project Facility Location</h4>
-              <button id="editFacilityMarkerBtn" class="btn btn-secondary btn-sm" type="button">Edit Facility Marker</button>
+              <button id="editFacilityMarkerBtn" class="btn btn-secondary btn-sm" type="button">Edit Facility Locations</button>
             </div>
             <div id="facilityMap" class="facility-map" aria-label="Project facility map"></div>
             <div id="facilityLocationSummary" class="small">Marker not set.</div>
+            <p class="small">Tip: In edit mode, click to add markers and click a marker to remove it.</p>
           </aside>
         </div>
 

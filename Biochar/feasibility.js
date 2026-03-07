@@ -28,6 +28,9 @@ const userIdInput = document.getElementById("userIdInput");
 const countrySelect = document.getElementById("countrySelect");
 const stateSelect = document.getElementById("stateSelect");
 const citySelect = document.getElementById("citySelect");
+const multiStateCheckbox = document.getElementById("multiStateCheckbox");
+const multiStateWrap = document.getElementById("multiStateWrap");
+const multiStateSelect = document.getElementById("multiStateSelect");
 const registrySelect = document.getElementById("registrySelect");
 const registryMeta = document.getElementById("registryMeta");
 const summary = document.getElementById("summary");
@@ -157,9 +160,12 @@ let additionalInfoEntries = [];
 let showStep1Editor = false;
 let facilityLat = null;
 let facilityLng = null;
+let facilityPoints = [];
 let mapEditMode = false;
 let facilityMap = null;
-let facilityMarker = null;
+let facilityMarkersLayer = null;
+let stateBoundaryLayer = null;
+let stateBoundaryFeatures = [];
 let finalRegistryCredits = null;
 
 const FINAL_CREDITS_STORAGE_KEY = "biochar-feasibility-final-credits";
@@ -201,48 +207,165 @@ function setMultiValues(selectEl, values) {
 }
 
 function updateFacilityLocationSummary() {
-  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) {
+  if (!facilityPoints.length) {
     facilityLocationSummary.textContent = "Marker not set.";
     return;
   }
-  facilityLocationSummary.textContent = `Facility marker: ${facilityLat.toFixed(6)}, ${facilityLng.toFixed(6)}`;
+  const list = facilityPoints
+    .slice(0, 4)
+    .map((p, i) => `${i + 1}) ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)}`)
+    .join(" | ");
+  facilityLocationSummary.textContent = `Facility marker(s): ${facilityPoints.length}. ${list}${facilityPoints.length > 4 ? " ..." : ""}`;
 }
 
-function setFacilityMarker(lat, lng, recenter = true) {
-  facilityLat = Number(lat);
-  facilityLng = Number(lng);
-  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) return;
+function syncPrimaryFacilityPoint() {
+  if (!facilityPoints.length) {
+    facilityLat = null;
+    facilityLng = null;
+    return;
+  }
+  facilityLat = Number(facilityPoints[0].lat);
+  facilityLng = Number(facilityPoints[0].lng);
+}
 
-  if (facilityMap && !facilityMarker && window.L) {
-    facilityMarker = window.L.marker([facilityLat, facilityLng], { draggable: mapEditMode }).addTo(facilityMap);
-    facilityMarker.on("dragend", () => {
-      const pos = facilityMarker.getLatLng();
-      facilityLat = pos.lat;
-      facilityLng = pos.lng;
+function pointInRing(lat, lng, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = Number(ring[i][0]);
+    const yi = Number(ring[i][1]);
+    const xj = Number(ring[j][0]);
+    const yj = Number(ring[j][1]);
+    const intersect = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi + Number.EPSILON) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInFeature(lat, lng, feature) {
+  const geom = feature?.geometry;
+  if (!geom) return false;
+  if (geom.type === "Polygon") {
+    const rings = geom.coordinates || [];
+    if (!rings.length) return false;
+    if (!pointInRing(lat, lng, rings[0])) return false;
+    for (let i = 1; i < rings.length; i += 1) if (pointInRing(lat, lng, rings[i])) return false;
+    return true;
+  }
+  if (geom.type === "MultiPolygon") {
+    const polys = geom.coordinates || [];
+    return polys.some((poly) => {
+      if (!poly.length) return false;
+      if (!pointInRing(lat, lng, poly[0])) return false;
+      for (let i = 1; i < poly.length; i += 1) if (pointInRing(lat, lng, poly[i])) return false;
+      return true;
+    });
+  }
+  return false;
+}
+
+function isPlacementAllowed(lat, lng) {
+  if (multiStateCheckbox?.checked) {
+    const selected = getMultiValues(multiStateSelect);
+    if (!selected.length) return false;
+    if (!stateBoundaryFeatures.length) return false;
+  }
+  if (!stateBoundaryFeatures.length) return true;
+  return stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f));
+}
+
+function renderFacilityMarkers(recenter = false) {
+  if (!facilityMap || !window.L) return;
+  if (!facilityMarkersLayer) facilityMarkersLayer = window.L.layerGroup().addTo(facilityMap);
+  facilityMarkersLayer.clearLayers();
+  facilityPoints.forEach((p, idx) => {
+    const marker = window.L.marker([p.lat, p.lng], { draggable: mapEditMode }).addTo(facilityMarkersLayer);
+    marker.on("dragend", () => {
+      const pos = marker.getLatLng();
+      if (!isPlacementAllowed(pos.lat, pos.lng)) {
+        alert("Marker must be within selected state boundary.");
+        marker.setLatLng([p.lat, p.lng]);
+        return;
+      }
+      facilityPoints[idx] = { lat: Number(pos.lat), lng: Number(pos.lng) };
+      syncPrimaryFacilityPoint();
       updateFacilityLocationSummary();
       renderSummary();
       saveUserToLocalStorage();
     });
-  } else if (facilityMarker) {
-    facilityMarker.setLatLng([facilityLat, facilityLng]);
+    marker.on("click", () => {
+      if (!mapEditMode) return;
+      facilityPoints.splice(idx, 1);
+      syncPrimaryFacilityPoint();
+      renderFacilityMarkers(false);
+      updateFacilityLocationSummary();
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  });
+  if (recenter && facilityPoints.length) {
+    const latlngs = facilityPoints.map((p) => [p.lat, p.lng]);
+    facilityMap.fitBounds(latlngs, { padding: [20, 20] });
   }
+}
 
-  if (facilityMarker) {
-    facilityMarker.dragging[mapEditMode ? "enable" : "disable"]();
-  }
-
-  if (facilityMap && recenter) {
-    facilityMap.setView([facilityLat, facilityLng], 11);
-  }
+function setFacilityMarker(lat, lng, recenter = true) {
+  const la = Number(lat);
+  const ln = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(ln)) return;
+  if (!isPlacementAllowed(la, ln)) return;
+  if (!facilityPoints.length) facilityPoints.push({ lat: la, lng: ln });
+  else facilityPoints[0] = { lat: la, lng: ln };
+  syncPrimaryFacilityPoint();
+  renderFacilityMarkers(recenter);
   updateFacilityLocationSummary();
 }
 
 function updateMapEditMode(enabled) {
   mapEditMode = Boolean(enabled);
-  editFacilityMarkerBtn.textContent = mapEditMode ? "Save Marker" : "Edit Facility Marker";
+  editFacilityMarkerBtn.textContent = mapEditMode ? "Save Locations" : "Edit Facility Locations";
   editFacilityMarkerBtn.classList.toggle("btn-danger", mapEditMode);
-  if (facilityMarker) {
-    facilityMarker.dragging[mapEditMode ? "enable" : "disable"]();
+  renderFacilityMarkers(false);
+}
+
+async function fetchStateBoundaryFeature(stateName, countryName) {
+  const query = encodeURIComponent([stateName, countryName].filter(Boolean).join(", "));
+  const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=1&q=${query}`;
+  const res = await fetch(url);
+  const rows = await res.json();
+  const first = Array.isArray(rows) ? rows[0] : null;
+  if (!first?.geojson) return null;
+  return { type: "Feature", properties: { name: stateName }, geometry: first.geojson };
+}
+
+async function refreshStateBoundaryLayer() {
+  if (!facilityMap || !window.L) return;
+  const stateNames = multiStateCheckbox?.checked
+    ? getMultiValues(multiStateSelect)
+    : [selectedText(stateSelect)].filter(Boolean);
+  stateBoundaryFeatures = [];
+  if (!stateNames.length) {
+    if (stateBoundaryLayer) stateBoundaryLayer.clearLayers();
+    return;
+  }
+  const country = selectedText(countrySelect);
+  for (const s of stateNames) {
+    try {
+      const feature = await fetchStateBoundaryFeature(s, country);
+      if (feature) stateBoundaryFeatures.push(feature);
+    } catch {
+      // ignore boundary fetch failures for individual states
+    }
+  }
+  if (!stateBoundaryLayer) {
+    stateBoundaryLayer = window.L.geoJSON([], {
+      style: { color: "#eab308", weight: 2, opacity: 0.9, fillOpacity: 0.05 },
+    }).addTo(facilityMap);
+  }
+  stateBoundaryLayer.clearLayers();
+  if (stateBoundaryFeatures.length) {
+    stateBoundaryLayer.addData({ type: "FeatureCollection", features: stateBoundaryFeatures });
+    const b = stateBoundaryLayer.getBounds();
+    if (b.isValid()) facilityMap.fitBounds(b.pad(0.1));
   }
 }
 
@@ -272,14 +395,19 @@ function initFacilityMap() {
 
   facilityMap.on("click", (e) => {
     if (!mapEditMode) return;
-    setFacilityMarker(e.latlng.lat, e.latlng.lng, false);
+    if (!isPlacementAllowed(e.latlng.lat, e.latlng.lng)) {
+      alert("Marker must be within selected state boundary.");
+      return;
+    }
+    facilityPoints.push({ lat: Number(e.latlng.lat), lng: Number(e.latlng.lng) });
+    syncPrimaryFacilityPoint();
+    renderFacilityMarkers(false);
     renderSummary();
     saveUserToLocalStorage();
   });
 
-  if (Number.isFinite(facilityLat) && Number.isFinite(facilityLng)) {
-    setFacilityMarker(facilityLat, facilityLng, true);
-  }
+  if (facilityPoints.length) renderFacilityMarkers(true);
+  else if (Number.isFinite(facilityLat) && Number.isFinite(facilityLng)) setFacilityMarker(facilityLat, facilityLng, true);
   updateFacilityLocationSummary();
 }
 
@@ -758,12 +886,23 @@ function buildContractPreviewLines() {
   lines.push("");
   lines.push("STEP 1: PROJECT PROFILE");
   lines.push(`Country: ${fmt(data.country_name)}`);
-  lines.push(`State: ${fmt(data.state_name)}`);
+  if (data.multi_state_mode === "yes") {
+    try {
+      const ms = JSON.parse(data.selected_states_json || "[]");
+      lines.push(`States: ${Array.isArray(ms) && ms.length ? ms.join(", ") : "N/A"}`);
+    } catch {
+      lines.push("States: N/A");
+    }
+  } else {
+    lines.push(`State: ${fmt(data.state_name)}`);
+  }
   lines.push(`City: ${fmt(data.city_name)}`);
   lines.push(`Registry: ${fmt(data.registry_name)}`);
-  lines.push(`Facility Marker: ${fmt(data.facility_lat)}, ${fmt(data.facility_lng)}`);
-  if (data.facility_lat && data.facility_lng) {
-    lines.push(`Map Link: https://www.openstreetmap.org/?mlat=${data.facility_lat}&mlon=${data.facility_lng}#map=12/${data.facility_lat}/${data.facility_lng}`);
+  lines.push(`Facility markers count: ${facilityPoints.length}`);
+  facilityPoints.forEach((p, i) => lines.push(`  Marker ${i + 1}: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)}`));
+  if (facilityPoints.length) {
+    const p0 = facilityPoints[0];
+    lines.push(`Map Link: https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`);
   }
   lines.push("");
 
@@ -849,13 +988,66 @@ function renderProjectPreview() {
   projectPreview.textContent = buildContractPreviewLines().join("\n");
 }
 
-function makeSatelliteExportUrl(lat, lng, sizeW = 900, sizeH = 500) {
-  const deltaLat = 0.06;
-  const deltaLng = 0.08;
-  const minLat = lat - deltaLat;
-  const maxLat = lat + deltaLat;
-  const minLng = lng - deltaLng;
-  const maxLng = lng + deltaLng;
+function getCoordsExtentFromFeature(feature) {
+  const out = { minLat: Infinity, maxLat: -Infinity, minLng: Infinity, maxLng: -Infinity };
+  const geom = feature?.geometry;
+  if (!geom) return null;
+  const walk = (coords) => {
+    if (!Array.isArray(coords)) return;
+    if (typeof coords[0] === "number" && typeof coords[1] === "number") {
+      const lng = Number(coords[0]);
+      const lat = Number(coords[1]);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        out.minLat = Math.min(out.minLat, lat);
+        out.maxLat = Math.max(out.maxLat, lat);
+        out.minLng = Math.min(out.minLng, lng);
+        out.maxLng = Math.max(out.maxLng, lng);
+      }
+      return;
+    }
+    coords.forEach(walk);
+  };
+  walk(geom.coordinates);
+  if (!Number.isFinite(out.minLat) || !Number.isFinite(out.minLng)) return null;
+  return out;
+}
+
+function mergeExtent(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return {
+    minLat: Math.min(a.minLat, b.minLat),
+    maxLat: Math.max(a.maxLat, b.maxLat),
+    minLng: Math.min(a.minLng, b.minLng),
+    maxLng: Math.max(a.maxLng, b.maxLng),
+  };
+}
+
+function computePdfMapExtent(points, features) {
+  let e = null;
+  (points || []).forEach((p) => {
+    const pe = { minLat: Number(p.lat), maxLat: Number(p.lat), minLng: Number(p.lng), maxLng: Number(p.lng) };
+    if (Number.isFinite(pe.minLat) && Number.isFinite(pe.minLng)) e = mergeExtent(e, pe);
+  });
+  (features || []).forEach((f) => {
+    e = mergeExtent(e, getCoordsExtentFromFeature(f));
+  });
+  if (!e) return null;
+  const latPad = Math.max(0.02, (e.maxLat - e.minLat) * 0.12);
+  const lngPad = Math.max(0.02, (e.maxLng - e.minLng) * 0.12);
+  return {
+    minLat: e.minLat - latPad,
+    maxLat: e.maxLat + latPad,
+    minLng: e.minLng - lngPad,
+    maxLng: e.maxLng + lngPad,
+  };
+}
+
+function makeSatelliteExportUrl(bounds, sizeW = 900, sizeH = 500) {
+  const minLat = Number(bounds.minLat);
+  const maxLat = Number(bounds.maxLat);
+  const minLng = Number(bounds.minLng);
+  const maxLng = Number(bounds.maxLng);
   const url =
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export" +
     `?bbox=${minLng},${minLat},${maxLng},${maxLat}` +
@@ -874,8 +1066,8 @@ async function blobToDataUrl(blob) {
   });
 }
 
-async function fetchSatelliteMapDataUrl(lat, lng) {
-  const cfg = makeSatelliteExportUrl(lat, lng);
+async function fetchSatelliteMapDataUrl(bounds) {
+  const cfg = makeSatelliteExportUrl(bounds);
   const res = await fetch(cfg.url);
   if (!res.ok) throw new Error("Satellite map image fetch failed.");
   const blob = await res.blob();
@@ -1035,7 +1227,7 @@ async function downloadPreviewPdf() {
     });
   }
 
-  if (data.facility_lat && data.facility_lng) {
+  if (facilityPoints.length || (data.facility_lat && data.facility_lng)) {
     if (y > 740) {
       doc.addPage();
       y = 50;
@@ -1045,11 +1237,14 @@ async function downloadPreviewPdf() {
     doc.text("Georeferenced Facility Legend", marginX, y);
     doc.setFont("helvetica", "normal");
     y += 14;
+    const pointsForPdf = facilityPoints.length
+      ? facilityPoints
+      : [{ lat: Number(data.facility_lat), lng: Number(data.facility_lng) }].filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+    const p0 = pointsForPdf[0] || null;
     const geoLines = [
-      `Latitude: ${data.facility_lat}`,
-      `Longitude: ${data.facility_lng}`,
-      `Map link: https://www.openstreetmap.org/?mlat=${data.facility_lat}&mlon=${data.facility_lng}#map=12/${data.facility_lat}/${data.facility_lng}`,
-      "Legend: Red dot = facility marker | Arrow = North",
+      `Marker count: ${pointsForPdf.length}`,
+      p0 ? `Map link: https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}` : "Map link: N/A",
+      "Legend: Red points = facility marker(s) | Yellow lines = selected state boundaries",
     ];
     geoLines.forEach((gl) => {
       const wrapped = doc.splitTextToSize(gl, maxWidth);
@@ -1071,19 +1266,42 @@ async function downloadPreviewPdf() {
     const mapH = 190;
     const mapX = marginX + (maxWidth - mapW);
     const mapY = y;
-    const lat = Number(data.facility_lat);
-    const lng = Number(data.facility_lng);
+    const bounds = computePdfMapExtent(pointsForPdf, stateBoundaryFeatures);
     let renderedSatellite = false;
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    if (bounds) {
       try {
-        const sat = await fetchSatelliteMapDataUrl(lat, lng);
+        const sat = await fetchSatelliteMapDataUrl(bounds);
         doc.addImage(sat.dataUrl, "PNG", mapX, mapY, mapW, mapH, undefined, "FAST");
-        const markerX = mapX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng)) * mapW;
-        const markerY = mapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat)) * mapH;
-        doc.setDrawColor(255, 255, 255);
-        doc.setLineWidth(1.2);
-        doc.setFillColor(220, 38, 38);
-        doc.circle(markerX, markerY, 5, "FD");
+        const toX = (lng) => mapX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng || 1e-9)) * mapW;
+        const toY = (lat) => mapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat || 1e-9)) * mapH;
+        const drawRing = (ring) => {
+          if (!Array.isArray(ring) || ring.length < 2) return;
+          for (let i = 1; i < ring.length; i += 1) {
+            const a = ring[i - 1];
+            const b = ring[i];
+            const x1 = toX(Number(a[0]));
+            const y1 = toY(Number(a[1]));
+            const x2 = toX(Number(b[0]));
+            const y2 = toY(Number(b[1]));
+            doc.line(x1, y1, x2, y2);
+          }
+        };
+        doc.setDrawColor(234, 179, 8);
+        doc.setLineWidth(1.1);
+        stateBoundaryFeatures.forEach((f) => {
+          const g = f?.geometry;
+          if (!g) return;
+          if (g.type === "Polygon") (g.coordinates || []).forEach(drawRing);
+          if (g.type === "MultiPolygon") (g.coordinates || []).forEach((poly) => (poly || []).forEach(drawRing));
+        });
+        pointsForPdf.forEach((pt) => {
+          const markerX = toX(Number(pt.lng));
+          const markerY = toY(Number(pt.lat));
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(1.1);
+          doc.setFillColor(220, 38, 38);
+          doc.circle(markerX, markerY, 4.2, "FD");
+        });
         renderedSatellite = true;
       } catch {
         renderedSatellite = false;
@@ -1385,7 +1603,10 @@ function openRegistryCalculator() {
 function renderPreviousSectionSummary() {
   const parts = [];
   if (selectedText(countrySelect)) parts.push(`Country: ${selectedText(countrySelect)}`);
-  if (selectedText(stateSelect)) parts.push(`State: ${selectedText(stateSelect)}`);
+  if (multiStateCheckbox?.checked) {
+    const ms = getMultiValues(multiStateSelect);
+    if (ms.length) parts.push(`States: ${ms.join(", ")}`);
+  } else if (selectedText(stateSelect)) parts.push(`State: ${selectedText(stateSelect)}`);
   if (citySelect.value) parts.push(`City: ${citySelect.value}`);
   if (selectedText(registrySelect)) parts.push(`Registry: ${selectedText(registrySelect)}`);
   const text = parts.length ? parts.join(" | ") : "Select country, location, and registry.";
@@ -1426,11 +1647,14 @@ function getFormData() {
     country_name: selectedText(countrySelect),
     state_code: stateSelect.value,
     state_name: selectedText(stateSelect),
+    multi_state_mode: multiStateCheckbox?.checked ? "yes" : "no",
+    selected_states_json: JSON.stringify(getMultiValues(multiStateSelect)),
     city_name: citySelect.value,
     registry_id: registrySelect.value,
     registry_name: selectedText(registrySelect),
     facility_lat: Number.isFinite(facilityLat) ? String(facilityLat) : "",
     facility_lng: Number.isFinite(facilityLng) ? String(facilityLng) : "",
+    facility_points_json: JSON.stringify(facilityPoints),
 
     feedstock_entries_json: JSON.stringify(feedstockEntries),
     biomass_total_tpy: String(computeTotalBiomass()),
@@ -1469,7 +1693,7 @@ function renderSummary() {
   const parts = [];
   if (data.country_name) parts.push(`Country: ${data.country_name}`);
   if (data.registry_name) parts.push(`Registry: ${data.registry_name}`);
-  if (data.facility_lat && data.facility_lng) parts.push(`Facility: ${Number(data.facility_lat).toFixed(4)}, ${Number(data.facility_lng).toFixed(4)}`);
+  if (facilityPoints.length) parts.push(`Facilities: ${facilityPoints.length}`);
   if (feedstockEntries.length) parts.push(`Feedstocks: ${feedstockEntries.length}`);
   parts.push(`Biomass Total: ${data.biomass_total_tpy || "0"} t/year`);
   if (data.contract_signed === "yes") parts.push("Contract: Signed");
@@ -1521,6 +1745,29 @@ function loadUserFromLocalStorage() {
     registrySelect.value = data.registry_id || "";
     facilityLat = data.facility_lat ? Number(data.facility_lat) : null;
     facilityLng = data.facility_lng ? Number(data.facility_lng) : null;
+    multiStateCheckbox.checked = data.multi_state_mode === "yes";
+    multiStateWrap.classList.toggle("hidden", !multiStateCheckbox.checked);
+    try {
+      const ms = JSON.parse(data.selected_states_json || "[]");
+      setMultiValues(multiStateSelect, Array.isArray(ms) ? ms : []);
+    } catch {
+      setMultiValues(multiStateSelect, []);
+    }
+    try {
+      const pts = JSON.parse(data.facility_points_json || "[]");
+      if (Array.isArray(pts) && pts.length) {
+        facilityPoints = pts
+          .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))
+          .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+      } else if (Number.isFinite(facilityLat) && Number.isFinite(facilityLng)) {
+        facilityPoints = [{ lat: facilityLat, lng: facilityLng }];
+      } else {
+        facilityPoints = [];
+      }
+    } catch {
+      facilityPoints = Number.isFinite(facilityLat) && Number.isFinite(facilityLng) ? [{ lat: facilityLat, lng: facilityLng }] : [];
+    }
+    syncPrimaryFacilityPoint();
     updateRegistryMeta();
     renderFeedstockOptions(registrySelect.value);
 
@@ -1574,7 +1821,10 @@ function loadUserFromLocalStorage() {
     updateFeedstockAvailability();
 
     renderBiocharCriticalInfo();
-    if (facilityMap) setFacilityMarker(facilityLat, facilityLng, true);
+    if (facilityMap) {
+      renderFacilityMarkers(true);
+      refreshStateBoundaryLayer();
+    }
     updateFacilityLocationSummary();
     loadFinalRegistryCredits();
     renderSummary();
@@ -1613,6 +1863,15 @@ function loadStates(countryCode) {
   );
   stateSelect.disabled = !countryStates.length;
   countryStates.forEach((state) => stateSelect.appendChild(option(state.name, state.isoCode)));
+
+  multiStateSelect.innerHTML = "";
+  if (!countryStates.length) {
+    multiStateSelect.appendChild(option("No state data available", ""));
+    multiStateSelect.disabled = true;
+  } else {
+    countryStates.forEach((state) => multiStateSelect.appendChild(option(state.name, state.name)));
+    multiStateSelect.disabled = false;
+  }
 }
 
 function loadCities(countryCode, stateCode = "") {
@@ -1657,12 +1916,18 @@ async function loadGeoData() {
 
     clearAndSetDefault(stateSelect, "Select country first");
     clearAndSetDefault(citySelect, "Select state first");
+    multiStateSelect.innerHTML = "";
+    multiStateSelect.appendChild(option("Select country first", ""));
+    multiStateSelect.disabled = true;
     countrySelect.disabled = false;
   } catch (error) {
     console.error(error);
     clearAndSetDefault(countrySelect, "Unable to load country list");
     clearAndSetDefault(stateSelect, "Unable to load state list");
     clearAndSetDefault(citySelect, "Unable to load city list");
+    multiStateSelect.innerHTML = "";
+    multiStateSelect.appendChild(option("Unable to load state list", ""));
+    multiStateSelect.disabled = true;
     countrySelect.disabled = true;
     stateSelect.disabled = true;
     citySelect.disabled = true;
@@ -1714,7 +1979,8 @@ countrySelect.addEventListener("change", () => {
 
   loadStates(countryCode);
   loadCities(countryCode);
-  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) geocodeProjectLocation();
+  refreshStateBoundaryLayer();
+  if (!facilityPoints.length) geocodeProjectLocation();
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -1722,13 +1988,27 @@ countrySelect.addEventListener("change", () => {
 stateSelect.addEventListener("change", () => {
   if (!countrySelect.value) return;
   loadCities(countrySelect.value, stateSelect.value || "");
-  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) geocodeProjectLocation();
+  refreshStateBoundaryLayer();
+  if (!facilityPoints.length) geocodeProjectLocation();
   renderSummary();
   saveUserToLocalStorage();
 });
 
 citySelect.addEventListener("change", () => {
-  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) geocodeProjectLocation();
+  if (!facilityPoints.length) geocodeProjectLocation();
+  renderSummary();
+  saveUserToLocalStorage();
+});
+
+multiStateCheckbox.addEventListener("change", () => {
+  multiStateWrap.classList.toggle("hidden", !multiStateCheckbox.checked);
+  refreshStateBoundaryLayer();
+  renderSummary();
+  saveUserToLocalStorage();
+});
+
+multiStateSelect.addEventListener("change", () => {
+  refreshStateBoundaryLayer();
   renderSummary();
   saveUserToLocalStorage();
 });
