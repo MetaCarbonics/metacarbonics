@@ -654,11 +654,55 @@ function fmt(value) {
   return value === null || value === undefined || value === "" ? "N/A" : String(value);
 }
 
+function getRegistryMethodologyMeta(registryId) {
+  return {
+    verra: {
+      standard: "VCS",
+      methodology: "VM0044",
+      references: [
+        "https://verra.org/methodologies/vm0044-methodology-for-biochar-utilization-in-soil-and-non-soil-applications/",
+      ],
+    },
+    puro: {
+      standard: "Puro Standard",
+      methodology: "Puro Biochar Methodology",
+      references: ["https://puro.earth/biochar"],
+    },
+    gs: {
+      standard: "Gold Standard for the Global Goals",
+      methodology: "Approved GS pathway (project-specific)",
+      references: ["https://globalgoals.goldstandard.org/"],
+    },
+    isometric: {
+      standard: "Isometric Biochar Protocol",
+      methodology: "Isometric pathway (project-specific)",
+      references: ["https://isometric.com/pathways/biochar"],
+    },
+  }[registryId || ""] || {
+    standard: "N/A",
+    methodology: "N/A",
+    references: [],
+  };
+}
+
+function inferProjectName(data) {
+  const city = data.city_name || "Unnamed";
+  const country = data.country_name || "Project";
+  return `MetaCarbonics Biochar - ${city}, ${country}`;
+}
+
 function buildContractPreviewLines() {
   const data = getFormData();
+  const methodology = getRegistryMethodologyMeta(data.registry_id);
   const lines = [];
   lines.push("METACARBONICS BIOCHAR - PHASE 1 CONTRACT PREVIEW");
   lines.push(`Generated UTC: ${new Date().toISOString()}`);
+  lines.push(`Project Name: ${inferProjectName(data)}`);
+  lines.push(`Standard: ${fmt(methodology.standard)}`);
+  lines.push(`Methodology: ${fmt(methodology.methodology)}`);
+  if (methodology.references.length) {
+    lines.push(`Methodology Source: ${methodology.references.join(" | ")}`);
+  }
   lines.push("");
   lines.push("STEP 1: PROJECT PROFILE");
   lines.push(`Country: ${fmt(data.country_name)}`);
@@ -749,23 +793,114 @@ function downloadPreviewPdf() {
     return;
   }
   const doc = new jspdf.jsPDF({ unit: "pt", format: "a4" });
+  const data = getFormData();
+  const methodology = getRegistryMethodologyMeta(data.registry_id);
   const lines = buildContractPreviewLines();
   const marginX = 40;
-  let y = 40;
+  let y = 52;
   const lineHeight = 14;
   const maxWidth = 515;
+
+  doc.setFillColor(15, 118, 110);
+  doc.rect(0, 0, 595, 56, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("MetaCarbonics", 40, 28);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Biochar Project Contract Preview", 40, 44);
+
+  doc.setTextColor(30, 41, 59);
+  doc.setFontSize(10);
+  y = 78;
+  doc.text(`Date: ${new Date().toLocaleString()}`, marginX, y);
+  y += 14;
+  doc.text(`Project Name: ${inferProjectName(data)}`, marginX, y);
+  y += 14;
+  doc.text(`Registry: ${fmt(data.registry_name)} | Standard: ${fmt(methodology.standard)} | Methodology: ${fmt(methodology.methodology)}`, marginX, y);
+  y += 14;
+  if (methodology.references.length) {
+    const refWrapped = doc.splitTextToSize(`Reference: ${methodology.references.join(" | ")}`, maxWidth);
+    refWrapped.forEach((w) => {
+      doc.text(w, marginX, y);
+      y += lineHeight;
+    });
+  }
+  y += 6;
+  doc.setDrawColor(203, 213, 225);
+  doc.line(marginX, y, marginX + maxWidth, y);
+  y += 16;
+  doc.setFontSize(9);
 
   lines.forEach((line) => {
     const wrapped = doc.splitTextToSize(line, maxWidth);
     wrapped.forEach((w) => {
       if (y > 800) {
         doc.addPage();
-        y = 40;
+        y = 50;
+        doc.setFillColor(248, 250, 252);
+        doc.rect(0, 0, 595, 28, "F");
+        doc.setTextColor(71, 85, 105);
+        doc.setFontSize(9);
+        doc.text("MetaCarbonics - Phase 1 Contract Preview (continued)", 40, 18);
+        doc.setTextColor(30, 41, 59);
       }
       doc.text(w, marginX, y);
       y += lineHeight;
     });
   });
+
+  const assumptions = Array.isArray(finalRegistryCredits?.assumptions_used) ? finalRegistryCredits.assumptions_used : [];
+  if (assumptions.length) {
+    if (y > 760) {
+      doc.addPage();
+      y = 50;
+    }
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text("Methodology Guide Assumptions (for project development)", marginX, y);
+    doc.setFont("helvetica", "normal");
+    y += 14;
+    assumptions.forEach((a, idx) => {
+      const wrapped = doc.splitTextToSize(`${idx + 1}. ${a}`, maxWidth);
+      wrapped.forEach((w) => {
+        if (y > 800) {
+          doc.addPage();
+          y = 50;
+        }
+        doc.text(w, marginX, y);
+        y += lineHeight;
+      });
+    });
+  }
+
+  if (y > 760) {
+    doc.addPage();
+    y = 50;
+  }
+  y += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text("Methodology Guide Defaults (screening)", marginX, y);
+  doc.setFont("helvetica", "normal");
+  y += 14;
+  const guideLines = [
+    "Carbon content defaults: Animal manure 0.38 | Wood 0.77 | Biosolids (Paper sludge) 0.35",
+    "Permanence factors: High temp >600C = 0.89 | Medium 450-600C = 0.80 | Low 350-450C = 0.65",
+    "Transport factor guide (kgCO2e/t-km): Road truck 0.10 | Rail 0.03 | Sea/river vessel 0.015",
+  ];
+  guideLines.forEach((gl) => {
+    const wrapped = doc.splitTextToSize(gl, maxWidth);
+    wrapped.forEach((w) => {
+      if (y > 800) {
+        doc.addPage();
+        y = 50;
+      }
+      doc.text(w, marginX, y);
+      y += lineHeight;
+    });
+  });
+
   doc.save("metacarbonics_phase1_contract_preview.pdf");
 }
 
