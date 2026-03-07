@@ -45,10 +45,21 @@
         <h2>Step 1: Country, Location, Registry</h2>
         <div class="step1-layout">
           <div>
-            <label for="countrySelect">Country</label>
-            <select id="countrySelect">
-              <option value="">Loading countries...</option>
+            <label for="registrySelect">Registry</label>
+            <select id="registrySelect">
+              <option value="">Select registry</option>
+              <option value="verra">Verra</option>
+              <option value="gs">Gold Standard (GS)</option>
+              <option value="puro">Puro.earth</option>
+              <option value="isometric">Isometric</option>
             </select>
+            <p id="registryMeta" class="registry-meta"></p>
+
+            <label for="countrySelect">Country</label>
+            <select id="countrySelect" disabled>
+              <option value="">Select registry first</option>
+            </select>
+            <div id="countryEligibilityMsg" class="small"></div>
 
             <label for="multiStateCheckbox">
               <input id="multiStateCheckbox" type="checkbox" />
@@ -84,15 +95,6 @@
             <label for="singleFacilityCount">Facility count in selected state/district</label>
             <input id="singleFacilityCount" type="number" min="1" step="1" value="1" />
 
-            <label for="registrySelect">Registry</label>
-            <select id="registrySelect">
-              <option value="">Select registry</option>
-              <option value="verra">Verra</option>
-              <option value="gs">Gold Standard (GS)</option>
-              <option value="puro">Puro.earth</option>
-              <option value="isometric">Isometric</option>
-            </select>
-            <p id="registryMeta" class="registry-meta"></p>
           </div>
 
           <aside class="questionnaire-card step1-map-panel">
@@ -102,6 +104,7 @@
             </div>
             <div id="facilityMap" class="facility-map" aria-label="Project facility map"></div>
             <div id="facilityLocationSummary" class="small">Marker not set.</div>
+            <div id="facilityPlanQCSummary" class="small">QA/QC: Plan not completed.</div>
             <div id="facilityMarkerDates" class="small">Add marker(s) in edit mode, then set operation start date below.</div>
             <p class="small">Tip: In edit mode, click to add markers and click a marker to remove it.</p>
           </aside>
