@@ -387,6 +387,21 @@ function getPlanFacilityCount(planKey) {
   return facilityPoints.filter((f) => f.plan_key === planKey).length;
 }
 
+function normalizeBoundaryName(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\b(district|city|municipality|municipal|division|province|state|county|region)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function boundaryNameMatches(a, b) {
+  const x = normalizeBoundaryName(a);
+  const y = normalizeBoundaryName(b);
+  if (!x || !y) return false;
+  return x === y || x.includes(y) || y.includes(x);
+}
+
 function findTargetPlanForPoint(lat, lng) {
   const plans = getFacilityPlanRows();
   if (!plans.length) return null;
@@ -394,8 +409,8 @@ function findTargetPlanForPoint(lat, lng) {
   if (!candidates.length) return null;
   if (!districtBoundaryFeatures.length) return candidates[0];
   for (const p of candidates) {
-    const wanted = new Set((p.districts || []).map((d) => String(d).toLowerCase()));
-    const df = districtBoundaryFeatures.filter((f) => wanted.has(String(f?.properties?.name || "").toLowerCase()));
+    const wanted = (p.districts || []).map((d) => String(d || ""));
+    const df = districtBoundaryFeatures.filter((f) => wanted.some((d) => boundaryNameMatches(d, f?.properties?.name || "")));
     if (df.length && df.some((f) => pointInFeature(lat, lng, f))) return p;
   }
   return candidates[0];
@@ -573,8 +588,9 @@ function getPlacementError(lat, lng, plan = null) {
   if (!insideState) return "Facility is outside selected state boundary.";
   if (districtBoundaryFeatures.length) {
     const scopedDistricts = plan
-      ? districtBoundaryFeatures.filter((f) => (plan.districts || []).map((d) => String(d).toLowerCase()).includes(String(f?.properties?.name || "").toLowerCase()))
+      ? districtBoundaryFeatures.filter((f) => (plan.districts || []).some((d) => boundaryNameMatches(d, f?.properties?.name || "")))
       : districtBoundaryFeatures;
+    if (plan && !scopedDistricts.length) return "Selected district boundary is still loading. Try again in a moment.";
     const insideDistrict = scopedDistricts.some((f) => pointInFeature(lat, lng, f));
     if (!insideDistrict) return "Facility is outside selected district boundary.";
   }
@@ -847,11 +863,36 @@ async function fetchStateBoundaryFeature(stateName, countryName) {
 
 async function fetchDistrictBoundaryFeature(cityName, stateName, countryName) {
   if (!cityName) return null;
-  const query = encodeURIComponent([cityName, stateName, countryName].filter(Boolean).join(", "));
-  const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=1&q=${query}`;
+  const query = encodeURIComponent([`${cityName} district`, stateName, countryName].filter(Boolean).join(", "));
+  const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&addressdetails=1&limit=10&q=${query}`;
   const res = await fetch(url);
   const rows = await res.json();
-  const first = Array.isArray(rows) ? rows[0] : null;
+  const list = Array.isArray(rows) ? rows.filter((r) => r?.geojson) : [];
+  const cityNorm = normalizeBoundaryName(cityName);
+  const stateNorm = normalizeBoundaryName(stateName);
+  const scoreRow = (r) => {
+    let score = 0;
+    const addr = r?.address || {};
+    const adminName = [
+      addr.county,
+      addr.state_district,
+      addr.city_district,
+      addr.city,
+      addr.municipality,
+      addr.town,
+      addr.village,
+    ].find(Boolean);
+    if (String(r?.class || "").toLowerCase() === "boundary") score += 6;
+    if (String(r?.type || "").toLowerCase() === "administrative") score += 6;
+    if (boundaryNameMatches(adminName, cityNorm) || boundaryNameMatches(r?.name, cityNorm)) score += 10;
+    if (boundaryNameMatches(addr.state, stateNorm)) score += 4;
+    const gType = String(r?.geojson?.type || "");
+    if (gType === "Polygon" || gType === "MultiPolygon") score += 3;
+    if (String(r?.osm_type || "").toLowerCase() === "node") score -= 5;
+    return score;
+  };
+  const best = list.sort((a, b) => scoreRow(b) - scoreRow(a))[0] || null;
+  const first = best || (Array.isArray(rows) ? rows[0] : null);
   if (!first?.geojson) return null;
   return { type: "Feature", properties: { name: cityName, state: stateName }, geometry: first.geojson };
 }
