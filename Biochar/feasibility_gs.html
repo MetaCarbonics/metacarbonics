@@ -1,32 +1,5 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GS Tentative Credits Calculator</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body data-registry="gs">
-    <main class="page">
-      <section class="card">
-        <h1>Gold Standard Tentative Credits Calculator</h1>
-        <p class="small">Registry: <strong id="registryName">Gold Standard</strong></p>
-        <div class="grid">
-          <div><label>Annual Biochar (t/year)</label><input id="annualBiochar" type="number" readonly /></div>
-          <div><label>Carbon Content (%)</label><input id="carbonContent" type="number" readonly /></div>
-          <div><label>Permanence Factor</label><input id="permanenceFactor" type="number" readonly /></div>
-          <div><label>Tentative Credits (tCO2e/year)</label><input id="tentativeCredits" type="number" readonly /></div>
-          <div><label>Issuance Factor</label><input id="issuanceFactor" type="number" min="0" max="1" step="0.01" /></div>
-          <div><label>Buffer (%)</label><input id="bufferPercent" type="number" min="0" max="100" step="0.1" /></div>
-        </div>
-        <label>Final Credits (tCO2e/year)</label>
-        <input id="finalCredits" type="number" readonly />
-        <div class="btn-row">
-          <button id="backToFeasibilityBtn" class="btn btn-secondary" type="button">Back to Step 7</button>
-          <button id="useResultBtn" class="btn" type="button">Use Result in Step 7</button>
-        </div>
-      </section>
-    </main>
-    <script src="./feasibility_registry_calculator.js"></script>
-  </body>
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Gold Standard Biochar Calculator</title><link rel="stylesheet" href="./styles.css" /><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head>
+  <body data-registry="gs"><main class="page"><header class="hero"><p class="eyebrow">MetaCarbonics</p><h1>Gold Standard Tentative Credits Calculator</h1><p><a href="./biochar-phase1-feasibility-tool.html?section=tentative">Back to Step 7</a></p></header><section class="card"><h3 id="registryName">Gold Standard</h3><p class="small">Applicable Standard and Methodology</p><ul id="methodologyLinks" class="sources"></ul><p id="complianceText" class="small"></p></section><section class="card"><h3>Stepwise Calculator</h3><div class="grid"><div><label>1) Annual biochar output (t/year)</label><input id="inputAnnualBiochar" type="number" min="0" step="any" /></div><div><label>2) Biochar carbon content (%)</label><input id="inputCarbonContent" type="number" min="0" max="100" step="any" /></div><div><label>3) Permanence factor (0-1)</label><input id="inputPermanence" type="number" min="0" max="1" step="0.01" /></div><div><label>4) Stable carbon fraction (0-1)</label><input id="inputStableCarbon" type="number" min="0" max="1" step="0.01" /></div><div><label>5) Process emissions (tCO2e/yr)</label><input id="inputProcessEmissions" type="number" min="0" step="any" /></div><div><label>6) Transport emissions (tCO2e/yr)</label><input id="inputTransportEmissions" type="number" min="0" step="any" /></div><div><label>7) Leakage emissions (tCO2e/yr)</label><input id="inputLeakage" type="number" min="0" step="any" /></div><div><label>8) Uncertainty deduction (%)</label><input id="inputUncertaintyPct" type="number" min="0" max="100" step="0.1" /></div><div><label>9) Buffer deduction (%)</label><input id="inputBufferPct" type="number" min="0" max="100" step="0.1" /></div><div><label>10) Issuance factor (0-1)</label><input id="inputIssuance" type="number" min="0" max="1" step="0.01" /></div><div><label>11) Additionality adjustment (0-1)</label><input id="inputAdditionalityAdj" type="number" min="0" max="1" step="0.01" /></div></div><div id="calcStatus" class="small"></div><div class="grid"><div><label>Gross removals (tCO2e/yr)</label><input id="grossCredits" type="number" readonly /></div><div><label>Net before discounts (tCO2e/yr)</label><input id="netBeforeBuffer" type="number" readonly /></div><div><label>Final credits (tCO2e/yr)</label><input id="finalCredits" type="number" readonly /></div></div></section><section class="card"><h3>Runtime Breakdown</h3><canvas id="calcChart"></canvas></section><section class="card"><h3>Sensitivity Calculator</h3><div class="grid"><div><label>Variable</label><select id="sensitivityVariable"><option value="carbonContent">Carbon Content</option><option value="permanence">Permanence</option><option value="stableCarbon">Stable Carbon Fraction</option><option value="processE">Process Emissions</option></select></div><div><label>Low variation (%)</label><input id="sensitivityLow" type="number" value="-20" step="1" /></div><div><label>High variation (%)</label><input id="sensitivityHigh" type="number" value="20" step="1" /></div></div><div id="sensitivityValue" class="small"></div><canvas id="sensitivityChart"></canvas></section><section class="card"><h3>Project Development Assumptions</h3><ul id="assumptionsList" class="sources"></ul></section><div class="btn-row"><button id="backToFeasibilityBtn" class="btn btn-secondary" type="button">Back to Step 7</button><button id="useResultBtn" class="btn" type="button">Use Result in Step 7</button></div></main><script src="./feasibility_registry_calculator.js"></script></body>
 </html>
