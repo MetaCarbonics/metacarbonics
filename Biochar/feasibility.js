@@ -845,9 +845,12 @@ userIdInput.addEventListener("change", () => {
 });
 
 toFeedstockBtn.addEventListener("click", () => {
-  if (!countrySelect.value || !registrySelect.value) {
-    alert("Select country and registry before continuing.");
+  if (!registrySelect.value) {
+    alert("Select registry before continuing.");
     return;
+  }
+  if (!countrySelect.value) {
+    feedstockFeedback.textContent = "Country is not selected yet. You can continue with feedstock and update location later.";
   }
   navigateToSection("feedstock");
 });
