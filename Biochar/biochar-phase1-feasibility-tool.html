@@ -11,7 +11,7 @@
       <header class="hero">
         <p class="eyebrow">Biochar Workflow</p>
         <h1>Phase 1: Feasibility</h1>
-        <p class="sub">Step 1 location and registry, then Step 2 detailed checklist.</p>
+        <p class="sub">Feedstock first, then Biochar section, then Pyrolysis/Financing.</p>
         <p><a href="/biochar.html">Back to Workflow</a></p>
       </header>
 
@@ -58,148 +58,201 @@
         </select>
         <p id="registryMeta" class="registry-meta"></p>
 
-        <button id="toStep2Btn" class="btn" type="button">Next: Detailed Feasibility</button>
+        <button id="toFeedstockBtn" class="btn" type="button">Next: Feedstock Section</button>
       </section>
 
-      <section id="step2Card" class="card hidden">
-        <h2>Step 2: Detailed Feasibility Checklist</h2>
-        <p id="checklistTitle" class="small"></p>
+      <section id="feedstockSection" class="card hidden">
+        <h2>Feedstock Section</h2>
 
-        <div id="registryChecklist" class="checklist hidden">
-          <h3 id="checklistHeading">Registry Feasibility Questions</h3>
+        <label>Total Biomass (t/year)</label>
+        <div id="biomassTotalFeedstock" class="summary">0</div>
 
-          <label>Selected Feedstocks and Quantity (t/year)</label>
-          <table class="feedstock-table">
-            <thead>
-              <tr>
-                <th>Feedstock</th>
-                <th>Quantity (t/year)</th>
-              </tr>
-            </thead>
-            <tbody id="feedstockQtyBody">
-              <tr>
-                <td colspan="2">No feedstocks selected yet.</td>
-              </tr>
-            </tbody>
-          </table>
+        <label>Feedstock Summary Table</label>
+        <table class="feedstock-table">
+          <thead>
+            <tr>
+              <th>Feedstock</th>
+              <th>Qty (t/year)</th>
+              <th>Distance (km)</th>
+            </tr>
+          </thead>
+          <tbody id="feedstockTableBodyFeedstock">
+            <tr><td colspan="3">No feedstock added yet.</td></tr>
+          </tbody>
+        </table>
 
-          <label for="feedstockType">Feedstock Selection</label>
-          <select id="feedstockType" class="multi-select" multiple disabled>
-            <option value="">Select a registry first</option>
-          </select>
-          <div class="btn-row">
-            <button id="addFeedstockBtn" class="btn" type="button">Add New Feedstock</button>
-          </div>
-          <p class="small">Select one or multiple feedstocks, then click Add New Feedstock.</p>
+        <label for="feedstockType">Feedstock Type (based on selected registry)</label>
+        <select id="feedstockType" disabled>
+          <option value="">Select a registry first</option>
+        </select>
 
-          <div id="feedstockQuestionnaires" class="questionnaire-list"></div>
-
-          <button id="toBiocharSectionBtn" class="btn" type="button">Next: Biochar Section</button>
-        </div>
-
-        <div id="biocharSection" class="checklist hidden">
-          <h3>Biochar Section</h3>
-          <label for="plantCapacity">5. How much biochar will be produced annually on the dry weight basis (t)?</label>
-          <input id="plantCapacity" type="number" min="0" placeholder="Auto-calculated from selected feedstocks" readonly />
-
-          <label for="biocharCarbonContent">6. Envisioned Carbon content of the biochar (%)?</label>
-          <input id="biocharCarbonContent" type="number" min="0" max="100" step="any" />
-
-          <label for="biocharHcorg">7. Please indicate the biochar's molar hydrogen to organic carbon ration (H/Corg) of the biochar?</label>
-          <input id="biocharHcorg" type="text" />
-
-          <label for="biocharCertification">8. Do you have certification of the biochar you produce? If so, indicate under which standard?</label>
-          <select id="biocharCertification" class="multi-select" multiple>
-            <option value="verra">Verra</option>
-            <option value="gs">Gold Standard (GS)</option>
-            <option value="puro">Puro.earth</option>
-            <option value="isometric">Isometric</option>
-          </select>
-
-          <label for="biocharEndUse">9. What is the end use application of the produced biochar?</label>
-          <textarea id="biocharEndUse" rows="3"></textarea>
-
-          <label for="biocharEndUseShare">10. Please indicate how much of the produced biochar is used in each of the mentioned end use applications (%)?</label>
-          <textarea id="biocharEndUseShare" rows="3"></textarea>
-
-          <label for="biocharEndUserRelation">11. Do you have a direct relationship with the end user of the biochar? Can you provide continous documentation where biochar is securely applied?</label>
-          <textarea id="biocharEndUserRelation" rows="3"></textarea>
-
-          <label for="biocharTransportDistance">12. What is the approximate average transportation distance from the biochar production facility to end-users (km)?</label>
-          <input id="biocharTransportDistance" type="number" min="0" step="any" />
-
-          <button id="toPyrolysisSectionBtn" class="btn" type="button">Next: Pyrolysis Technology</button>
-        </div>
-
-        <div id="pyrolysisSection" class="checklist hidden">
-          <h3>Pyrolysis Technology</h3>
-          <label for="pyroQ13">13. Are pollution controls such as the thermal oxidiser or other emissions conrols present that meet local, national or international emission thresholds?</label>
-          <textarea id="pyroQ13" rows="3"></textarea>
-
-          <label for="pyroQ14">14. Are you able to utilize &gt;70% of waste heat energy taking into account heat transfer inefficiencies (i.e. feedstock drying or heating)?</label>
-          <textarea id="pyroQ14" rows="3"></textarea>
-
-          <label for="pyroQ15">15. Are pyrolytic gases produced during pyrolysis recovered or burned avoiding pyrolysis gases escaping into the atmosphere? Please confirm that the thermal oxidizers meet relevent regulations and/ or emission thresholds.</label>
-          <textarea id="pyroQ15" rows="3"></textarea>
-
-          <label for="pyroQ16">16. Can you continously measure and report production temperatures?</label>
-          <textarea id="pyroQ16" rows="3"></textarea>
-
-          <label for="pyroQ17">17. What is the average yearly production temperature of the biochar?</label>
-          <input id="pyroQ17" type="number" min="0" step="any" />
-
-          <label for="pyroQ18">18. Is the production facility certified under any carbon standard? If yes which one?</label>
-          <select id="pyroQ18" class="multi-select" multiple>
-            <option value="verra">Verra</option>
-            <option value="gs">Gold Standard (GS)</option>
-            <option value="puro">Puro.earth</option>
-            <option value="isometric">Isometric</option>
-          </select>
-
-          <label for="pyroQ19">19. How much energy is utilized to operate the production facility per year (MWh/a)?</label>
-          <input id="pyroQ19" type="number" min="0" step="any" />
-
-          <label for="pyroQ20">20. Which energy source is used?</label>
-          <textarea id="pyroQ20" rows="3"></textarea>
-
-          <button id="toFinancingSectionBtn" class="btn" type="button">Next: Financing</button>
-        </div>
-
-        <div id="financingSection" class="checklist hidden">
-          <h3>Financing</h3>
-          <label for="financeQ21">21. What would happen to the project in the absence of any revenues from the sale of the credits?</label>
-          <textarea id="financeQ21" rows="3"></textarea>
-
-          <label for="financeQ22">22. Could you provide any financial model that gives you the evidence for the need of the carbon revenues?</label>
-          <textarea id="financeQ22" rows="3"></textarea>
-
-          <button id="toAdditionalInfoSectionBtn" class="btn" type="button">Next: Additional Information</button>
-        </div>
-
-        <div id="additionalInfoSection" class="checklist hidden">
-          <h3>Additional Information</h3>
-          <div id="additionalInfoList" class="questionnaire-list"></div>
-          <div class="btn-row">
-            <button id="addAdditionalInfoBtn" class="btn" type="button">Add New Information</button>
-          </div>
-
-          <label for="contractSignedCheckbox">
-            <input id="contractSignedCheckbox" type="checkbox" />
-            Project contract signed (move to new phase)
+        <div class="btn-row">
+          <label for="copyPreviousCheckbox">
+            <input id="copyPreviousCheckbox" type="checkbox" /> Copy previous feedstock information
           </label>
-
-          <button id="toCorcSectionBtn" class="btn" type="button">Next: CORC Calculation</button>
+          <button id="addFeedstockBtn" class="btn" type="button">Add New Feedstock</button>
         </div>
 
-        <div id="corcSection" class="checklist hidden">
-          <h3>CORC Calculation</h3>
-          <p class="small">Feedstock and feasibility details are captured. Continue to the next phase for CORC calculation and project progression.</p>
+        <div id="activeFeedstockCard" class="questionnaire-card hidden">
+          <h4 id="activeFeedstockTitle">Feedstock Questionnaire</h4>
+
+          <label for="q1SourceSupply">1. Where is the biomass sourced from and how is it supplied.</label>
+          <textarea id="q1SourceSupply" rows="3"></textarea>
+
+          <label for="q2SupplierRelation">2. Who are the biomass supplier and the producer, what is your contractual relation.</label>
+          <textarea id="q2SupplierRelation" rows="3"></textarea>
+
+          <label for="q3CurrentUse">3. How is the waste biomass currently used in the absence of the biochar production.</label>
+          <textarea id="q3CurrentUse" rows="3"></textarea>
+
+          <label for="q4TransportKm">4. What is the approximate average transportation distance from the biomass source to the biochar production facility (in km)?</label>
+          <input id="q4TransportKm" type="number" min="0" step="any" />
+
+          <label for="feedstockQty">Feedstock Quantity (t/year)</label>
+          <input id="feedstockQty" type="number" min="0" step="any" />
+
+          <label for="feedstockNotes">Notes</label>
+          <textarea id="feedstockNotes" rows="3"></textarea>
         </div>
 
         <div class="btn-row">
-          <button id="backToStep1Btn" class="btn btn-secondary" type="button">Back</button>
-          <button id="saveCsvBtn" class="btn" type="button">Save User Data (CSV)</button>
+          <button id="toBiocharPageBtn" class="btn" type="button">Next: Biochar Section Page</button>
         </div>
+      </section>
+
+      <section id="biocharSection" class="card hidden">
+        <h2>Biochar Section</h2>
+
+        <label>Total Biomass (t/year)</label>
+        <div id="biomassTotalBiochar" class="summary">0</div>
+
+        <label>Feedstock Summary Table</label>
+        <table class="feedstock-table">
+          <thead>
+            <tr>
+              <th>Feedstock</th>
+              <th>Qty (t/year)</th>
+              <th>Distance (km)</th>
+            </tr>
+          </thead>
+          <tbody id="feedstockTableBodyBiochar">
+            <tr><td colspan="3">No feedstock added yet.</td></tr>
+          </tbody>
+        </table>
+
+        <label for="plantCapacity">5. How much biochar will be produced annually on the dry weight basis (t)?</label>
+        <input id="plantCapacity" type="number" min="0" readonly />
+
+        <label for="biocharCarbonContent">6. Envisioned Carbon content of the biochar (%)?</label>
+        <input id="biocharCarbonContent" type="number" min="0" max="100" step="any" />
+
+        <label for="biocharHcorg">7. Please indicate the biochar's molar hydrogen to organic carbon ration (H/Corg) of the biochar?</label>
+        <input id="biocharHcorg" type="text" />
+
+        <label for="biocharCertification">8. Certification standard(s)</label>
+        <select id="biocharCertification" class="multi-select" multiple>
+          <option value="verra">Verra</option>
+          <option value="gs">Gold Standard (GS)</option>
+          <option value="puro">Puro.earth</option>
+          <option value="isometric">Isometric</option>
+        </select>
+
+        <label for="biocharEndUse">9. End use application of produced biochar</label>
+        <textarea id="biocharEndUse" rows="3"></textarea>
+
+        <label for="biocharEndUseShare">10. Use split across end-use applications (%)</label>
+        <textarea id="biocharEndUseShare" rows="3"></textarea>
+
+        <label for="biocharEndUserRelation">11. Direct relationship with end user and continuous documentation?</label>
+        <textarea id="biocharEndUserRelation" rows="3"></textarea>
+
+        <label for="biocharTransportDistance">12. Avg transport distance from production facility to end users (km)</label>
+        <input id="biocharTransportDistance" type="number" min="0" step="any" />
+
+        <div class="btn-row">
+          <button id="toPyrolysisPageBtn" class="btn" type="button">Next: Pyrolysis Section Page</button>
+        </div>
+      </section>
+
+      <section id="pyrolysisSection" class="card hidden">
+        <h2>Pyrolysis + Financing + Additional Info</h2>
+
+        <label>Total Biomass (t/year)</label>
+        <div id="biomassTotalPyro" class="summary">0</div>
+
+        <label>Feedstock Summary Table</label>
+        <table class="feedstock-table">
+          <thead>
+            <tr>
+              <th>Feedstock</th>
+              <th>Qty (t/year)</th>
+              <th>Distance (km)</th>
+            </tr>
+          </thead>
+          <tbody id="feedstockTableBodyPyro">
+            <tr><td colspan="3">No feedstock added yet.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="questionnaire-card">
+          <h4>Biochar Critical Info</h4>
+          <div id="biocharCriticalInfo" class="small">No biochar data yet.</div>
+        </div>
+
+        <label for="pyroQ13">13. Pollution controls present and compliant?</label>
+        <textarea id="pyroQ13" rows="3"></textarea>
+
+        <label for="pyroQ14">14. Utilize &gt;70% waste heat energy?</label>
+        <textarea id="pyroQ14" rows="3"></textarea>
+
+        <label for="pyroQ15">15. Pyrolytic gases recovered/burned and controls compliant?</label>
+        <textarea id="pyroQ15" rows="3"></textarea>
+
+        <label for="pyroQ16">16. Continuous production temperature measurement/reporting?</label>
+        <textarea id="pyroQ16" rows="3"></textarea>
+
+        <label for="pyroQ17">17. Average yearly production temperature</label>
+        <input id="pyroQ17" type="number" min="0" step="any" />
+
+        <label for="pyroQ18">18. Facility carbon standards (multiple)</label>
+        <select id="pyroQ18" class="multi-select" multiple>
+          <option value="verra">Verra</option>
+          <option value="gs">Gold Standard (GS)</option>
+          <option value="puro">Puro.earth</option>
+          <option value="isometric">Isometric</option>
+        </select>
+
+        <label for="pyroQ19">19. Energy used per year (MWh/a)</label>
+        <input id="pyroQ19" type="number" min="0" step="any" />
+
+        <label for="pyroQ20">20. Energy source used</label>
+        <textarea id="pyroQ20" rows="3"></textarea>
+
+        <label for="financeQ21">21. Project without carbon credit revenues</label>
+        <textarea id="financeQ21" rows="3"></textarea>
+
+        <label for="financeQ22">22. Financial model evidence for carbon revenue need</label>
+        <textarea id="financeQ22" rows="3"></textarea>
+
+        <h3>Additional Information</h3>
+        <div id="additionalInfoList" class="questionnaire-list"></div>
+        <div class="btn-row">
+          <button id="addAdditionalInfoBtn" class="btn" type="button">Add New Information</button>
+        </div>
+
+        <label for="contractSignedCheckbox">
+          <input id="contractSignedCheckbox" type="checkbox" />
+          Project contract signed (move to new phase)
+        </label>
+
+        <div class="btn-row">
+          <button id="toCorcSectionBtn" class="btn" type="button">Next: CORC Calculation</button>
+        </div>
+      </section>
+
+      <section id="corcSection" class="card hidden">
+        <h2>CORC Calculation</h2>
+        <p class="small">Proceed to next phase for CORC calculations and contract execution workflow.</p>
       </section>
 
       <section class="card">
@@ -207,28 +260,21 @@
         <ul class="sources">
           <li>
             Country/State/City data:
-            <a
-              href="https://cdn.jsdelivr.net/npm/country-state-city@3.2.1/lib/assets/"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href="https://cdn.jsdelivr.net/npm/country-state-city@3.2.1/lib/assets/" target="_blank" rel="noreferrer">
               country-state-city package assets (jsDelivr)
             </a>
           </li>
           <li>
-            Puro Registry:
-            <a href="https://registry.puro.earth/projects" target="_blank" rel="noreferrer">
-              registry.puro.earth
-            </a>
-          </li>
-          <li>
             Registry feedstock matrix:
-            <a href="./feedstock-registry.csv" target="_blank" rel="noreferrer">
-              feedstock-registry.csv
-            </a>
+            <a href="./feedstock-registry.csv" target="_blank" rel="noreferrer">feedstock-registry.csv</a>
           </li>
         </ul>
       </section>
+
+      <div class="btn-row">
+        <button id="backToStep1Btn" class="btn btn-secondary" type="button">Back</button>
+        <button id="saveCsvBtn" class="btn" type="button">Save User Data (CSV)</button>
+      </div>
     </main>
 
     <script src="./feasibility.js"></script>
