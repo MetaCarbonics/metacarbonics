@@ -37,7 +37,9 @@ const toFeedstockBtn = document.getElementById("toFeedstockBtn");
 const feedstockSection = document.getElementById("feedstockSection");
 
 const feedstockType = document.getElementById("feedstockType");
+const copyPreviousWrap = document.getElementById("copyPreviousWrap");
 const copyPreviousCheckbox = document.getElementById("copyPreviousCheckbox");
+const editFeedstockBtn = document.getElementById("editFeedstockBtn");
 const addFeedstockBtn = document.getElementById("addFeedstockBtn");
 const activeFeedstockCard = document.getElementById("activeFeedstockCard");
 const activeFeedstockTitle = document.getElementById("activeFeedstockTitle");
@@ -194,6 +196,7 @@ function renderAllFeedstockTables() {
   biomassTotalPyro.textContent = String(total);
 
   updatePlantCapacityFromBiomass();
+  updateCopyOptionState();
 }
 
 function getActiveFeedstockIndex() {
@@ -218,6 +221,32 @@ function setActiveFeedstock(feedstockName) {
   q4TransportKm.value = entry.q4_transport_km || "";
   feedstockQty.value = entry.quantity_tpy || "";
   feedstockNotes.value = entry.notes || "";
+}
+
+function updateCopyOptionState() {
+  const hasPrevious = feedstockEntries.length > 0;
+  copyPreviousCheckbox.checked = hasPrevious ? copyPreviousCheckbox.checked : false;
+  copyPreviousCheckbox.disabled = !hasPrevious;
+  copyPreviousWrap.style.display = hasPrevious ? "inline-flex" : "none";
+}
+
+function validateFeedstockEntries() {
+  if (!feedstockEntries.length) {
+    return "Add at least one feedstock before moving to Biochar section.";
+  }
+
+  for (const entry of feedstockEntries) {
+    const missing = [];
+    if (!entry.quantity_tpy) missing.push("quantity");
+    if (!entry.q1_source_supply) missing.push("Q1");
+    if (!entry.q2_suppliers_relation) missing.push("Q2");
+    if (!entry.q3_current_use) missing.push("Q3");
+    if (!entry.q4_transport_km) missing.push("Q4");
+    if (missing.length) {
+      return `Complete ${entry.feedstock}: ${missing.join(", ")} before moving to Biochar section.`;
+    }
+  }
+  return "";
 }
 
 function updateActiveFeedstockField(field, value) {
@@ -264,6 +293,7 @@ function renderAdditionalInfo() {
 function updateContractLockState() {
   const locked = contractSignedCheckbox.checked;
   addFeedstockBtn.disabled = locked;
+  editFeedstockBtn.disabled = locked;
   addAdditionalInfoBtn.disabled = locked;
 }
 
@@ -366,6 +396,21 @@ function addSelectedFeedstock() {
   renderAllFeedstockTables();
   renderSummary();
   saveUserToLocalStorage();
+}
+
+function editSelectedFeedstock() {
+  const selected = feedstockType.value;
+  if (!selected) {
+    alert("Select a feedstock type to edit.");
+    return;
+  }
+
+  const existingIdx = feedstockEntries.findIndex((x) => x.feedstock === selected);
+  if (existingIdx < 0) {
+    alert("Selected feedstock has not been added yet. Use Add New Feedstock first.");
+    return;
+  }
+  setActiveFeedstock(selected);
 }
 
 function getFormData() {
@@ -707,10 +752,12 @@ toFeedstockBtn.addEventListener("click", () => {
 });
 
 addFeedstockBtn.addEventListener("click", addSelectedFeedstock);
+editFeedstockBtn.addEventListener("click", editSelectedFeedstock);
 
 toBiocharPageBtn.addEventListener("click", () => {
-  if (!feedstockEntries.length) {
-    alert("Add at least one feedstock before moving to Biochar section.");
+  const validationError = validateFeedstockEntries();
+  if (validationError) {
+    alert(validationError);
     return;
   }
   navigateToSection("biochar");
@@ -793,6 +840,7 @@ Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
   renderAdditionalInfo();
   loadUserFromLocalStorage();
   renderAllFeedstockTables();
+  updateCopyOptionState();
   renderBiocharCriticalInfo();
   applySectionFromUrl();
   renderSummary();
