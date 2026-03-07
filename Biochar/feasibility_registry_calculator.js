@@ -46,6 +46,7 @@ let breakdownChart = null;
 let sensitivityChart = null;
 let payload = null;
 let feedstockEntries = [];
+let projectRegion = "Global";
 
 const SENSITIVITY_CONFIG = [
   { key: "carbonContent", label: "Carbon Content" },
@@ -101,10 +102,174 @@ const REGISTRY_CONFIG = {
   },
 };
 
-const CARBON_GUIDE = [
-  { feedstock: "Animal manure", carbon: 0.38, source: "Literature default (screening)" },
-  { feedstock: "Wood", carbon: 0.77, source: "Literature default (screening)" },
-  { feedstock: "Biosolids (Paper sludge)", carbon: 0.35, source: "Literature default (screening)" },
+const METHODOLOGY_CARBON_NOTES = {
+  verra: "VM0044 requires project-specific characterization and monitoring; generic feedstock carbon defaults are not prescribed for issuance.",
+  puro: "Puro biochar methodology requires measured biochar properties (e.g., Corg/H:Corg) for certification; no universal feedstock default table is prescribed for issuance.",
+  gs: "Gold Standard requires project-specific quantification evidence; no universal feedstock carbon default table is prescribed for issuance.",
+  isometric: "Isometric protocol requires project-specific measured pathway data; no universal feedstock carbon default table is prescribed for issuance.",
+};
+
+const CARBON_GUIDE_LIBRARY = [
+  {
+    feedstock: "Forestry residues",
+    region: "Global",
+    carbon: 0.77,
+    min: 0.70,
+    max: 0.85,
+    basis: "Literature",
+    source_label: "Materials (2023): softwood biochar carbon ~77.48%",
+    source_url: "https://www.mdpi.com/1996-1944/16/6/2522",
+  },
+  {
+    feedstock: "Sawmill waste",
+    region: "Global",
+    carbon: 0.80,
+    min: 0.79,
+    max: 0.82,
+    basis: "Literature",
+    source_label: "Sustainable Futures (2023): sawdust biochar C ~78.96-81.70%",
+    source_url: "https://www.sciencedirect.com/science/article/abs/pii/S2589014X23001561",
+  },
+  {
+    feedstock: "Orchard prunings",
+    region: "Europe",
+    carbon: 0.72,
+    min: 0.63,
+    max: 0.80,
+    basis: "Literature",
+    source_label: "Agriculture (2023) + PMC pruning review: olive pruning biochar rich in carbon (>70%), literature range includes ~63%",
+    source_url: "https://www.mdpi.com/2077-0472/13/5/1064",
+  },
+  {
+    feedstock: "Orchard prunings",
+    region: "Global",
+    carbon: 0.70,
+    min: 0.60,
+    max: 0.80,
+    basis: "Literature",
+    source_label: "Orchard pruning pyrolysis review (olive/apple/pear/plum residues)",
+    source_url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC8198515/",
+  },
+  {
+    feedstock: "Rice husk",
+    region: "Asia",
+    carbon: 0.50,
+    min: 0.48,
+    max: 0.55,
+    basis: "Literature",
+    source_label: "JEA + Environ. Sci. Europe table: rice husk biochar C around ~47.7%-54.5%",
+    source_url: "https://www.sciencedirect.com/science/article/pii/S2095633921000939",
+  },
+  {
+    feedstock: "Rice husk",
+    region: "Global",
+    carbon: 0.50,
+    min: 0.47,
+    max: 0.55,
+    basis: "Literature",
+    source_label: "JEA/Review values for rice husk biochar carbon",
+    source_url: "https://enveurope.springeropen.com/articles/10.1186/s12302-024-00908-7/tables/2",
+  },
+  {
+    feedstock: "Coconut shell",
+    region: "Asia",
+    carbon: 0.86,
+    min: 0.83,
+    max: 0.94,
+    basis: "Literature",
+    source_label: "Review tables: coconut-shell/fibre biochar carbon commonly >80%",
+    source_url: "https://enveurope.springeropen.com/articles/10.1186/s12302-024-00908-7/tables/2",
+  },
+  {
+    feedstock: "Coconut shell",
+    region: "Global",
+    carbon: 0.85,
+    min: 0.80,
+    max: 0.94,
+    basis: "Literature",
+    source_label: "Shell-derived biochar studies and review values",
+    source_url: "https://www.tandfonline.com/doi/abs/10.1080/15567036.2016.1263252",
+  },
+  {
+    feedstock: "Nut shells",
+    region: "Global",
+    carbon: 0.88,
+    min: 0.81,
+    max: 0.90,
+    basis: "Literature",
+    source_label: "Walnut-shell biochar studies: carbon often ~81%-90%+",
+    source_url: "https://link.springer.com/article/10.1007/s10098-023-02525-z",
+  },
+  {
+    feedstock: "Bamboo residues",
+    region: "Asia",
+    carbon: 0.83,
+    min: 0.78,
+    max: 0.86,
+    basis: "Literature",
+    source_label: "Bamboo biochar review reporting ~83.29% carbon",
+    source_url: "https://www.sciencedirect.com/org/science/article/pii/S2753812525001211",
+  },
+  {
+    feedstock: "Bamboo residues",
+    region: "Global",
+    carbon: 0.82,
+    min: 0.75,
+    max: 0.86,
+    basis: "Literature",
+    source_label: "Bamboo biochar review values",
+    source_url: "https://www.sciencedirect.com/org/science/article/pii/S2753812525001211",
+  },
+  {
+    feedstock: "Crop straw",
+    region: "Global",
+    carbon: 0.74,
+    min: 0.68,
+    max: 0.81,
+    basis: "Literature",
+    source_label: "Wheat-straw biochar studies (~73-75%+ depending on conditions)",
+    source_url: "https://link.springer.com/article/10.1007/s10973-025-14766-9",
+  },
+  {
+    feedstock: "Sugarcane bagasse",
+    region: "Latin America",
+    carbon: 0.70,
+    min: 0.58,
+    max: 0.82,
+    basis: "Literature",
+    source_label: "Bagasse biochar studies/review show broad C range (~58% to >80%)",
+    source_url: "https://link.springer.com/article/10.1007/s42247-023-00603-y",
+  },
+  {
+    feedstock: "Sugarcane bagasse",
+    region: "Global",
+    carbon: 0.68,
+    min: 0.58,
+    max: 0.82,
+    basis: "Literature",
+    source_label: "Bagasse biochar literature range for screening",
+    source_url: "https://www.tandfonline.com/doi/abs/10.1080/03650340.2021.1892651",
+  },
+  {
+    feedstock: "Corn stover",
+    region: "North America",
+    carbon: 0.60,
+    min: 0.46,
+    max: 0.65,
+    basis: "Literature",
+    source_label: "Corn stover pyrolysis study: C increased from 45.5% to 64.5%",
+    source_url: "https://pubmed.ncbi.nlm.nih.gov/27327870/",
+  },
+  {
+    feedstock: "Corn stover",
+    region: "Global",
+    carbon: 0.60,
+    min: 0.46,
+    max: 0.65,
+    basis: "Literature",
+    source_label: "Corn stover biochar carbon range from pyrolysis experiments",
+    source_url: "https://pubmed.ncbi.nlm.nih.gov/27327870/",
+  },
 ];
 
 const PERMANENCE_GUIDE = [
@@ -160,12 +325,45 @@ function dominantFeedstockName() {
   return String(sorted[0]?.feedstock || "").toLowerCase();
 }
 
+function inferRegionFromCountry(countryCode, countryName) {
+  const cc = String(countryCode || "").toUpperCase();
+  if (["US", "CA", "MX"].includes(cc)) return "North America";
+  if (["BR", "AR", "CL", "CO", "PE", "EC", "UY", "PY", "BO"].includes(cc)) return "Latin America";
+  if (["IN", "CN", "JP", "KR", "TH", "VN", "ID", "PH", "MY", "SG", "PK", "BD", "LK", "NP"].includes(cc)) return "Asia";
+  if (["DE", "FR", "IT", "ES", "PT", "NL", "BE", "PL", "SE", "NO", "DK", "FI", "IE", "CH", "AT", "GR", "RO", "CZ", "HU", "UA", "GB"].includes(cc)) return "Europe";
+  if (["ZA", "NG", "KE", "ET", "GH", "TZ", "UG", "DZ", "MA", "EG"].includes(cc)) return "Africa";
+  if (["AU", "NZ", "PG", "FJ"].includes(cc)) return "Oceania";
+  const cn = String(countryName || "").toLowerCase();
+  if (cn.includes("united states") || cn.includes("canada") || cn.includes("mexico")) return "North America";
+  if (cn.includes("brazil") || cn.includes("argentina") || cn.includes("chile") || cn.includes("colombia") || cn.includes("peru")) return "Latin America";
+  if (cn.includes("india") || cn.includes("china") || cn.includes("japan") || cn.includes("indonesia") || cn.includes("thailand")) return "Asia";
+  return "Global";
+}
+
+function canonicalFeedstockName(rawName) {
+  const n = String(rawName || "").toLowerCase();
+  if (n.includes("forestry")) return "Forestry residues";
+  if (n.includes("sawmill") || n.includes("sawdust")) return "Sawmill waste";
+  if (n.includes("orchard") || n.includes("pruning")) return "Orchard prunings";
+  if (n.includes("rice")) return "Rice husk";
+  if (n.includes("coconut")) return "Coconut shell";
+  if (n.includes("nut")) return "Nut shells";
+  if (n.includes("bamboo")) return "Bamboo residues";
+  if (n.includes("straw")) return "Crop straw";
+  if (n.includes("bagasse")) return "Sugarcane bagasse";
+  if (n.includes("corn")) return "Corn stover";
+  return "";
+}
+
 function inferCarbonDefault() {
-  const name = dominantFeedstockName();
-  if (!name) return 0.77;
-  if (name.includes("manure")) return 0.38;
-  if (name.includes("sludge") || name.includes("biosolid") || name.includes("paper")) return 0.35;
-  return 0.77;
+  const canonical = canonicalFeedstockName(dominantFeedstockName()) || "Forestry residues";
+  const exactRegion = CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === canonical && r.region === projectRegion);
+  const global = CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === canonical && r.region === "Global");
+  const row = exactRegion || global || CARBON_GUIDE_LIBRARY.find((r) => r.feedstock === "Forestry residues" && r.region === "Global");
+  return {
+    value: Number((Number(row?.carbon || 0.77) * 100).toFixed(2)),
+    row,
+  };
 }
 
 function averageTransportDistanceKm() {
@@ -213,7 +411,10 @@ function setList(parent, items, linkMode = false) {
 }
 
 function fillGuideTables() {
-  carbonGuideBody.innerHTML = CARBON_GUIDE.map((r) => `<tr><td>${r.feedstock}</td><td>${r.carbon}</td><td>${r.source}</td></tr>`).join("");
+  carbonGuideBody.innerHTML = CARBON_GUIDE_LIBRARY.map((r) => {
+    const source = r.source_url ? `<a href="${r.source_url}" target="_blank" rel="noreferrer">${r.source_label}</a>` : r.source_label;
+    return `<tr><td>${r.feedstock} (${r.region})</td><td>${(r.carbon * 100).toFixed(2)}%</td><td>${r.basis}: ${source}</td></tr>`;
+  }).join("");
   permanenceGuideBody.innerHTML = PERMANENCE_GUIDE.map((r) => `<tr><td>${r.label}</td><td>${r.factor}</td></tr>`).join("");
   transportGuideBody.innerHTML = TRANSPORT_GUIDE.map((r) => `<tr><td>${r.mode}</td><td>${r.factorKgTkm}</td><td>${r.source}</td></tr>`).join("");
 
@@ -233,7 +434,8 @@ function applyGuidedDefaults(config) {
 
   if (!inputAnnualBiochar.value) inputAnnualBiochar.value = "0";
   if (!inputCarbonContent.value || Number(inputCarbonContent.value) <= 0) {
-    inputCarbonContent.value = String((inferCarbonDefault() * 100).toFixed(2));
+    const inferred = inferCarbonDefault();
+    inputCarbonContent.value = String(inferred.value);
   }
 
   if (!inputPermanence.value || Number(inputPermanence.value) <= 0) {
@@ -256,6 +458,7 @@ function applyPayloadValues() {
   if (d.q5_annual_biochar_t) inputAnnualBiochar.value = d.q5_annual_biochar_t;
   if (d.q6_biochar_carbon_content_pct) inputCarbonContent.value = d.q6_biochar_carbon_content_pct;
   if (payload.tentative_permanence_factor) inputPermanence.value = payload.tentative_permanence_factor;
+  projectRegion = inferRegionFromCountry(d.country_code, d.country_name);
 }
 
 function autoTransportEmissions() {
@@ -376,10 +579,15 @@ function renderSensitivityChart() {
 
 function renderAll() {
   const res = calculateCredits();
+  const inferred = inferCarbonDefault();
+  const sourceRow = inferred.row;
+  const methodologyNote = METHODOLOGY_CARBON_NOTES[registryId] || METHODOLOGY_CARBON_NOTES.verra;
   grossCreditsEl.value = res.gross.toFixed(2);
   netBeforeBufferEl.value = res.netBeforeDiscounts.toFixed(2);
   finalCreditsEl.value = res.final.toFixed(2);
-  calcStatusEl.textContent = num(inputAnnualBiochar) > 0 ? "Using guided defaults and your project values." : "Provide annual output to activate full calculation.";
+  calcStatusEl.innerHTML = num(inputAnnualBiochar) > 0
+    ? `Using guided defaults and your project values.<br><strong>Carbon default basis:</strong> ${sourceRow ? `${sourceRow.feedstock} (${sourceRow.region}) = ${(sourceRow.carbon * 100).toFixed(2)}%` : "N/A"}<br>${sourceRow?.source_url ? `<a href="${sourceRow.source_url}" target="_blank" rel="noreferrer">${sourceRow.source_label}</a><br>` : ""}<strong>Methodology note:</strong> ${methodologyNote}`
+    : `Provide annual output to activate full calculation.<br><strong>Methodology note:</strong> ${methodologyNote}`;
   renderTenYearTable(res.final);
   renderBreakdownChart(res);
   renderSensitivityChart();
@@ -462,6 +670,7 @@ backBtn.addEventListener("click", () => {
 useResultBtn.addEventListener("click", () => {
   const result = calculateCredits();
   const sensitivityDetails = collectSensitivityDetails();
+  const inferred = inferCarbonDefault();
 
   localStorage.setItem(
     FINAL_CREDITS_STORAGE_KEY,
@@ -476,6 +685,16 @@ useResultBtn.addEventListener("click", () => {
       process_emissions_tco2e: num(inputProcessEmissions),
       transport_emissions_tco2e: num(inputTransportEmissions),
       leakage_tco2e: num(inputLeakage),
+      carbon_default_reference: inferred.row
+        ? {
+            feedstock: inferred.row.feedstock,
+            region: inferred.row.region,
+            default_pct: Number((inferred.row.carbon * 100).toFixed(2)),
+            range_pct: `${Number((inferred.row.min * 100).toFixed(2))}-${Number((inferred.row.max * 100).toFixed(2))}`,
+            source_label: inferred.row.source_label,
+            source_url: inferred.row.source_url,
+          }
+        : null,
       breakdown: {
         gross: Number(result.gross.toFixed(2)),
         process: Number(result.processE.toFixed(2)),

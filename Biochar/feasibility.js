@@ -773,6 +773,11 @@ function buildContractPreviewLines() {
   lines.push(`Process emissions tCO2e: ${fmt(finalRegistryCredits?.process_emissions_tco2e)}`);
   lines.push(`Transport emissions tCO2e: ${fmt(finalRegistryCredits?.transport_emissions_tco2e)}`);
   lines.push(`Leakage tCO2e: ${fmt(finalRegistryCredits?.leakage_tco2e)}`);
+  if (finalRegistryCredits?.carbon_default_reference) {
+    const cdr = finalRegistryCredits.carbon_default_reference;
+    lines.push(`Carbon content default used: ${fmt(cdr.feedstock)} (${fmt(cdr.region)}) = ${fmt(cdr.default_pct)}% [range ${fmt(cdr.range_pct)}%]`);
+    if (cdr.source_label || cdr.source_url) lines.push(`  Source: ${fmt(cdr.source_label)} ${fmt(cdr.source_url)}`);
+  }
   if (finalRegistryCredits?.breakdown) {
     lines.push("Runtime breakdown values:");
     lines.push(`  Gross: ${fmt(finalRegistryCredits.breakdown.gross)}`);
