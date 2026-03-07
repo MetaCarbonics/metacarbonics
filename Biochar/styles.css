@@ -64,6 +64,10 @@ select {
   margin-bottom: 10px;
 }
 
+.multi-select {
+  min-height: 150px;
+}
+
 input {
   width: 100%;
   border: 1px solid #cbd5e1;

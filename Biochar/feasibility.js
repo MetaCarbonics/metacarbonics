@@ -7,15 +7,45 @@ const GEO_DATA_URLS = {
     "https://cdn.jsdelivr.net/npm/country-state-city@3.2.1/lib/assets/city.json",
 };
 
+const FEEDSTOCK_MATRIX_URL = "./feedstock-registry.csv";
+
 const REGISTRIES = [
+  {
+    id: "verra",
+    name: "Verra",
+    type: "Public",
+    detail: "Verra selected. Feedstocks filtered by Verra eligibility.",
+    source: "https://verra.org/",
+  },
+  {
+    id: "gs",
+    name: "Gold Standard",
+    type: "Public",
+    detail: "Gold Standard selected. Feedstocks filtered by GS eligibility.",
+    source: "https://www.goldstandard.org/",
+  },
   {
     id: "puro",
     name: "Puro.earth",
     type: "Public",
-    detail: "Public registry selected. Detailed checklist loaded for Puro.earth.",
+    detail: "Puro.earth selected. Feedstocks filtered by Puro eligibility.",
     source: "https://registry.puro.earth/projects",
   },
+  {
+    id: "isometric",
+    name: "Isometric",
+    type: "Public",
+    detail: "Isometric selected. Feedstocks filtered by Isometric eligibility.",
+    source: "https://isometric.com/",
+  },
 ];
+
+const REGISTRY_COLUMN_BY_ID = {
+  verra: "Verra",
+  gs: "GS",
+  puro: "Puro Earth",
+  isometric: "Isometric",
+};
 
 const STORAGE_KEY_PREFIX = "biochar-feasibility-user:";
 
@@ -29,7 +59,8 @@ const summary = document.getElementById("summary");
 const step1Card = document.getElementById("step1Card");
 const step2Card = document.getElementById("step2Card");
 const checklistTitle = document.getElementById("checklistTitle");
-const puroChecklist = document.getElementById("puroChecklist");
+const registryChecklist = document.getElementById("registryChecklist");
+const checklistHeading = document.getElementById("checklistHeading");
 const toStep2Btn = document.getElementById("toStep2Btn");
 const backToStep1Btn = document.getElementById("backToStep1Btn");
 const saveCsvBtn = document.getElementById("saveCsvBtn");
@@ -43,6 +74,7 @@ const projectTimeline = document.getElementById("projectTimeline");
 let countries = [];
 let states = [];
 let cities = [];
+let feedstockMatrix = [];
 
 function option(label, value) {
   const opt = document.createElement("option");
@@ -64,6 +96,98 @@ function getSelectedRegistry() {
   return REGISTRIES.find((item) => item.id === registrySelect.value);
 }
 
+function parseCsvLine(line) {
+  return line.split(",").map((cell) => cell.trim());
+}
+
+function parseFeedstockCsv(csvText) {
+  const rows = csvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!rows.length) return [];
+
+  const headers = parseCsvLine(rows[0]);
+  return rows.slice(1).map((line) => {
+    const cells = parseCsvLine(line);
+    const row = {};
+    headers.forEach((header, idx) => {
+      row[header] = cells[idx] || "";
+    });
+    return row;
+  });
+}
+
+function isAccepted(value) {
+  return ["yes", "y", "1", "true"].includes(String(value).toLowerCase().trim());
+}
+
+function getSelectedFeedstocks() {
+  return Array.from(feedstockType.selectedOptions)
+    .map((opt) => opt.value)
+    .filter(Boolean);
+}
+
+function setSelectedFeedstocks(selectedValues) {
+  const selectedSet = new Set(selectedValues);
+  Array.from(feedstockType.options).forEach((opt) => {
+    opt.selected = selectedSet.has(opt.value);
+  });
+}
+
+function parseStoredFeedstocks(value) {
+  if (!value) return [];
+  return String(value)
+    .split(/;|,/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function renderFeedstockOptions(registryId, preselected = []) {
+  const registryColumn = REGISTRY_COLUMN_BY_ID[registryId];
+  feedstockType.innerHTML = "";
+
+  if (!registryColumn) {
+    feedstockType.appendChild(option("Select a registry first", ""));
+    feedstockType.disabled = true;
+    return;
+  }
+
+  const allowedFeedstocks = feedstockMatrix
+    .filter((row) => isAccepted(row[registryColumn]))
+    .map((row) => row.feedstock)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
+  if (!allowedFeedstocks.length) {
+    feedstockType.appendChild(option("No feedstocks mapped for this registry", ""));
+    feedstockType.disabled = true;
+    return;
+  }
+
+  allowedFeedstocks.forEach((feedstock) => {
+    feedstockType.appendChild(option(feedstock, feedstock));
+  });
+  feedstockType.disabled = false;
+  setSelectedFeedstocks(preselected);
+}
+
+async function loadFeedstockMatrix() {
+  try {
+    const res = await fetch(FEEDSTOCK_MATRIX_URL);
+    if (!res.ok) throw new Error("Failed to fetch feedstock matrix CSV.");
+    const csvText = await res.text();
+    feedstockMatrix = parseFeedstockCsv(csvText);
+    renderFeedstockOptions(registrySelect.value);
+  } catch (error) {
+    console.error(error);
+    feedstockType.innerHTML = "";
+    feedstockType.appendChild(option("Unable to load feedstock matrix", ""));
+    feedstockType.disabled = true;
+  }
+}
+
 function getFormData() {
   return {
     user_id: userIdInput.value.trim(),
@@ -75,7 +199,7 @@ function getFormData() {
     registry_id: registrySelect.value,
     registry_name: selectedText(registrySelect),
     registry_type: getSelectedRegistry()?.type || "",
-    q_feedstock_type: feedstockType.value.trim(),
+    q_feedstock_type: getSelectedFeedstocks().join("; "),
     q_feedstock_sustainable: feedstockSustainable.value,
     q_annual_output_tpy: plantCapacity.value,
     q_monitoring_plan: monitoringPlan.value,
@@ -97,8 +221,13 @@ function renderSummary() {
     parts.push(`Type: ${data.registry_type}`);
   }
 
+  const selectedFeedstocks = getSelectedFeedstocks();
+  if (selectedFeedstocks.length) {
+    parts.push(`Feedstocks: ${selectedFeedstocks.length}`);
+  }
+
   const completedAnswers = [
-    data.q_feedstock_type,
+    selectedFeedstocks.length ? "yes" : "",
     data.q_feedstock_sustainable,
     data.q_annual_output_tpy,
     data.q_monitoring_plan,
@@ -191,7 +320,7 @@ function updateRegistryMeta() {
   if (!selected) {
     registryMeta.innerHTML = "";
     checklistTitle.textContent = "";
-    puroChecklist.classList.add("hidden");
+    registryChecklist.classList.add("hidden");
     return;
   }
 
@@ -200,20 +329,16 @@ function updateRegistryMeta() {
 
 function showChecklistForRegistry() {
   const selected = getSelectedRegistry();
-  puroChecklist.classList.add("hidden");
+  registryChecklist.classList.add("hidden");
 
   if (!selected) {
     checklistTitle.textContent = "Select a registry in Step 1.";
     return;
   }
 
-  if (selected.id === "puro") {
-    checklistTitle.textContent = `Detailed checklist for ${selected.name} (${selected.type})`;
-    puroChecklist.classList.remove("hidden");
-    return;
-  }
-
-  checklistTitle.textContent = `Checklist for ${selected.name} will be added.`;
+  checklistTitle.textContent = `Detailed checklist for ${selected.name} (${selected.type})`;
+  checklistHeading.textContent = `${selected.name} Feasibility Questions`;
+  registryChecklist.classList.remove("hidden");
 }
 
 function goToStep2() {
@@ -268,15 +393,17 @@ function loadUserFromLocalStorage() {
     } else if (data.country_code) {
       loadCities(data.country_code);
     }
+
     citySelect.value = data.city_name || "";
     registrySelect.value = data.registry_id || "";
-    feedstockType.value = data.q_feedstock_type || "";
+    updateRegistryMeta();
+    renderFeedstockOptions(registrySelect.value, parseStoredFeedstocks(data.q_feedstock_type));
+
     feedstockSustainable.value = data.q_feedstock_sustainable || "";
     plantCapacity.value = data.q_annual_output_tpy || "";
     monitoringPlan.value = data.q_monitoring_plan || "";
     projectTimeline.value = data.q_start_date || "";
 
-    updateRegistryMeta();
     renderSummary();
   } catch (error) {
     console.error("Failed to parse saved user data", error);
@@ -343,6 +470,7 @@ citySelect.addEventListener("change", () => {
 
 registrySelect.addEventListener("change", () => {
   updateRegistryMeta();
+  renderFeedstockOptions(registrySelect.value);
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -368,7 +496,7 @@ toStep2Btn.addEventListener("click", goToStep2);
 backToStep1Btn.addEventListener("click", goToStep1);
 saveCsvBtn.addEventListener("click", downloadCsv);
 
-loadGeoData().then(() => {
+Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
   loadUserFromLocalStorage();
   renderSummary();
 });

@@ -12,7 +12,7 @@
         <p class="eyebrow">Biochar Workflow</p>
         <h1>Phase 1: Feasibility</h1>
         <p class="sub">Step 1 location and registry, then Step 2 detailed checklist.</p>
-        <p><a href="https://www.metacarbonics.com/biochar.html">Back to Workflow</a></p>
+        <p><a href="/biochar.html">Back to Workflow</a></p>
       </header>
 
       <section class="card summary-card">
@@ -51,7 +51,10 @@
         <label for="registrySelect">Registry</label>
         <select id="registrySelect">
           <option value="">Select registry</option>
+          <option value="verra">Verra</option>
+          <option value="gs">Gold Standard (GS)</option>
           <option value="puro">Puro.earth</option>
+          <option value="isometric">Isometric</option>
         </select>
         <p id="registryMeta" class="registry-meta"></p>
 
@@ -62,11 +65,14 @@
         <h2>Step 2: Detailed Feasibility Checklist</h2>
         <p id="checklistTitle" class="small"></p>
 
-        <div id="puroChecklist" class="checklist hidden">
-          <h3>Puro.earth Feasibility Questions</h3>
+        <div id="registryChecklist" class="checklist hidden">
+          <h3 id="checklistHeading">Registry Feasibility Questions</h3>
 
           <label for="feedstockType">1. Feedstock Type</label>
-          <input id="feedstockType" type="text" placeholder="e.g. Forestry residues" />
+          <select id="feedstockType" class="multi-select" multiple disabled>
+            <option value="">Select a registry first</option>
+          </select>
+          <p class="small">Hold Cmd/Ctrl to select multiple feedstocks.</p>
 
           <label for="feedstockSustainable">2. Is feedstock sustainably sourced?</label>
           <select id="feedstockSustainable">
@@ -114,6 +120,12 @@
             Puro Registry:
             <a href="https://registry.puro.earth/projects" target="_blank" rel="noreferrer">
               registry.puro.earth
+            </a>
+          </li>
+          <li>
+            Registry feedstock matrix:
+            <a href="./feedstock-registry.csv" target="_blank" rel="noreferrer">
+              feedstock-registry.csv
             </a>
           </li>
         </ul>
