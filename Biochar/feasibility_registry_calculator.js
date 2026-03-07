@@ -428,6 +428,16 @@ useResultBtn.addEventListener("click", () => {
       process_emissions_tco2e: num(inputProcessEmissions),
       transport_emissions_tco2e: num(inputTransportEmissions),
       leakage_tco2e: num(inputLeakage),
+      breakdown: {
+        gross: Number(result.gross.toFixed(2)),
+        process: Number(result.processE.toFixed(2)),
+        transport: Number(result.transportE.toFixed(2)),
+        leakage: Number(result.leakageE.toFixed(2)),
+        uncertainty_loss: Number(result.uncertaintyLoss.toFixed(2)),
+        buffer_loss: Number(result.bufferLoss.toFixed(2)),
+        issuance_loss: Number(result.issuanceLoss.toFixed(2)),
+        final: Number(result.final.toFixed(2)),
+      },
       assumptions_used: ASSUMPTIONS,
       sensitivity: {
         variable,

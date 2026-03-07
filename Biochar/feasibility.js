@@ -710,6 +710,9 @@ function buildContractPreviewLines() {
   lines.push(`City: ${fmt(data.city_name)}`);
   lines.push(`Registry: ${fmt(data.registry_name)}`);
   lines.push(`Facility Marker: ${fmt(data.facility_lat)}, ${fmt(data.facility_lng)}`);
+  if (data.facility_lat && data.facility_lng) {
+    lines.push(`Map Link: https://www.openstreetmap.org/?mlat=${data.facility_lat}&mlon=${data.facility_lng}#map=12/${data.facility_lat}/${data.facility_lng}`);
+  }
   lines.push("");
 
   lines.push("STEP 2: FEEDSTOCK QUESTIONNAIRE");
@@ -770,6 +773,17 @@ function buildContractPreviewLines() {
   lines.push(`Process emissions tCO2e: ${fmt(finalRegistryCredits?.process_emissions_tco2e)}`);
   lines.push(`Transport emissions tCO2e: ${fmt(finalRegistryCredits?.transport_emissions_tco2e)}`);
   lines.push(`Leakage tCO2e: ${fmt(finalRegistryCredits?.leakage_tco2e)}`);
+  if (finalRegistryCredits?.breakdown) {
+    lines.push("Runtime breakdown values:");
+    lines.push(`  Gross: ${fmt(finalRegistryCredits.breakdown.gross)}`);
+    lines.push(`  Process deduction: ${fmt(finalRegistryCredits.breakdown.process)}`);
+    lines.push(`  Transport deduction: ${fmt(finalRegistryCredits.breakdown.transport)}`);
+    lines.push(`  Leakage deduction: ${fmt(finalRegistryCredits.breakdown.leakage)}`);
+    lines.push(`  Uncertainty deduction: ${fmt(finalRegistryCredits.breakdown.uncertainty_loss)}`);
+    lines.push(`  Buffer deduction: ${fmt(finalRegistryCredits.breakdown.buffer_loss)}`);
+    lines.push(`  Issuance deduction: ${fmt(finalRegistryCredits.breakdown.issuance_loss)}`);
+    lines.push(`  Final: ${fmt(finalRegistryCredits.breakdown.final)}`);
+  }
   if (finalRegistryCredits?.sensitivity) {
     lines.push(`Sensitivity: variable=${fmt(finalRegistryCredits.sensitivity.variable)}, range=${fmt(finalRegistryCredits.sensitivity.low_pct)}% to ${fmt(finalRegistryCredits.sensitivity.high_pct)}%, low=${fmt(finalRegistryCredits.sensitivity.low_final)}, high=${fmt(finalRegistryCredits.sensitivity.high_final)}`);
   }
@@ -900,6 +914,47 @@ function downloadPreviewPdf() {
       y += lineHeight;
     });
   });
+
+  if (finalRegistryCredits?.breakdown) {
+    if (y > 680) {
+      doc.addPage();
+      y = 50;
+    }
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("Runtime Breakdown Diagram (tCO2e/year)", marginX, y);
+    doc.setFont("helvetica", "normal");
+    y += 12;
+
+    const bars = [
+      { label: "Gross", value: Number(finalRegistryCredits.breakdown.gross || 0), color: [15, 118, 110] },
+      { label: "Process", value: Number(finalRegistryCredits.breakdown.process || 0), color: [185, 28, 28] },
+      { label: "Transport", value: Number(finalRegistryCredits.breakdown.transport || 0), color: [185, 28, 28] },
+      { label: "Leakage", value: Number(finalRegistryCredits.breakdown.leakage || 0), color: [185, 28, 28] },
+      { label: "Uncertainty", value: Number(finalRegistryCredits.breakdown.uncertainty_loss || 0), color: [185, 28, 28] },
+      { label: "Buffer", value: Number(finalRegistryCredits.breakdown.buffer_loss || 0), color: [185, 28, 28] },
+      { label: "Issuance", value: Number(finalRegistryCredits.breakdown.issuance_loss || 0), color: [185, 28, 28] },
+      { label: "Final", value: Number(finalRegistryCredits.breakdown.final || 0), color: [22, 163, 74] },
+    ];
+    const maxVal = Math.max(1, ...bars.map((b) => b.value));
+    const chartWidth = 300;
+    const barHeight = 10;
+    const barGap = 12;
+
+    bars.forEach((b) => {
+      if (y > 800) {
+        doc.addPage();
+        y = 50;
+      }
+      doc.setTextColor(30, 41, 59);
+      doc.text(`${b.label}`, marginX, y + 8);
+      doc.setFillColor(b.color[0], b.color[1], b.color[2]);
+      doc.rect(marginX + 70, y, (b.value / maxVal) * chartWidth, barHeight, "F");
+      doc.setTextColor(30, 41, 59);
+      doc.text(String(b.value.toFixed(2)), marginX + 380, y + 8);
+      y += barGap;
+    });
+  }
 
   doc.save("metacarbonics_phase1_contract_preview.pdf");
 }
