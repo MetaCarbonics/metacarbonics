@@ -213,7 +213,10 @@ function updateFacilityLocationSummary() {
   }
   const list = facilityPoints
     .slice(0, 4)
-    .map((p, i) => `${i + 1}) ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)}`)
+    .map((p, i) => {
+      const startDate = p.start_date ? ` | Start: ${p.start_date}` : "";
+      return `${i + 1}) ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)}${startDate}`;
+    })
     .join(" | ");
   facilityLocationSummary.textContent = `Facility marker(s): ${facilityPoints.length}. ${list}${facilityPoints.length > 4 ? " ..." : ""}`;
 }
@@ -273,12 +276,30 @@ function isPlacementAllowed(lat, lng) {
   return stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f));
 }
 
+function promptFacilityStartDate(defaultValue = "") {
+  const seed = defaultValue || new Date().toISOString().slice(0, 10);
+  const input = window.prompt("Facility start date for this marker (YYYY-MM-DD)", seed);
+  if (input === null) return null;
+  const value = String(input).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    alert("Enter date in YYYY-MM-DD format.");
+    return null;
+  }
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    alert("Invalid date.");
+    return null;
+  }
+  return value;
+}
+
 function renderFacilityMarkers(recenter = false) {
   if (!facilityMap || !window.L) return;
   if (!facilityMarkersLayer) facilityMarkersLayer = window.L.layerGroup().addTo(facilityMap);
   facilityMarkersLayer.clearLayers();
   facilityPoints.forEach((p, idx) => {
     const marker = window.L.marker([p.lat, p.lng], { draggable: mapEditMode }).addTo(facilityMarkersLayer);
+    if (p.start_date) marker.bindTooltip(`Start: ${p.start_date}`);
     marker.on("dragend", () => {
       const pos = marker.getLatLng();
       if (!isPlacementAllowed(pos.lat, pos.lng)) {
@@ -286,7 +307,7 @@ function renderFacilityMarkers(recenter = false) {
         marker.setLatLng([p.lat, p.lng]);
         return;
       }
-      facilityPoints[idx] = { lat: Number(pos.lat), lng: Number(pos.lng) };
+      facilityPoints[idx] = { lat: Number(pos.lat), lng: Number(pos.lng), start_date: p.start_date || "" };
       syncPrimaryFacilityPoint();
       updateFacilityLocationSummary();
       renderSummary();
@@ -313,8 +334,8 @@ function setFacilityMarker(lat, lng, recenter = true) {
   const ln = Number(lng);
   if (!Number.isFinite(la) || !Number.isFinite(ln)) return;
   if (!isPlacementAllowed(la, ln)) return;
-  if (!facilityPoints.length) facilityPoints.push({ lat: la, lng: ln });
-  else facilityPoints[0] = { lat: la, lng: ln };
+  if (!facilityPoints.length) facilityPoints.push({ lat: la, lng: ln, start_date: "" });
+  else facilityPoints[0] = { lat: la, lng: ln, start_date: facilityPoints[0]?.start_date || "" };
   syncPrimaryFacilityPoint();
   renderFacilityMarkers(recenter);
   updateFacilityLocationSummary();
@@ -399,7 +420,9 @@ function initFacilityMap() {
       alert("Marker must be within selected state boundary.");
       return;
     }
-    facilityPoints.push({ lat: Number(e.latlng.lat), lng: Number(e.latlng.lng) });
+    const startDate = promptFacilityStartDate("");
+    if (startDate === null) return;
+    facilityPoints.push({ lat: Number(e.latlng.lat), lng: Number(e.latlng.lng), start_date: startDate });
     syncPrimaryFacilityPoint();
     renderFacilityMarkers(false);
     renderSummary();
@@ -924,7 +947,9 @@ function buildContractPreviewLines() {
   lines.push(`City: ${fmt(data.city_name)}`);
   lines.push(`Registry: ${fmt(data.registry_name)}`);
   lines.push(`Facility markers count: ${facilityPoints.length}`);
-  facilityPoints.forEach((p, i) => lines.push(`  Marker ${i + 1}: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)}`));
+  facilityPoints.forEach((p, i) =>
+    lines.push(`  Marker ${i + 1}: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)} | Start date: ${fmt(p.start_date)}`)
+  );
   if (facilityPoints.length) {
     const p0 = facilityPoints[0];
     lines.push(`Map Link: https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`);
@@ -1167,6 +1192,54 @@ async function downloadPreviewPdf() {
     }
     doc.setTextColor(30, 41, 59);
   };
+  const ensureSpace = (needed = 24) => {
+    if (y + needed <= 800) return;
+    doc.addPage();
+    y = 50;
+  };
+  const drawTable = (title, headers, rows, colWidths) => {
+    ensureSpace(42);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, marginX, y);
+    y += 10;
+    doc.setFont("helvetica", "normal");
+    const tableW = colWidths.reduce((s, w) => s + w, 0);
+    const rowH = 16;
+    const drawHeader = () => {
+      doc.setDrawColor(148, 163, 184);
+      doc.setFillColor(241, 245, 249);
+      doc.rect(marginX, y, tableW, rowH, "FD");
+      let hx = marginX;
+      headers.forEach((h, idx) => {
+        doc.text(h, hx + 3, y + 11);
+        hx += colWidths[idx];
+        doc.line(hx, y, hx, y + rowH);
+      });
+      y += rowH;
+    };
+    drawHeader();
+    rows.forEach((row) => {
+      const cells = row.cells || [];
+      const wrapped = cells.map((v, idx) => doc.splitTextToSize(String(v || ""), Math.max(8, colWidths[idx] - 8)));
+      const maxLines = Math.max(1, ...wrapped.map((arr) => arr.length || 1));
+      const dynH = Math.max(rowH, 6 + maxLines * 10);
+      if (y + dynH > 800) {
+        doc.addPage();
+        y = 50;
+        drawHeader();
+      }
+      doc.rect(marginX, y, tableW, dynH);
+      let cx = marginX;
+      wrapped.forEach((arr, idx) => {
+        arr.forEach((ln, li) => doc.text(String(ln), cx + 3, y + 11 + li * 10));
+        if (row.links?.[idx]) drawLink("Link", row.links[idx], cx + colWidths[idx] - 24, y + dynH - 4);
+        cx += colWidths[idx];
+        doc.line(cx, y, cx, y + dynH);
+      });
+      y += dynH;
+    });
+    y += 10;
+  };
 
   doc.setFillColor(15, 118, 110);
   doc.rect(0, 0, 595, 56, "F");
@@ -1219,11 +1292,11 @@ async function downloadPreviewPdf() {
   lines.forEach((line) => {
     const wrapped = doc.splitTextToSize(line, maxWidth);
     wrapped.forEach((w) => {
-      if (y > 800) {
-        doc.addPage();
-        y = 50;
-        doc.setFillColor(248, 250, 252);
-        doc.rect(0, 0, 595, 28, "F");
+        if (y > 800) {
+          doc.addPage();
+          y = 50;
+          doc.setFillColor(248, 250, 252);
+          doc.rect(0, 0, 595, 28, "F");
         doc.setTextColor(71, 85, 105);
         doc.setFontSize(9);
         doc.text("MetaCarbonics - Phase 1 Contract Preview (continued)", 40, 18);
@@ -1246,10 +1319,7 @@ async function downloadPreviewPdf() {
 
   const assumptions = Array.isArray(finalRegistryCredits?.assumptions_used) ? finalRegistryCredits.assumptions_used : [];
   if (assumptions.length) {
-    if (y > 760) {
-      doc.addPage();
-      y = 50;
-    }
+    ensureSpace(30);
     y += 10;
     doc.setFont("helvetica", "bold");
     doc.text("Methodology Guide Assumptions (for project development)", marginX, y);
@@ -1258,10 +1328,7 @@ async function downloadPreviewPdf() {
     assumptions.forEach((a, idx) => {
       const wrapped = doc.splitTextToSize(`${idx + 1}. ${a}`, maxWidth);
       wrapped.forEach((w) => {
-        if (y > 800) {
-          doc.addPage();
-          y = 50;
-        }
+        ensureSpace(20);
         doc.text(w, marginX, y);
         y += lineHeight;
       });
@@ -1280,10 +1347,14 @@ async function downloadPreviewPdf() {
     y += 14;
     const pointsForPdf = facilityPoints.length
       ? facilityPoints
-      : [{ lat: Number(data.facility_lat), lng: Number(data.facility_lng) }].filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+      : [{ lat: Number(data.facility_lat), lng: Number(data.facility_lng), start_date: data.facility_start_date || "" }].filter(
+          (p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)
+        );
     const p0 = pointsForPdf[0] || null;
+    const markerStartDates = pointsForPdf.map((p, idx) => `M${idx + 1} start: ${fmt(p.start_date)}`).join(" | ");
     const geoLines = [
       `Marker count: ${pointsForPdf.length}`,
+      markerStartDates || "Marker start date(s): N/A",
       p0 ? `Map link: https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}` : "Map link: N/A",
       "Legend: Red points = facility marker(s) | Yellow lines = selected state boundaries",
     ];
@@ -1404,88 +1475,72 @@ async function downloadPreviewPdf() {
     });
   }
 
-  const feedstockDefaults = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
-  if (feedstockDefaults.length) {
-    doc.addPage();
-    y = 50;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Reference Tables: Defaults Used", marginX, y);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    y += 14;
+  const contributions = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
+  const monitoring = Array.isArray(finalRegistryCredits?.monitoring_parameters) ? finalRegistryCredits.monitoring_parameters : [];
+  const parameterValues = Array.isArray(finalRegistryCredits?.parameter_defaults_summary)
+    ? finalRegistryCredits.parameter_defaults_summary
+    : [];
+  ensureSpace(30);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("STEP 7: TENTATIVE & FINAL CREDITS (TABLES)", marginX, y);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  y += 12;
 
-    if (feedstockDefaults.length) {
-      doc.setFont("helvetica", "bold");
-      doc.text("A) Feedstock Defaults (from Step 2 selections)", marginX, y);
-      doc.setFont("helvetica", "normal");
-      y += 10;
-      const colsA = [
-        { key: "feedstock", title: "Feedstock", w: 90 },
-        { key: "carbon_default_pct", title: "Default C%", w: 55 },
-        { key: "range", title: "Range%", w: 60 },
-        { key: "region", title: "Region", w: 65 },
-        { key: "source", title: "Source", w: 245 },
-      ];
-      const tableW = colsA.reduce((s, c) => s + c.w, 0);
-      const rowH = 16;
-      let rowY = y;
-      doc.setDrawColor(148, 163, 184);
-      doc.setFillColor(241, 245, 249);
-      doc.rect(marginX, rowY, tableW, rowH, "FD");
-      let xh = marginX;
-      colsA.forEach((c) => {
-        doc.text(c.title, xh + 3, rowY + 11);
-        xh += c.w;
-        doc.line(xh, rowY, xh, rowY + rowH);
-      });
-      rowY += rowH;
-      feedstockDefaults.forEach((r) => {
-        const vals = [
-          String(r.feedstock || ""),
-          String(r.carbon_default_pct ?? ""),
-          String(r?.carbon_reference?.range_pct || ""),
-          String(r?.carbon_reference?.region || ""),
-          String(r?.carbon_reference?.source_label || ""),
-        ];
-        const wrappedCells = vals.map((v, idx) => doc.splitTextToSize(v || "", Math.max(8, colsA[idx].w - 8)));
-        const maxLines = Math.max(1, ...wrappedCells.map((arr) => arr.length || 1));
-        const dynH = Math.max(rowH, 6 + maxLines * 10);
-        if (rowY + dynH > 790) {
-          doc.addPage();
-          rowY = 50;
-        }
-        doc.rect(marginX, rowY, tableW, dynH);
-        let x = marginX;
-        wrappedCells.forEach((arr, idx) => {
-          arr.forEach((ln, li) => {
-            doc.text(String(ln), x + 3, rowY + 11 + li * 10);
-          });
-          if (idx === 4 && r?.carbon_reference?.source_url) {
-            drawLink("Link", r.carbon_reference.source_url, x + colsA[idx].w - 26, rowY + dynH - 4);
-          }
-          x += colsA[idx].w;
-          doc.line(x, rowY, x, rowY + dynH);
-        });
-        rowY += dynH;
-      });
-      y = rowY + 12;
+  drawTable(
+    "Step 7 Total Summary",
+    ["Metric", "Value"],
+    [
+      { cells: ["Tentative credits (tCO2e/year)", computeTentativeCredits().toFixed(2)] },
+      { cells: ["Final credits (tCO2e/year)", finalRegistryCredits ? Number(finalRegistryCredits.final_credits_tco2e || 0).toFixed(2) : "Not calculated yet"] },
+      { cells: ["Registry issuance factor", fmt(finalRegistryCredits?.issuance_factor)] },
+      { cells: ["Buffer (%)", fmt(finalRegistryCredits?.buffer_percent)] },
+      { cells: ["Uncertainty (%)", fmt(finalRegistryCredits?.uncertainty_percent)] },
+      { cells: ["Process emissions (tCO2e/year)", fmt(finalRegistryCredits?.process_emissions_tco2e)] },
+      { cells: ["Transport emissions (tCO2e/year)", fmt(finalRegistryCredits?.transport_emissions_tco2e)] },
+      { cells: ["Leakage (tCO2e/year)", fmt(finalRegistryCredits?.leakage_tco2e)] },
+    ],
+    [250, 265]
+  );
 
-      const pieUrl = createContributionPieDataUrl(feedstockDefaults);
-      if (pieUrl) {
-        if (y > 620) {
-          doc.addPage();
-          y = 50;
-        }
-        doc.setFont("helvetica", "bold");
-        doc.text("Feedstock Contribution Pie Chart", marginX, y);
-        doc.setFont("helvetica", "normal");
-        y += 10;
-        doc.addImage(pieUrl, "PNG", marginX, y, 420, 230, undefined, "FAST");
-        y += 238;
-      }
-    }
+  if (contributions.length) {
+    drawTable(
+      "Feedstock Contribution",
+      ["Feedstock", "Qty (t/yr)", "Annual credits", "Contribution %", "Source"],
+      contributions.map((r) => ({
+        cells: [
+          fmt(r.feedstock),
+          fmt(r.quantity_tpy),
+          fmt(r.annual_credits_tco2e),
+          fmt(r.contribution_pct),
+          fmt(r?.carbon_reference?.source_label),
+        ],
+        links: { 4: r?.carbon_reference?.source_url || "" },
+      })),
+      [100, 70, 90, 80, 175]
+    );
+  }
 
+  if (monitoring.length) {
+    drawTable(
+      "Monitoring Parameters",
+      ["Parameter", "Explanation"],
+      monitoring.map((m) => ({ cells: [fmt(m.parameter), fmt(m.explanation)] })),
+      [170, 345]
+    );
+  }
+
+  if (parameterValues.length) {
+    drawTable(
+      "Values Used For Calculation (with sources)",
+      ["Parameter", "Value used", "Source"],
+      parameterValues.map((p) => ({
+        cells: [fmt(p.parameter), fmt(p.value), fmt(p.source_label)],
+        links: { 2: p.source_url || "" },
+      })),
+      [170, 95, 250]
+    );
   }
 
   doc.save("metacarbonics_phase1_contract_preview.pdf");
@@ -1695,6 +1750,7 @@ function getFormData() {
     registry_name: selectedText(registrySelect),
     facility_lat: Number.isFinite(facilityLat) ? String(facilityLat) : "",
     facility_lng: Number.isFinite(facilityLng) ? String(facilityLng) : "",
+    facility_start_date: facilityPoints[0]?.start_date || "",
     facility_points_json: JSON.stringify(facilityPoints),
 
     feedstock_entries_json: JSON.stringify(feedstockEntries),
@@ -1798,15 +1854,15 @@ function loadUserFromLocalStorage() {
       const pts = JSON.parse(data.facility_points_json || "[]");
       if (Array.isArray(pts) && pts.length) {
         facilityPoints = pts
-          .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))
+          .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng), start_date: String(p.start_date || "") }))
           .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
       } else if (Number.isFinite(facilityLat) && Number.isFinite(facilityLng)) {
-        facilityPoints = [{ lat: facilityLat, lng: facilityLng }];
+        facilityPoints = [{ lat: facilityLat, lng: facilityLng, start_date: "" }];
       } else {
         facilityPoints = [];
       }
     } catch {
-      facilityPoints = Number.isFinite(facilityLat) && Number.isFinite(facilityLng) ? [{ lat: facilityLat, lng: facilityLng }] : [];
+      facilityPoints = Number.isFinite(facilityLat) && Number.isFinite(facilityLng) ? [{ lat: facilityLat, lng: facilityLng, start_date: "" }] : [];
     }
     syncPrimaryFacilityPoint();
     updateRegistryMeta();
