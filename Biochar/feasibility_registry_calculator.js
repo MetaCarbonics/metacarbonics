@@ -673,9 +673,9 @@ function renderFeedstockContributionViews(baseResult) {
       const vals = rows.map((r) => r.annual_credits_tco2e);
       const colors = rows.map((_, idx) => `hsl(${(idx * 67) % 360} 70% 45%)`);
       feedstockContributionChart = new window.Chart(feedstockContributionChartEl, {
-        type: "bar",
+        type: "pie",
         data: { labels, datasets: [{ label: "Annual credits (tCO2e/year)", data: vals, backgroundColor: colors }] },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+        options: { responsive: true, plugins: { legend: { display: true, position: "right" } } },
       });
     }
   }

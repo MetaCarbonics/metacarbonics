@@ -136,6 +136,10 @@ const tentativePermanenceFactor = document.getElementById("tentativePermanenceFa
 const tentativeCreditsValue = document.getElementById("tentativeCreditsValue");
 const openRegistryCalculatorBtn = document.getElementById("openRegistryCalculatorBtn");
 const finalCreditsValue = document.getElementById("finalCreditsValue");
+const step7SummaryBody = document.getElementById("step7SummaryBody");
+const step7ContributionBody = document.getElementById("step7ContributionBody");
+const step7DefaultsBody = document.getElementById("step7DefaultsBody");
+const step7MonitoringBody = document.getElementById("step7MonitoringBody");
 const refreshPreviewBtn = document.getElementById("refreshPreviewBtn");
 const downloadPreviewPdfBtn = document.getElementById("downloadPreviewPdfBtn");
 const projectPreview = document.getElementById("projectPreview");
@@ -628,25 +632,73 @@ function renderTentativeCredits() {
   tentativeCreditsValue.textContent = computeTentativeCredits().toFixed(2);
 }
 
+function renderStep7Tables() {
+  if (!step7SummaryBody || !step7ContributionBody || !step7DefaultsBody || !step7MonitoringBody) return;
+
+  const summaryRows = [
+    ["Tentative credits (tCO2e/year)", computeTentativeCredits().toFixed(2)],
+    ["Final credits (tCO2e/year)", finalRegistryCredits ? Number(finalRegistryCredits.final_credits_tco2e || 0).toFixed(2) : "Not calculated yet"],
+    ["Issuance factor", finalRegistryCredits ? fmt(finalRegistryCredits.issuance_factor) : "N/A"],
+    ["Buffer (%)", finalRegistryCredits ? fmt(finalRegistryCredits.buffer_percent) : "N/A"],
+    ["Uncertainty (%)", finalRegistryCredits ? fmt(finalRegistryCredits.uncertainty_percent) : "N/A"],
+  ];
+  step7SummaryBody.innerHTML = summaryRows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
+
+  const contributions = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
+  if (!contributions.length) {
+    step7ContributionBody.innerHTML = '<tr><td colspan="6">No contribution data yet.</td></tr>';
+  } else {
+    step7ContributionBody.innerHTML = contributions
+      .map(
+        (r) =>
+          `<tr><td>${fmt(r.feedstock)}</td><td>${fmt(r.quantity_tpy)}</td><td>${fmt(r.carbon_default_pct)}</td><td>${fmt(r.annual_credits_tco2e)}</td><td>${fmt(r.contribution_pct)}</td><td>${fmt(r?.carbon_reference?.source_label)}</td></tr>`
+      )
+      .join("");
+  }
+
+  const defaults = Array.isArray(finalRegistryCredits?.parameter_defaults_summary) ? finalRegistryCredits.parameter_defaults_summary : [];
+  if (!defaults.length) {
+    step7DefaultsBody.innerHTML = '<tr><td colspan="5">No parameter defaults yet.</td></tr>';
+  } else {
+    step7DefaultsBody.innerHTML = defaults
+      .map(
+        (p) =>
+          `<tr><td>${fmt(p.parameter)}</td><td>${fmt(p.value)}</td><td>${fmt(p.default_value)}</td><td>${p.used_default ? "Default" : "Override"}</td><td>${fmt(p.source_label)}</td></tr>`
+      )
+      .join("");
+  }
+
+  const monitoring = Array.isArray(finalRegistryCredits?.monitoring_parameters) ? finalRegistryCredits.monitoring_parameters : [];
+  if (!monitoring.length) {
+    step7MonitoringBody.innerHTML = '<tr><td colspan="2">No monitoring parameters yet.</td></tr>';
+  } else {
+    step7MonitoringBody.innerHTML = monitoring.map((m) => `<tr><td>${fmt(m.parameter)}</td><td>${fmt(m.explanation)}</td></tr>`).join("");
+  }
+}
+
 function loadFinalRegistryCredits() {
   try {
     const raw = localStorage.getItem(FINAL_CREDITS_STORAGE_KEY);
     if (!raw) {
       finalRegistryCredits = null;
       finalCreditsValue.textContent = "Not calculated yet.";
+      renderStep7Tables();
       return;
     }
     const parsed = JSON.parse(raw);
     if (!parsed || parsed.registry_id !== registrySelect.value) {
       finalRegistryCredits = null;
       finalCreditsValue.textContent = "Not calculated yet.";
+      renderStep7Tables();
       return;
     }
     finalRegistryCredits = parsed;
     finalCreditsValue.textContent = `${Number(parsed.final_credits_tco2e || 0).toFixed(2)} tCO2e/year`;
+    renderStep7Tables();
   } catch {
     finalRegistryCredits = null;
     finalCreditsValue.textContent = "Not calculated yet.";
+    renderStep7Tables();
   }
 }
 
@@ -789,15 +841,6 @@ function buildContractPreviewLines() {
     lines.push(`  Issuance deduction: ${fmt(finalRegistryCredits.breakdown.issuance_loss)}`);
     lines.push(`  Final: ${fmt(finalRegistryCredits.breakdown.final)}`);
   }
-  if (Array.isArray(finalRegistryCredits?.feedstock_contributions) && finalRegistryCredits.feedstock_contributions.length) {
-    lines.push("Feedstock contribution table:");
-    lines.push("  Feedstock | Qty(t/yr) | Carbon(%) | Annual credits | Contribution(%) | Carbon source");
-    finalRegistryCredits.feedstock_contributions.forEach((r) => {
-      lines.push(
-        `  ${fmt(r.feedstock)} | ${fmt(r.quantity_tpy)} | ${fmt(r.carbon_default_pct)} | ${fmt(r.annual_credits_tco2e)} | ${fmt(r.contribution_pct)} | ${fmt(r?.carbon_reference?.source_label)}`
-      );
-    });
-  }
   if (Array.isArray(finalRegistryCredits?.parameter_defaults_summary) && finalRegistryCredits.parameter_defaults_summary.length) {
     lines.push("Other parameter defaults:");
     finalRegistryCredits.parameter_defaults_summary.forEach((p) => {
@@ -869,6 +912,48 @@ async function fetchSatelliteMapDataUrl(lat, lng) {
   return { dataUrl, ...cfg };
 }
 
+function createContributionPieDataUrl(rows) {
+  if (!Array.isArray(rows) || !rows.length) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = 500;
+  canvas.height = 320;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  const total = rows.reduce((s, r) => s + Number(r.annual_credits_tco2e || 0), 0);
+  if (total <= 0) return null;
+  const cx = 150;
+  const cy = 160;
+  const radius = 100;
+  let start = -Math.PI / 2;
+  rows.forEach((r, idx) => {
+    const val = Number(r.annual_credits_tco2e || 0);
+    const frac = val / total;
+    const end = start + frac * Math.PI * 2;
+    const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, start, end);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    start = end;
+  });
+  ctx.font = "12px sans-serif";
+  ctx.fillStyle = "#1e293b";
+  ctx.fillText("Feedstock contribution share", 60, 24);
+  let ly = 52;
+  rows.forEach((r, idx) => {
+    const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
+    ctx.fillStyle = color;
+    ctx.fillRect(280, ly - 10, 10, 10);
+    ctx.fillStyle = "#1e293b";
+    const pct = total > 0 ? ((Number(r.annual_credits_tco2e || 0) / total) * 100).toFixed(2) : "0.00";
+    ctx.fillText(`${String(r.feedstock || "Unknown")} (${pct}%)`, 296, ly);
+    ly += 16;
+  });
+  return canvas.toDataURL("image/png");
+}
+
 async function downloadPreviewPdf() {
   const jspdf = window.jspdf;
   if (!jspdf || !jspdf.jsPDF) {
@@ -933,8 +1018,7 @@ async function downloadPreviewPdf() {
         String(w).startsWith("STEP ") ||
         String(w).startsWith("METACARBONICS BIOCHAR") ||
         String(w).startsWith("Assumptions used:") ||
-        String(w).startsWith("Runtime breakdown values:") ||
-        String(w).startsWith("Feedstock contribution table:")
+        String(w).startsWith("Runtime breakdown values:")
       ) {
         doc.setFont("helvetica", "bold");
       } else {
@@ -1036,83 +1120,6 @@ async function downloadPreviewPdf() {
     doc.text("Legend: red marker = facility location on satellite imagery", mapX, mapY + mapH + 12);
     y = mapY + mapH + 18;
     doc.setFontSize(9);
-  }
-
-  if (Array.isArray(finalRegistryCredits?.feedstock_contributions) && finalRegistryCredits.feedstock_contributions.length) {
-    if (y > 700) {
-      doc.addPage();
-      y = 50;
-    }
-    y += 12;
-    doc.setFont("helvetica", "bold");
-    doc.text("Feedstock Contribution Table", marginX, y);
-    doc.setFont("helvetica", "normal");
-    y += 10;
-
-    const cols = [
-      { k: "feedstock", t: "Feedstock", w: 120 },
-      { k: "quantity_tpy", t: "Qty", w: 55 },
-      { k: "carbon_default_pct", t: "Carbon %", w: 60 },
-      { k: "annual_credits_tco2e", t: "Annual", w: 75 },
-      { k: "contribution_pct", t: "Contrib %", w: 70 },
-      { k: "carbon_source", t: "Carbon source", w: 115 },
-    ];
-    const tableX = marginX;
-    const rowH = 16;
-    let rowY = y;
-    doc.setDrawColor(148, 163, 184);
-    doc.setFillColor(241, 245, 249);
-    doc.rect(tableX, rowY, cols.reduce((s, c) => s + c.w, 0), rowH, "FD");
-    let cx = tableX;
-    cols.forEach((c) => {
-      doc.text(c.t, cx + 3, rowY + 11);
-      cx += c.w;
-      doc.line(cx, rowY, cx, rowY + rowH);
-    });
-    doc.line(tableX, rowY + rowH, tableX + cols.reduce((s, c) => s + c.w, 0), rowY + rowH);
-    rowY += rowH;
-
-    finalRegistryCredits.feedstock_contributions.forEach((r) => {
-      if (rowY > 790) {
-        doc.addPage();
-        rowY = 50;
-      }
-      doc.rect(tableX, rowY, cols.reduce((s, c) => s + c.w, 0), rowH);
-      let x = tableX;
-      cols.forEach((c) => {
-        const text = c.k === "carbon_source" ? String(r?.carbon_reference?.source_label || "") : String(r[c.k] ?? "");
-        const limit = c.k === "feedstock" ? 20 : c.k === "carbon_source" ? 22 : 12;
-        doc.text(text.slice(0, limit), x + 3, rowY + 11);
-        x += c.w;
-        doc.line(x, rowY, x, rowY + rowH);
-      });
-      rowY += rowH;
-    });
-    y = rowY + 6;
-  }
-
-  if (Array.isArray(finalRegistryCredits?.parameter_defaults_summary) && finalRegistryCredits.parameter_defaults_summary.length) {
-    if (y > 700) {
-      doc.addPage();
-      y = 50;
-    }
-    y += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text("Other Parameter Defaults", marginX, y);
-    doc.setFont("helvetica", "normal");
-    y += 12;
-    finalRegistryCredits.parameter_defaults_summary.forEach((p) => {
-      const text = `${p.parameter}: value ${p.value}, default ${p.default_value}, ${p.used_default ? "Default" : "User override"}, basis: ${p.guide}`;
-      const wrapped = doc.splitTextToSize(text, maxWidth);
-      wrapped.forEach((w) => {
-        if (y > 800) {
-          doc.addPage();
-          y = 50;
-        }
-        doc.text(w, marginX, y);
-        y += lineHeight;
-      });
-    });
   }
 
   if (finalRegistryCredits?.breakdown) {
@@ -1217,6 +1224,20 @@ async function downloadPreviewPdf() {
         rowY += rowH;
       });
       y = rowY + 12;
+
+      const pieUrl = createContributionPieDataUrl(feedstockDefaults);
+      if (pieUrl) {
+        if (y > 620) {
+          doc.addPage();
+          y = 50;
+        }
+        doc.setFont("helvetica", "bold");
+        doc.text("Feedstock Contribution Pie Chart", marginX, y);
+        doc.setFont("helvetica", "normal");
+        y += 10;
+        doc.addImage(pieUrl, "PNG", marginX, y, 420, 230, undefined, "FAST");
+        y += 238;
+      }
     }
 
     if (parameterDefaults.length) {
@@ -1569,8 +1590,9 @@ function renderSummary() {
   renderFeedstockSummaryText();
   renderPyrolysisSummary();
   renderFinancialSummary();
-  renderTentativeCredits();
   loadFinalRegistryCredits();
+  renderTentativeCredits();
+  renderStep7Tables();
   renderProjectPreview();
 }
 
