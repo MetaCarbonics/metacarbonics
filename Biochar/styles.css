@@ -1,0 +1,161 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(160deg, #f6f9f4 0%, #eef5ff 100%);
+  color: #1e293b;
+}
+
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.hero {
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: #4f772d;
+}
+
+h1 {
+  margin: 6px 0 8px;
+  font-size: 2rem;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+.sub {
+  margin: 0;
+  color: #334155;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 14px 0;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  margin-bottom: 10px;
+}
+
+input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  margin-bottom: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.registry-meta {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #475569;
+}
+
+.summary {
+  min-height: 24px;
+  color: #1f2937;
+}
+
+.summary-card {
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+}
+
+.small {
+  margin-top: 0;
+  color: #475569;
+}
+
+.flow-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.nav-card {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.nav-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.btn {
+  border: 1px solid #0f766e;
+  background: #0f766e;
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  border-color: #334155;
+  background: #334155;
+}
+
+.hidden {
+  display: none;
+}
+
+.sources {
+  margin: 0;
+  padding-left: 18px;
+}
+
+a {
+  color: #1d4ed8;
+}
+
+@media (max-width: 720px) {
+  .flow-grid,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-row {
+    flex-direction: column;
+  }
+}

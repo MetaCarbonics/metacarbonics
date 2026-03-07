@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Biochar Feasibility</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Biochar Workflow</p>
+        <h1>Feasibility</h1>
+        <p class="sub">Step 1 location and registry, then Step 2 detailed checklist.</p>
+        <p><a href="./index.html">Back to Workflow</a></p>
+      </header>
+
+      <section class="card summary-card">
+        <h2>Live Summary</h2>
+        <div id="summary" class="summary">No selections yet.</div>
+      </section>
+
+      <section class="card">
+        <h2>User</h2>
+        <label for="userIdInput">User ID / Email</label>
+        <input id="userIdInput" type="text" placeholder="e.g. user@company.com" />
+      </section>
+
+      <section id="step1Card" class="card">
+        <h2>Step 1: Country, Location, Registry</h2>
+        <label for="countrySelect">Country</label>
+        <select id="countrySelect">
+          <option value="">Loading countries...</option>
+        </select>
+
+        <div class="grid">
+          <div>
+            <label for="stateSelect">State / Province</label>
+            <select id="stateSelect" disabled>
+              <option value="">Select country first</option>
+            </select>
+          </div>
+          <div>
+            <label for="citySelect">City</label>
+            <select id="citySelect" disabled>
+              <option value="">Select state first</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="registrySelect">Registry</label>
+        <select id="registrySelect">
+          <option value="">Select registry</option>
+          <option value="puro">Puro.earth</option>
+        </select>
+        <p id="registryMeta" class="registry-meta"></p>
+
+        <button id="toStep2Btn" class="btn" type="button">Next: Detailed Feasibility</button>
+      </section>
+
+      <section id="step2Card" class="card hidden">
+        <h2>Step 2: Detailed Feasibility Checklist</h2>
+        <p id="checklistTitle" class="small"></p>
+
+        <div id="puroChecklist" class="checklist hidden">
+          <h3>Puro.earth Feasibility Questions</h3>
+
+          <label for="feedstockType">1. Feedstock Type</label>
+          <input id="feedstockType" type="text" placeholder="e.g. Forestry residues" />
+
+          <label for="feedstockSustainable">2. Is feedstock sustainably sourced?</label>
+          <select id="feedstockSustainable">
+            <option value="">Select</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+            <option value="partial">Partially</option>
+          </select>
+
+          <label for="plantCapacity">3. Planned annual biochar output (t/year)</label>
+          <input id="plantCapacity" type="number" min="0" placeholder="e.g. 5000" />
+
+          <label for="monitoringPlan">4. Monitoring and traceability plan available?</label>
+          <select id="monitoringPlan">
+            <option value="">Select</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+            <option value="in-progress">In progress</option>
+          </select>
+
+          <label for="projectTimeline">5. Expected start date</label>
+          <input id="projectTimeline" type="date" />
+        </div>
+
+        <div class="btn-row">
+          <button id="backToStep1Btn" class="btn btn-secondary" type="button">Back</button>
+          <button id="saveCsvBtn" class="btn" type="button">Save User Data (CSV)</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Data Source</h2>
+        <ul class="sources">
+          <li>
+            Country/State/City data:
+            <a
+              href="https://cdn.jsdelivr.net/npm/country-state-city@3.2.1/lib/assets/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              country-state-city package assets (jsDelivr)
+            </a>
+          </li>
+          <li>
+            Puro Registry:
+            <a href="https://registry.puro.earth/projects" target="_blank" rel="noreferrer">
+              registry.puro.earth
+            </a>
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <script src="./feasibility.js"></script>
+  </body>
+</html>
