@@ -397,7 +397,10 @@
 
         <div class="title-row">
           <h3>Project Preview</h3>
-          <button id="refreshPreviewBtn" class="btn btn-secondary btn-sm" type="button">Refresh Preview</button>
+          <div class="btn-row">
+            <button id="refreshPreviewBtn" class="btn btn-secondary btn-sm" type="button">Refresh Preview</button>
+            <button id="downloadPreviewPdfBtn" class="btn btn-secondary btn-sm" type="button">Download PDF</button>
+          </div>
         </div>
         <pre id="projectPreview" class="preview-box">No data yet.</pre>
 
@@ -418,6 +421,7 @@
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="./feasibility.js"></script>
   </body>
 </html>

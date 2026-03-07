@@ -137,6 +137,7 @@ const tentativeCreditsValue = document.getElementById("tentativeCreditsValue");
 const openRegistryCalculatorBtn = document.getElementById("openRegistryCalculatorBtn");
 const finalCreditsValue = document.getElementById("finalCreditsValue");
 const refreshPreviewBtn = document.getElementById("refreshPreviewBtn");
+const downloadPreviewPdfBtn = document.getElementById("downloadPreviewPdfBtn");
 const projectPreview = document.getElementById("projectPreview");
 const contractSignedCheckbox = document.getElementById("contractSignedCheckbox");
 
@@ -649,32 +650,123 @@ function loadFinalRegistryCredits() {
   }
 }
 
-function renderProjectPreview() {
+function fmt(value) {
+  return value === null || value === undefined || value === "" ? "N/A" : String(value);
+}
+
+function buildContractPreviewLines() {
   const data = getFormData();
-  const feedstockLines = feedstockEntries.length
-    ? feedstockEntries.map((entry, idx) => `${idx + 1}. ${entry.feedstock} | qty: ${entry.quantity_tpy} | km: ${entry.q4_transport_km}`).join("\n")
-    : "No feedstock added.";
-  const additionalLines = additionalInfoEntries.length
-    ? additionalInfoEntries.map((item, idx) => `${idx + 1}. ${item.text || "-"}`).join("\n")
-    : "No additional info.";
-  const preview = [
-    `Location: ${data.country_name || "N/A"} | ${data.state_name || "N/A"} | ${data.city_name || "N/A"}`,
-    `Registry: ${data.registry_name || "N/A"}`,
-    `Biomass total (t/year): ${data.biomass_total_tpy || "0"}`,
-    `Tentative credits (tCO2e/year): ${computeTentativeCredits().toFixed(2)}`,
-    `Final credits (tCO2e/year): ${finalRegistryCredits ? Number(finalRegistryCredits.final_credits_tco2e || 0).toFixed(2) : "Not calculated yet"}`,
-    "",
-    "Feedstocks:",
-    feedstockLines,
-    "",
-    `Biochar: Carbon=${data.q6_biochar_carbon_content_pct || "N/A"}% | H/Corg=${data.q7_biochar_h_corg_ratio || "N/A"} | End use=${data.q9_end_use_application || "N/A"}`,
-    `Pyrolysis: Q13=${data.q13_pollution_controls ? "provided" : "pending"} | Q14=${data.q14_waste_heat_utilization ? "provided" : "pending"} | Q15=${data.q15_pyrolytic_gas_recovery ? "provided" : "pending"} | Energy=${data.q20_energy_source || "N/A"}`,
-    `Financial: Q21=${data.q21_no_credit_revenue_scenario ? "provided" : "pending"} | Q22=${data.q22_financial_model_evidence ? "provided" : "pending"}`,
-    "",
-    "Additional Info:",
-    additionalLines,
-  ].join("\n");
-  projectPreview.textContent = preview;
+  const lines = [];
+  lines.push("METACARBONICS BIOCHAR - PHASE 1 CONTRACT PREVIEW");
+  lines.push(`Generated UTC: ${new Date().toISOString()}`);
+  lines.push("");
+  lines.push("STEP 1: PROJECT PROFILE");
+  lines.push(`Country: ${fmt(data.country_name)}`);
+  lines.push(`State: ${fmt(data.state_name)}`);
+  lines.push(`City: ${fmt(data.city_name)}`);
+  lines.push(`Registry: ${fmt(data.registry_name)}`);
+  lines.push(`Facility Marker: ${fmt(data.facility_lat)}, ${fmt(data.facility_lng)}`);
+  lines.push("");
+
+  lines.push("STEP 2: FEEDSTOCK QUESTIONNAIRE");
+  if (!feedstockEntries.length) {
+    lines.push("No feedstock entries.");
+  } else {
+    feedstockEntries.forEach((entry, idx) => {
+      lines.push(`Feedstock ${idx + 1}: ${fmt(entry.feedstock)}`);
+      lines.push(`  Quantity (t/year): ${fmt(entry.quantity_tpy)}`);
+      lines.push(`  Q1 Source/Supply: ${fmt(entry.q1_source_supply)}`);
+      lines.push(`  Q2 Supplier relation: ${fmt(entry.q2_suppliers_relation)}`);
+      lines.push(`  Q3 Current use: ${fmt(entry.q3_current_use)}`);
+      lines.push(`  Q4 Transport distance km: ${fmt(entry.q4_transport_km)}`);
+      lines.push(`  Notes: ${fmt(entry.notes)}`);
+    });
+  }
+  lines.push(`Total biomass (t/year): ${fmt(data.biomass_total_tpy)}`);
+  lines.push("");
+
+  lines.push("STEP 3: BIOCHAR");
+  lines.push(`Q5 Annual biochar (t): ${fmt(data.q5_annual_biochar_t)}`);
+  lines.push(`Q6 Carbon content (%): ${fmt(data.q6_biochar_carbon_content_pct)}`);
+  lines.push(`Q7 H/Corg: ${fmt(data.q7_biochar_h_corg_ratio)}`);
+  lines.push(`Q8 Certifications: ${fmt(data.q8_biochar_certifications)}`);
+  lines.push(`Q9 End use application: ${fmt(data.q9_end_use_application)}`);
+  lines.push(`Q10 End use split: ${fmt(data.q10_end_use_share_pct)}`);
+  lines.push(`Q11 End-user relationship: ${fmt(data.q11_end_user_relation_doc)}`);
+  lines.push(`Q12 Transport to end users km: ${fmt(data.q12_biochar_transport_km)}`);
+  lines.push("");
+
+  lines.push("STEP 4: PYROLYSIS");
+  lines.push(`Q13 Pollution controls: ${fmt(data.q13_pollution_controls)}`);
+  lines.push(`Q14 Waste heat utilization: ${fmt(data.q14_waste_heat_utilization)}`);
+  lines.push(`Q15 Gas recovery/compliance: ${fmt(data.q15_pyrolytic_gas_recovery)}`);
+  lines.push(`Q16 Continuous temperature reporting: ${fmt(data.q16_continuous_temperature_reporting)}`);
+  lines.push(`Q17 Avg yearly production temperature: ${fmt(data.q17_avg_yearly_temp)}`);
+  lines.push(`Q18 Facility certifications: ${fmt(data.q18_facility_certifications)}`);
+  lines.push(`Q19 Energy used MWh/a: ${fmt(data.q19_energy_used_mwh_a)}`);
+  lines.push(`Q20 Energy source: ${fmt(data.q20_energy_source)}`);
+  lines.push("");
+
+  lines.push("STEP 5: FINANCIAL");
+  lines.push(`Q21 No-credit-revenue scenario: ${fmt(data.q21_no_credit_revenue_scenario)}`);
+  lines.push(`Q22 Financial model evidence: ${fmt(data.q22_financial_model_evidence)}`);
+  lines.push("");
+
+  lines.push("STEP 6: ADDITIONAL INFORMATION");
+  if (!additionalInfoEntries.length) lines.push("No additional information.");
+  additionalInfoEntries.forEach((item, idx) => lines.push(`${idx + 1}. ${fmt(item.text)}`));
+  lines.push("");
+
+  lines.push("STEP 7: CREDITS");
+  lines.push(`Tentative credits (tCO2e/year): ${computeTentativeCredits().toFixed(2)}`);
+  lines.push(`Final credits (tCO2e/year): ${finalRegistryCredits ? Number(finalRegistryCredits.final_credits_tco2e || 0).toFixed(2) : "Not calculated yet"}`);
+  lines.push(`Registry issuance factor: ${fmt(finalRegistryCredits?.issuance_factor)}`);
+  lines.push(`Buffer (%): ${fmt(finalRegistryCredits?.buffer_percent)}`);
+  lines.push(`Uncertainty (%): ${fmt(finalRegistryCredits?.uncertainty_percent)}`);
+  lines.push(`Process emissions tCO2e: ${fmt(finalRegistryCredits?.process_emissions_tco2e)}`);
+  lines.push(`Transport emissions tCO2e: ${fmt(finalRegistryCredits?.transport_emissions_tco2e)}`);
+  lines.push(`Leakage tCO2e: ${fmt(finalRegistryCredits?.leakage_tco2e)}`);
+  if (finalRegistryCredits?.sensitivity) {
+    lines.push(`Sensitivity: variable=${fmt(finalRegistryCredits.sensitivity.variable)}, range=${fmt(finalRegistryCredits.sensitivity.low_pct)}% to ${fmt(finalRegistryCredits.sensitivity.high_pct)}%, low=${fmt(finalRegistryCredits.sensitivity.low_final)}, high=${fmt(finalRegistryCredits.sensitivity.high_final)}`);
+  }
+  if (Array.isArray(finalRegistryCredits?.assumptions_used)) {
+    lines.push("Assumptions used:");
+    finalRegistryCredits.assumptions_used.forEach((a, i) => lines.push(`  ${i + 1}. ${a}`));
+  }
+  lines.push("");
+  lines.push(`Contract sign status: ${data.contract_signed === "yes" ? "SIGNED" : "PENDING"}`);
+  return lines;
+}
+
+function renderProjectPreview() {
+  projectPreview.textContent = buildContractPreviewLines().join("\n");
+}
+
+function downloadPreviewPdf() {
+  const jspdf = window.jspdf;
+  if (!jspdf || !jspdf.jsPDF) {
+    alert("PDF library not loaded. Try refresh.");
+    return;
+  }
+  const doc = new jspdf.jsPDF({ unit: "pt", format: "a4" });
+  const lines = buildContractPreviewLines();
+  const marginX = 40;
+  let y = 40;
+  const lineHeight = 14;
+  const maxWidth = 515;
+
+  lines.forEach((line) => {
+    const wrapped = doc.splitTextToSize(line, maxWidth);
+    wrapped.forEach((w) => {
+      if (y > 800) {
+        doc.addPage();
+        y = 40;
+      }
+      doc.text(w, marginX, y);
+      y += lineHeight;
+    });
+  });
+  doc.save("metacarbonics_phase1_contract_preview.pdf");
 }
 
 function renderAdditionalInfo() {
@@ -1315,6 +1407,7 @@ tentativePermanenceFactor.addEventListener("input", () => {
 });
 
 refreshPreviewBtn.addEventListener("click", renderProjectPreview);
+downloadPreviewPdfBtn.addEventListener("click", downloadPreviewPdf);
 
 [
   biocharCarbonContent,

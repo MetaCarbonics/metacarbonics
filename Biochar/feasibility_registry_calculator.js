@@ -389,6 +389,32 @@ backBtn.addEventListener("click", () => {
 
 useResultBtn.addEventListener("click", () => {
   const result = calculateCredits();
+  const lowPct = num(sensitivityLowEl, -20);
+  const highPct = num(sensitivityHighEl, 20);
+  const variable = sensitivityVariableEl.value;
+  const lowMultiplier = 1 + lowPct / 100;
+  const highMultiplier = 1 + highPct / 100;
+  const lowOverrides = {};
+  const highOverrides = {};
+  if (variable === "carbonContent") {
+    lowOverrides.carbonContent = num(inputCarbonContent) * lowMultiplier;
+    highOverrides.carbonContent = num(inputCarbonContent) * highMultiplier;
+  }
+  if (variable === "permanence") {
+    lowOverrides.permanence = num(inputPermanence) * lowMultiplier;
+    highOverrides.permanence = num(inputPermanence) * highMultiplier;
+  }
+  if (variable === "stableCarbon") {
+    lowOverrides.stableCarbon = num(inputStableCarbon) * lowMultiplier;
+    highOverrides.stableCarbon = num(inputStableCarbon) * highMultiplier;
+  }
+  if (variable === "processE") {
+    lowOverrides.processE = num(inputProcessEmissions) * lowMultiplier;
+    highOverrides.processE = num(inputProcessEmissions) * highMultiplier;
+  }
+  const lowFinal = calculateCredits(lowOverrides).final;
+  const highFinal = calculateCredits(highOverrides).final;
+
   localStorage.setItem(
     FINAL_CREDITS_STORAGE_KEY,
     JSON.stringify({
@@ -402,6 +428,14 @@ useResultBtn.addEventListener("click", () => {
       process_emissions_tco2e: num(inputProcessEmissions),
       transport_emissions_tco2e: num(inputTransportEmissions),
       leakage_tco2e: num(inputLeakage),
+      assumptions_used: ASSUMPTIONS,
+      sensitivity: {
+        variable,
+        low_pct: lowPct,
+        high_pct: highPct,
+        low_final: Number(lowFinal.toFixed(2)),
+        high_final: Number(highFinal.toFixed(2)),
+      },
       calculated_at_utc: new Date().toISOString(),
     })
   );
