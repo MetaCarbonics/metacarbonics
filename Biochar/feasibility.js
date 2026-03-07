@@ -31,6 +31,13 @@ const citySelect = document.getElementById("citySelect");
 const registrySelect = document.getElementById("registrySelect");
 const registryMeta = document.getElementById("registryMeta");
 const summary = document.getElementById("summary");
+const progressFill = document.getElementById("progressFill");
+const progressStep1 = document.getElementById("progressStep1");
+const progressStep2 = document.getElementById("progressStep2");
+const progressStep3 = document.getElementById("progressStep3");
+const progressStep4 = document.getElementById("progressStep4");
+const progressStep5 = document.getElementById("progressStep5");
+const progressStep6 = document.getElementById("progressStep6");
 
 const step1Card = document.getElementById("step1Card");
 const toFeedstockBtn = document.getElementById("toFeedstockBtn");
@@ -92,19 +99,25 @@ const pyroQ19 = document.getElementById("pyroQ19");
 const pyroQ20 = document.getElementById("pyroQ20");
 const financeQ21 = document.getElementById("financeQ21");
 const financeQ22 = document.getElementById("financeQ22");
+
+const toFinancialPageBtn = document.getElementById("toFinancialPageBtn");
+const financialSection = document.getElementById("financialSection");
+const previousSummaryInFinancial = document.getElementById("previousSummaryInFinancial");
+const feedstockSummaryInFinancial = document.getElementById("feedstockSummaryInFinancial");
+const biocharCriticalInfoFinancial = document.getElementById("biocharCriticalInfoFinancial");
+const pyroCriticalInfoFinancial = document.getElementById("pyroCriticalInfoFinancial");
+const editStep1FromFinancialBtn = document.getElementById("editStep1FromFinancialBtn");
+const editFeedstockFromFinancialBtn = document.getElementById("editFeedstockFromFinancialBtn");
+const editBiocharFromFinancialBtn = document.getElementById("editBiocharFromFinancialBtn");
+const editPyroFromFinancialBtn = document.getElementById("editPyroFromFinancialBtn");
+const toAdditionalPageBtn = document.getElementById("toAdditionalPageBtn");
+
+const additionalSection = document.getElementById("additionalSection");
+const financialCriticalInfoAdditional = document.getElementById("financialCriticalInfoAdditional");
+const editFinancialFromAdditionalBtn = document.getElementById("editFinancialFromAdditionalBtn");
 const additionalInfoList = document.getElementById("additionalInfoList");
 const addAdditionalInfoBtn = document.getElementById("addAdditionalInfoBtn");
 const contractSignedCheckbox = document.getElementById("contractSignedCheckbox");
-const toCorcSectionBtn = document.getElementById("toCorcSectionBtn");
-const corcSection = document.getElementById("corcSection");
-const previousSummaryInCorc = document.getElementById("previousSummaryInCorc");
-const feedstockSummaryInCorc = document.getElementById("feedstockSummaryInCorc");
-const biocharCriticalInfoCorc = document.getElementById("biocharCriticalInfoCorc");
-const pyroCriticalInfoCorc = document.getElementById("pyroCriticalInfoCorc");
-const editStep1FromCorcBtn = document.getElementById("editStep1FromCorcBtn");
-const editFeedstockFromCorcBtn = document.getElementById("editFeedstockFromCorcBtn");
-const editBiocharFromCorcBtn = document.getElementById("editBiocharFromCorcBtn");
-const editPyroFromCorcBtn = document.getElementById("editPyroFromCorcBtn");
 
 const backToStep1Btn = document.getElementById("backToStep1Btn");
 const saveCsvBtn = document.getElementById("saveCsvBtn");
@@ -175,10 +188,10 @@ function getSelectedRegistry() {
 
 function getCurrentSectionFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  const section = params.get("section") || "feedstock";
-  return ["feedstock", "biochar", "pyrolysis", "corc"].includes(section)
+  const section = params.get("section") || "step1";
+  return ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional"].includes(section)
     ? section
-    : "feedstock";
+    : "step1";
 }
 
 function canEnterFeedstockSection() {
@@ -253,7 +266,7 @@ function renderFeedstockTable(tbodyEl, withActions = false) {
   feedstockEntries.forEach((entry, idx) => {
     const tr = document.createElement("tr");
     const action = withActions
-      ? `<td><button class="btn btn-secondary" type="button" data-edit-feedstock-index="${idx}">Edit</button></td>`
+      ? `<td><div class="btn-row"><button class="btn btn-secondary btn-sm" type="button" data-edit-feedstock-index="${idx}">Edit</button><button class="btn btn-danger btn-sm" type="button" data-delete-feedstock-index="${idx}">Delete</button></div></td>`
       : "";
     tr.innerHTML = `<td>${entry.feedstock}</td><td>${entry.quantity_tpy || ""}</td><td>${entry.q4_transport_km || ""}</td>${action}`;
     tbodyEl.appendChild(tr);
@@ -437,7 +450,7 @@ function renderBiocharCriticalInfo() {
   const annual = plantCapacity.value || "0";
   const text = `Annual biochar (t): ${annual} | Carbon content (%): ${content} | H/Corg: ${hcorg} | Certifications: ${certs}`;
   biocharCriticalInfo.textContent = text;
-  biocharCriticalInfoCorc.textContent = text;
+  biocharCriticalInfoFinancial.textContent = text;
 }
 
 function renderPyrolysisSummary() {
@@ -445,7 +458,13 @@ function renderPyrolysisSummary() {
   const p14 = pyroQ14.value ? "Q14: provided" : "Q14: pending";
   const p15 = pyroQ15.value ? "Q15: provided" : "Q15: pending";
   const energy = pyroQ20.value || "N/A";
-  pyroCriticalInfoCorc.textContent = `${p13} | ${p14} | ${p15} | Energy source: ${energy}`;
+  pyroCriticalInfoFinancial.textContent = `${p13} | ${p14} | ${p15} | Energy source: ${energy}`;
+}
+
+function renderFinancialSummary() {
+  const q21 = financeQ21.value ? "Q21: provided" : "Q21: pending";
+  const q22 = financeQ22.value ? "Q22: provided" : "Q22: pending";
+  financialCriticalInfoAdditional.textContent = `${q21} | ${q22}`;
 }
 
 function renderAdditionalInfo() {
@@ -475,21 +494,48 @@ function updateContractLockState() {
   addAdditionalInfoBtn.disabled = locked;
 }
 
+function sectionToStep(sectionName) {
+  return {
+    step1: 1,
+    feedstock: 2,
+    biochar: 3,
+    pyrolysis: 4,
+    financial: 5,
+    additional: 6,
+  }[sectionName] || 1;
+}
+
+function updateProgressUI(sectionName) {
+  const step = sectionToStep(sectionName);
+  const steps = [progressStep1, progressStep2, progressStep3, progressStep4, progressStep5, progressStep6];
+  steps.forEach((el, idx) => {
+    const n = idx + 1;
+    el.classList.toggle("active", n === step);
+    el.classList.toggle("done", n < step);
+  });
+  progressFill.style.width = `${((step - 1) / 5) * 100}%`;
+}
+
 function showSectionsFor(sectionName) {
+  const showStep1 = sectionName === "step1";
   const showFeedstock = sectionName === "feedstock";
   const showBiochar = sectionName === "biochar";
   const showPyro = sectionName === "pyrolysis";
-  const showCorc = sectionName === "corc";
+  const showFinancial = sectionName === "financial";
+  const showAdditional = sectionName === "additional";
 
-  const hideStep1 = showBiochar || showPyro || showCorc || (showFeedstock && !showStep1Editor);
-  step1Card.classList.toggle("hidden", hideStep1);
+  const keepStep1Visible = showStep1 || (showFeedstock && showStep1Editor);
+  step1Card.classList.toggle("hidden", !keepStep1Visible);
   feedstockSection.classList.toggle("hidden", !showFeedstock);
   biocharSection.classList.toggle("hidden", !showBiochar);
   pyrolysisSection.classList.toggle("hidden", !showPyro);
-  corcSection.classList.toggle("hidden", !showCorc);
+  financialSection.classList.toggle("hidden", !showFinancial);
+  additionalSection.classList.toggle("hidden", !showAdditional);
 
-  if (showPyro || showCorc) renderBiocharCriticalInfo();
-  if (showCorc) renderPyrolysisSummary();
+  if (showPyro || showFinancial || showAdditional) renderBiocharCriticalInfo();
+  if (showFinancial || showAdditional) renderPyrolysisSummary();
+  if (showAdditional) renderFinancialSummary();
+  updateProgressUI(sectionName);
 }
 
 function navigateToSection(sectionName) {
@@ -497,7 +543,8 @@ function navigateToSection(sectionName) {
     alert("Select registry before opening feedstock section.");
     return;
   }
-  if (sectionName !== "feedstock") showStep1Editor = false;
+  if (sectionName === "step1") showStep1Editor = true;
+  else if (sectionName !== "feedstock") showStep1Editor = false;
   const current = getCurrentSectionFromUrl();
   const url = new URL(window.location.href);
   url.searchParams.set("section", sectionName);
@@ -509,25 +556,27 @@ function navigateToSection(sectionName) {
 function navigateBackByHistory() {
   const params = new URLSearchParams(window.location.search);
   const prev = params.get("prev");
-  if (prev && ["feedstock", "biochar", "pyrolysis", "corc"].includes(prev)) {
+  if (prev && ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional"].includes(prev)) {
     navigateToSection(prev);
     return;
   }
 
   const current = getCurrentSectionFromUrl();
   const fallback = {
-    corc: "pyrolysis",
+    additional: "financial",
+    financial: "pyrolysis",
     pyrolysis: "biochar",
     biochar: "feedstock",
-    feedstock: "feedstock",
+    feedstock: "step1",
+    step1: "step1",
   }[current];
   navigateToSection(fallback);
 }
 
 function openStep1Editor() {
   showStep1Editor = true;
-  navigateToSection("feedstock");
-  showSectionsFor("feedstock");
+  navigateToSection("step1");
+  showSectionsFor("step1");
   step1Card.classList.remove("hidden");
   step1Card.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -542,17 +591,17 @@ function renderPreviousSectionSummary() {
   previousSummaryInFeedstock.textContent = text;
   previousSummaryInBiochar.textContent = text;
   previousSummaryInPyro.textContent = text;
-  previousSummaryInCorc.textContent = text;
+  previousSummaryInFinancial.textContent = text;
 }
 
 function renderFeedstockSummaryText() {
   if (!feedstockEntries.length) {
-    feedstockSummaryInCorc.textContent = "No feedstock added yet.";
+    feedstockSummaryInFinancial.textContent = "No feedstock added yet.";
     return;
   }
   const total = computeTotalBiomass();
   const list = feedstockEntries.map((entry) => entry.feedstock).join(", ");
-  feedstockSummaryInCorc.textContent = `Total biomass: ${total} t/year | Feedstocks: ${list}`;
+  feedstockSummaryInFinancial.textContent = `Total biomass: ${total} t/year | Feedstocks: ${list}`;
 }
 
 function updateFeedstockAvailability() {
@@ -620,6 +669,7 @@ function renderSummary() {
   renderFeedstockQc();
   renderFeedstockSummaryText();
   renderPyrolysisSummary();
+  renderFinancialSummary();
 }
 
 function csvEscape(value) {
@@ -822,18 +872,16 @@ function applySectionFromUrl() {
   const section = getCurrentSectionFromUrl();
 
   if (!canEnterFeedstockSection()) {
-    showSectionsFor("feedstock");
-    feedstockSection.classList.add("hidden");
-    step1Card.classList.remove("hidden");
+    showSectionsFor("step1");
     return;
   }
 
-  if ((section === "biochar" || section === "pyrolysis" || section === "corc") && !feedstockEntries.length) {
+  if ((section === "biochar" || section === "pyrolysis" || section === "financial" || section === "additional") && !feedstockEntries.length) {
     showSectionsFor("feedstock");
     return;
   }
 
-  if (section !== "feedstock") showStep1Editor = false;
+  if (section !== "feedstock" && section !== "step1") showStep1Editor = false;
   showSectionsFor(section);
 }
 
@@ -902,7 +950,7 @@ toFeedstockBtn.addEventListener("click", () => {
 editStep1FromFeedstockBtn.addEventListener("click", openStep1Editor);
 editStep1FromBiocharBtn.addEventListener("click", openStep1Editor);
 editStep1FromPyroBtn.addEventListener("click", openStep1Editor);
-editStep1FromCorcBtn.addEventListener("click", openStep1Editor);
+editStep1FromFinancialBtn.addEventListener("click", openStep1Editor);
 
 feedstockType.addEventListener("change", openFeedstockFormBySelection);
 addFeedstockBtn.addEventListener("click", openFeedstockFormBySelection);
@@ -912,14 +960,26 @@ editFeedstockFromFeedstockBtn.addEventListener("click", () => {
 });
 editFeedstockFromBiocharBtn.addEventListener("click", () => navigateToSection("feedstock"));
 editFeedstockFromPyroBtn.addEventListener("click", () => navigateToSection("feedstock"));
-editFeedstockFromCorcBtn.addEventListener("click", () => navigateToSection("feedstock"));
+editFeedstockFromFinancialBtn.addEventListener("click", () => navigateToSection("feedstock"));
 saveFeedstockInfoBtn.addEventListener("click", saveFeedstockInfo);
 
 feedstockTableBodyFeedstock.addEventListener("click", (event) => {
-  const button = event.target.closest("button[data-edit-feedstock-index]");
-  if (!button) return;
-  const index = Number(button.dataset.editFeedstockIndex);
-  openFeedstockFormForEdit(index);
+  const editButton = event.target.closest("button[data-edit-feedstock-index]");
+  if (editButton) {
+    const index = Number(editButton.dataset.editFeedstockIndex);
+    openFeedstockFormForEdit(index);
+    return;
+  }
+  const deleteButton = event.target.closest("button[data-delete-feedstock-index]");
+  if (!deleteButton) return;
+  const index = Number(deleteButton.dataset.deleteFeedstockIndex);
+  if (!Number.isInteger(index) || index < 0 || index >= feedstockEntries.length) return;
+  feedstockEntries.splice(index, 1);
+  renderAllFeedstockTables();
+  renderSummary();
+  saveUserToLocalStorage();
+  hideFeedstockForm();
+  feedstockFeedback.textContent = "Feedstock entry deleted.";
 });
 
 toBiocharPageBtn.addEventListener("click", () => {
@@ -936,15 +996,27 @@ toPyrolysisPageBtn.addEventListener("click", () => {
 });
 
 editBiocharFromPyroBtn.addEventListener("click", () => navigateToSection("biochar"));
-editBiocharFromCorcBtn.addEventListener("click", () => navigateToSection("biochar"));
-editPyroFromCorcBtn.addEventListener("click", () => navigateToSection("pyrolysis"));
+editBiocharFromFinancialBtn.addEventListener("click", () => navigateToSection("biochar"));
+editPyroFromFinancialBtn.addEventListener("click", () => navigateToSection("pyrolysis"));
+editFinancialFromAdditionalBtn.addEventListener("click", () => navigateToSection("financial"));
 
-toCorcSectionBtn.addEventListener("click", () => {
-  navigateToSection("corc");
+toFinancialPageBtn.addEventListener("click", () => {
+  navigateToSection("financial");
+});
+
+toAdditionalPageBtn.addEventListener("click", () => {
+  navigateToSection("additional");
 });
 
 backToStep1Btn.addEventListener("click", navigateBackByHistory);
 window.addEventListener("popstate", applySectionFromUrl);
+
+progressStep1.addEventListener("click", () => navigateToSection("step1"));
+progressStep2.addEventListener("click", () => navigateToSection("feedstock"));
+progressStep3.addEventListener("click", () => navigateToSection("biochar"));
+progressStep4.addEventListener("click", () => navigateToSection("pyrolysis"));
+progressStep5.addEventListener("click", () => navigateToSection("financial"));
+progressStep6.addEventListener("click", () => navigateToSection("additional"));
 
 [
   biocharCarbonContent,

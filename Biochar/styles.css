@@ -47,6 +47,7 @@ h2 {
   border-radius: 12px;
   padding: 16px;
   margin: 14px 0;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
 }
 
 label {
@@ -155,6 +156,8 @@ textarea {
 
 .btn-row {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   margin-top: 8px;
 }
@@ -164,13 +167,79 @@ textarea {
   background: #0f766e;
   color: #fff;
   border-radius: 8px;
-  padding: 10px 14px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.2;
   cursor: pointer;
 }
 
 .btn-secondary {
   border-color: #334155;
   background: #334155;
+}
+
+.btn-danger {
+  border-color: #b42318;
+  background: #b42318;
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.progress-card {
+  position: sticky;
+  top: 10px;
+  z-index: 9;
+}
+
+.progress-track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #0f766e, #4f772d);
+  transition: width 0.2s ease;
+}
+
+.progress-steps {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.progress-step {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.progress-step.done {
+  background: #ecfdf5;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.progress-step.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #fff;
 }
 
 .questionnaire-list {
@@ -209,7 +278,12 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .progress-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .btn-row {
     flex-direction: column;
+    align-items: stretch;
   }
 }
