@@ -4,6 +4,7 @@ const registryId = document.body.dataset.registry || "";
 
 const TRANSFER_STORAGE_PREFIX = "biochar-feasibility-transfer:";
 const FINAL_CREDITS_STORAGE_KEY = "biochar-feasibility-final-credits";
+const METHODOLOGY_VERSION_AS_OF = "2026-03-07";
 
 const registryNameEl = document.getElementById("registryName");
 const methodologyLinksEl = document.getElementById("methodologyLinks");
@@ -76,6 +77,8 @@ const REGISTRY_CONFIG = {
     name: "Verra",
     standard: "VCS",
     methodology: "VM0044",
+    methodologyVersion: "v1.2",
+    methodologyVersionNote: "Active since 2025-06-27 (official Verra VM0044 page)",
     links: [
       { label: "Verra VM0044", url: "https://verra.org/methodologies/vm0044-methodology-for-biochar-utilization-in-soil-and-non-soil-applications/" },
       { label: "Verra Methodologies and Tools", url: "https://verra.org/methodologies-tools/" },
@@ -95,6 +98,8 @@ const REGISTRY_CONFIG = {
     name: "Puro.earth",
     standard: "Puro Standard",
     methodology: "Biochar Methodology",
+    methodologyVersion: "Edition 2025",
+    methodologyVersionNote: "2025 updated methodology (official Puro public update/webinar pages)",
     links: [
       { label: "Puro Biochar Overview", url: "https://puro.earth/biochar" },
       { label: "Puro Registry", url: "https://registry.puro.earth/projects" },
@@ -114,6 +119,8 @@ const REGISTRY_CONFIG = {
     name: "Gold Standard",
     standard: "GS4GG",
     methodology: "Project-specific approved pathway",
+    methodologyVersion: "Project-specific (no single global biochar version)",
+    methodologyVersionNote: "Use applicable approved GS pathway/version for the project",
     links: [
       { label: "Gold Standard for the Global Goals", url: "https://globalgoals.goldstandard.org/" },
       { label: "Gold Standard - Our Standard", url: "https://www.goldstandard.org/gold-standard-for-the-global-goals/our-standard" },
@@ -133,6 +140,8 @@ const REGISTRY_CONFIG = {
     name: "Isometric",
     standard: "Isometric Biochar Protocol",
     methodology: "Protocol-aligned pathway",
+    methodologyVersion: "Biochar Protocol v1.0 (plus certified updates in 2025)",
+    methodologyVersionNote: "See Isometric protocol/module updates for latest applicable scope",
     links: [
       { label: "Isometric Biochar", url: "https://isometric.com/biochar" },
       { label: "Isometric Pathways", url: "https://isometric.com/pathways/biochar" },
@@ -973,10 +982,10 @@ function collectSensitivityDetails() {
 
 function init() {
   const config = REGISTRY_CONFIG[registryId] || REGISTRY_CONFIG.verra;
-  registryNameEl.textContent = `${config.name} | ${config.standard} | ${config.methodology}`;
+  registryNameEl.textContent = `${config.name} | ${config.standard} | ${config.methodology} | ${config.methodologyVersion}`;
   setList(methodologyLinksEl, config.links, true);
   setList(assumptionsListEl, ASSUMPTIONS, false);
-  complianceTextEl.textContent = config.compliance;
+  complianceTextEl.innerHTML = `${config.compliance}<br><strong>Methodology version (as of ${METHODOLOGY_VERSION_AS_OF}):</strong> ${config.methodologyVersion}<br><span>${config.methodologyVersionNote}</span>`;
   renderMonitoringParams(config);
 
   fillGuideTables();
@@ -1050,6 +1059,10 @@ useResultBtn.addEventListener("click", () => {
       transfer_token: transferToken,
       registry_id: payload?.registry_id || registryId,
       registry_name: payload?.registry_name || (REGISTRY_CONFIG[registryId]?.name || registryId.toUpperCase()),
+      methodology_name: cfg.methodology,
+      methodology_version: cfg.methodologyVersion,
+      methodology_version_note: cfg.methodologyVersionNote,
+      methodology_version_as_of: METHODOLOGY_VERSION_AS_OF,
       final_credits_tco2e: result.final,
       issuance_factor: num(inputIssuance),
       buffer_percent: num(inputBufferPct),

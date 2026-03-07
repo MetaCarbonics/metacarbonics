@@ -762,10 +762,14 @@ function renderTentativeCredits() {
 
 function renderStep7Tables() {
   if (!step7SummaryBody || !step7ContributionBody || !step7DefaultsBody || !step7MonitoringBody) return;
+  const methodology = getRegistryMethodologyMeta(registrySelect.value);
+  const methodologyVersion = finalRegistryCredits?.methodology_version || methodology.version;
+  const methodologyAsOf = finalRegistryCredits?.methodology_version_as_of || methodology.version_as_of || "2026-03-07";
 
   const summaryRows = [
     ["Tentative credits (tCO2e/year)", computeTentativeCredits().toFixed(2)],
     ["Final credits (tCO2e/year)", finalRegistryCredits ? Number(finalRegistryCredits.final_credits_tco2e || 0).toFixed(2) : "Not calculated yet"],
+    ["Methodology version (as of date)", `${fmt(methodologyVersion)} (as of ${fmt(methodologyAsOf)})`],
     ["Issuance factor", finalRegistryCredits ? fmt(finalRegistryCredits.issuance_factor) : "N/A"],
     ["Buffer (%)", finalRegistryCredits ? fmt(finalRegistryCredits.buffer_percent) : "N/A"],
     ["Uncertainty (%)", finalRegistryCredits ? fmt(finalRegistryCredits.uncertainty_percent) : "N/A"],
@@ -839,6 +843,9 @@ function getRegistryMethodologyMeta(registryId) {
     verra: {
       standard: "VCS",
       methodology: "VM0044",
+      version: "v1.2",
+      version_as_of: "2026-03-07",
+      version_note: "Active since 2025-06-27 (official Verra VM0044 page)",
       references: [
         "https://verra.org/methodologies/vm0044-methodology-for-biochar-utilization-in-soil-and-non-soil-applications/",
       ],
@@ -846,21 +853,33 @@ function getRegistryMethodologyMeta(registryId) {
     puro: {
       standard: "Puro Standard",
       methodology: "Puro Biochar Methodology",
+      version: "Edition 2025",
+      version_as_of: "2026-03-07",
+      version_note: "2025 updated methodology",
       references: ["https://puro.earth/biochar"],
     },
     gs: {
       standard: "Gold Standard for the Global Goals",
       methodology: "Approved GS pathway (project-specific)",
+      version: "Project-specific (no single global biochar version)",
+      version_as_of: "2026-03-07",
+      version_note: "Use applicable approved GS pathway/version for the project",
       references: ["https://globalgoals.goldstandard.org/"],
     },
     isometric: {
       standard: "Isometric Biochar Protocol",
       methodology: "Isometric pathway (project-specific)",
+      version: "Biochar Protocol v1.0 (plus certified updates in 2025)",
+      version_as_of: "2026-03-07",
+      version_note: "See Isometric protocol/module updates for latest applicable scope",
       references: ["https://isometric.com/pathways/biochar"],
     },
   }[registryId || ""] || {
     standard: "N/A",
     methodology: "N/A",
+    version: "N/A",
+    version_as_of: "2026-03-07",
+    version_note: "",
     references: [],
   };
 }
@@ -880,6 +899,12 @@ function buildContractPreviewLines() {
   lines.push(`Project Name: ${inferProjectName(data)}`);
   lines.push(`Standard: ${fmt(methodology.standard)}`);
   lines.push(`Methodology: ${fmt(methodology.methodology)}`);
+  lines.push(
+    `Methodology Version (as of ${fmt(finalRegistryCredits?.methodology_version_as_of || methodology.version_as_of)}): ${fmt(finalRegistryCredits?.methodology_version || methodology.version)}`
+  );
+  if (finalRegistryCredits?.methodology_version_note || methodology.version_note) {
+    lines.push(`Methodology Version Note: ${fmt(finalRegistryCredits?.methodology_version_note || methodology.version_note)}`);
+  }
   if (methodology.references.length) {
     lines.push(`Methodology Source: ${methodology.references.join(" | ")}`);
   }
@@ -1162,6 +1187,22 @@ async function downloadPreviewPdf() {
   y += 14;
   doc.text(`Registry: ${fmt(data.registry_name)} | Standard: ${fmt(methodology.standard)} | Methodology: ${fmt(methodology.methodology)}`, marginX, y);
   y += 14;
+  doc.text(
+    `Methodology Version (as of ${fmt(finalRegistryCredits?.methodology_version_as_of || methodology.version_as_of)}): ${fmt(finalRegistryCredits?.methodology_version || methodology.version)}`,
+    marginX,
+    y
+  );
+  y += 14;
+  if (finalRegistryCredits?.methodology_version_note || methodology.version_note) {
+    const versionNoteWrapped = doc.splitTextToSize(
+      `Methodology Version Note: ${fmt(finalRegistryCredits?.methodology_version_note || methodology.version_note)}`,
+      maxWidth
+    );
+    versionNoteWrapped.forEach((w) => {
+      doc.text(w, marginX, y);
+      y += lineHeight;
+    });
+  }
   if (methodology.references.length) {
     const refWrapped = doc.splitTextToSize(`Reference: ${methodology.references.join(" | ")}`, maxWidth);
     refWrapped.forEach((w) => {
