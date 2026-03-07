@@ -968,6 +968,17 @@ async function downloadPreviewPdf() {
   let y = 52;
   const lineHeight = 14;
   const maxWidth = 515;
+  const drawLink = (label, url, x, y) => {
+    if (!url) return;
+    const linkLabel = label || "Link";
+    doc.setTextColor(29, 78, 216);
+    if (typeof doc.textWithLink === "function") {
+      doc.textWithLink(linkLabel, x, y, { url });
+    } else {
+      doc.text(linkLabel, x, y);
+    }
+    doc.setTextColor(30, 41, 59);
+  };
 
   doc.setFillColor(15, 118, 110);
   doc.rect(0, 0, 595, 56, "F");
@@ -1212,12 +1223,15 @@ async function downloadPreviewPdf() {
           String(r.carbon_default_pct ?? ""),
           String(r?.carbon_reference?.range_pct || ""),
           String(r?.carbon_reference?.region || ""),
-          `${String(r?.carbon_reference?.source_label || "")} ${String(r?.carbon_reference?.source_url || "")}`.trim(),
+          String(r?.carbon_reference?.source_label || ""),
         ];
         let x = marginX;
         vals.forEach((v, idx) => {
-          const maxLen = idx === 0 ? 14 : idx === 4 ? 58 : 12;
+          const maxLen = idx === 0 ? 14 : idx === 4 ? 40 : 12;
           doc.text(v.slice(0, maxLen), x + 3, rowY + 11);
+          if (idx === 4 && r?.carbon_reference?.source_url) {
+            drawLink("Link", r.carbon_reference.source_url, x + colsA[idx].w - 26, rowY + 11);
+          }
           x += colsA[idx].w;
           doc.line(x, rowY, x, rowY + rowH);
         });
@@ -1280,12 +1294,15 @@ async function downloadPreviewPdf() {
           String(p.value ?? ""),
           String(p.default_value ?? ""),
           p.used_default ? "Default" : "Override",
-          `${String(p.source_label || "")} ${String(p.source_url || "")}`.trim(),
+          String(p.source_label || ""),
         ];
         let x = marginX;
         vals.forEach((v, idx) => {
-          const maxLen = idx === 0 ? 16 : idx === 4 ? 58 : 10;
+          const maxLen = idx === 0 ? 16 : idx === 4 ? 40 : 10;
           doc.text(v.slice(0, maxLen), x + 3, rowY + 11);
+          if (idx === 4 && p.source_url) {
+            drawLink("Link", p.source_url, x + colsB[idx].w - 26, rowY + 11);
+          }
           x += colsB[idx].w;
           doc.line(x, rowY, x, rowY + rowH);
         });
