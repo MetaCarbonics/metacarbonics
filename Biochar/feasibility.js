@@ -401,7 +401,7 @@ function findTargetPlanForPoint(lat, lng) {
   return candidates[0];
 }
 
-function renderMultiStateLocationRows() {
+function renderMultiStateLocationRows(focusIdx = -1) {
   if (!multiStateLocationList) return;
   if (!multiStateCheckbox?.checked) {
     multiStateLocationList.innerHTML = "";
@@ -492,6 +492,15 @@ function renderMultiStateLocationRows() {
       saveUserToLocalStorage();
     });
   });
+  if (Number.isInteger(focusIdx) && focusIdx >= 0) {
+    const stateEl = multiStateLocationList.querySelector(`select[data-ms-state-idx="${focusIdx}"]`);
+    if (stateEl) {
+      setTimeout(() => {
+        stateEl.value = "";
+        stateEl.focus();
+      }, 0);
+    }
+  }
 }
 
 function updateFacilityLocationSummary() {
@@ -2934,8 +2943,9 @@ multiStateSelect.addEventListener("change", () => {
 
 if (addMultiStateLocationBtn) {
   addMultiStateLocationBtn.addEventListener("click", () => {
+    const newIdx = multiStateLocations.length;
     multiStateLocations.push({ state_code: "", state_name: "", districts: [], facility_count: 1 });
-    renderMultiStateLocationRows();
+    renderMultiStateLocationRows(newIdx);
     renderSummary();
     saveUserToLocalStorage();
   });
