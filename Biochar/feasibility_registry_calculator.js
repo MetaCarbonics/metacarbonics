@@ -835,12 +835,42 @@ function renderBreakdownChart(result) {
   if (!window.Chart) return;
   const ctx = document.getElementById("calcChart");
   const labels = ["Gross", "Process", "Transport", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
-  const values = [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final];
+  const contribRows = computeFeedstockContributions(result);
+  let datasets = [];
+
+  if (contribRows.length) {
+    datasets = contribRows.map((r, idx) => {
+      const w = Number(r.contribution_pct || 0) / 100;
+      const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
+      return {
+        label: r.feedstock,
+        data: [
+          result.gross * w,
+          -result.processE * w,
+          -result.transportE * w,
+          -result.leakageE * w,
+          -result.uncertaintyLoss * w,
+          -result.bufferLoss * w,
+          -result.issuanceLoss * w,
+          result.final * w,
+        ],
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: 1,
+      };
+    });
+  } else {
+    datasets = [{ data: [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final], label: "tCO2e/year" }];
+  }
   if (breakdownChart) breakdownChart.destroy();
   breakdownChart = new window.Chart(ctx, {
     type: "bar",
-    data: { labels, datasets: [{ data: values, label: "tCO2e/year" }] },
-    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: contribRows.length > 0, position: "right" } },
+      scales: { x: { stacked: true }, y: { beginAtZero: true, stacked: true } },
+    },
   });
 }
 

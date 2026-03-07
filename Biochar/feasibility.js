@@ -1067,10 +1067,10 @@ async function downloadPreviewPdf() {
       y = 50;
     }
     y += 6;
-    const mapX = marginX + (maxWidth - mapW);
-    const mapY = y;
     const mapW = 330;
     const mapH = 190;
+    const mapX = marginX + (maxWidth - mapW);
+    const mapY = y;
     const lat = Number(data.facility_lat);
     const lng = Number(data.facility_lng);
     let renderedSatellite = false;
@@ -1182,11 +1182,6 @@ async function downloadPreviewPdf() {
       });
       rowY += rowH;
       feedstockDefaults.forEach((r) => {
-        if (rowY > 790) {
-          doc.addPage();
-          rowY = 50;
-        }
-        doc.rect(marginX, rowY, tableW, rowH);
         const vals = [
           String(r.feedstock || ""),
           String(r.carbon_default_pct ?? ""),
@@ -1194,17 +1189,26 @@ async function downloadPreviewPdf() {
           String(r?.carbon_reference?.region || ""),
           String(r?.carbon_reference?.source_label || ""),
         ];
+        const wrappedCells = vals.map((v, idx) => doc.splitTextToSize(v || "", Math.max(8, colsA[idx].w - 8)));
+        const maxLines = Math.max(1, ...wrappedCells.map((arr) => arr.length || 1));
+        const dynH = Math.max(rowH, 6 + maxLines * 10);
+        if (rowY + dynH > 790) {
+          doc.addPage();
+          rowY = 50;
+        }
+        doc.rect(marginX, rowY, tableW, dynH);
         let x = marginX;
-        vals.forEach((v, idx) => {
-          const maxLen = idx === 0 ? 14 : idx === 4 ? 40 : 12;
-          doc.text(v.slice(0, maxLen), x + 3, rowY + 11);
+        wrappedCells.forEach((arr, idx) => {
+          arr.forEach((ln, li) => {
+            doc.text(String(ln), x + 3, rowY + 11 + li * 10);
+          });
           if (idx === 4 && r?.carbon_reference?.source_url) {
-            drawLink("Link", r.carbon_reference.source_url, x + colsA[idx].w - 26, rowY + 11);
+            drawLink("Link", r.carbon_reference.source_url, x + colsA[idx].w - 26, rowY + dynH - 4);
           }
           x += colsA[idx].w;
-          doc.line(x, rowY, x, rowY + rowH);
+          doc.line(x, rowY, x, rowY + dynH);
         });
-        rowY += rowH;
+        rowY += dynH;
       });
       y = rowY + 12;
 
