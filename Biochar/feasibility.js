@@ -284,9 +284,20 @@ function showSectionsFor(sectionName) {
   }
 }
 
+function getCurrentSectionFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const section = params.get("section") || "feedstock";
+  if (["feedstock", "biochar", "pyrolysis", "corc"].includes(section)) {
+    return section;
+  }
+  return "feedstock";
+}
+
 function navigateToSection(sectionName) {
+  const currentSection = getCurrentSectionFromUrl();
   const url = new URL(window.location.href);
   url.searchParams.set("section", sectionName);
+  url.searchParams.set("prev", currentSection);
   window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
 }
 
@@ -614,7 +625,7 @@ async function loadFeedstockMatrix() {
 
 function applySectionFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  const section = params.get("section") || "feedstock";
+  const section = getCurrentSectionFromUrl();
 
   if ((section === "biochar" || section === "pyrolysis" || section === "corc") && !feedstockEntries.length) {
     showSectionsFor("feedstock");
@@ -626,6 +637,24 @@ function applySectionFromUrl() {
   } else {
     showSectionsFor("feedstock");
   }
+}
+
+function navigateBackByHistory() {
+  const params = new URLSearchParams(window.location.search);
+  const prev = params.get("prev");
+  if (prev && ["feedstock", "biochar", "pyrolysis", "corc"].includes(prev)) {
+    navigateToSection(prev);
+    return;
+  }
+
+  const current = getCurrentSectionFromUrl();
+  const fallbackPrev = {
+    corc: "pyrolysis",
+    pyrolysis: "biochar",
+    biochar: "feedstock",
+    feedstock: "feedstock",
+  }[current];
+  navigateToSection(fallbackPrev);
 }
 
 countrySelect.addEventListener("change", () => {
@@ -696,7 +725,7 @@ toCorcSectionBtn.addEventListener("click", () => {
 });
 
 backToStep1Btn.addEventListener("click", () => {
-  navigateToSection("feedstock");
+  navigateBackByHistory();
 });
 
 [
