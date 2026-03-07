@@ -606,6 +606,7 @@ function computeFeedstockContributions(baseResult) {
       share_pct: r.share_pct,
       carbon_default_pct: r.carbon_default_pct,
       carbon_reference: r.carbon_reference,
+      gross_raw: Number(r.gross_raw.toFixed(6)),
       annual_credits_tco2e: Number(annualCredits.toFixed(2)),
       contribution_pct: Number((weight * 100).toFixed(2)),
     };
@@ -817,25 +818,54 @@ function renderTenYearTable(finalAnnual) {
 function renderBreakdownChart(result) {
   if (!window.Chart) return;
   const ctx = document.getElementById("calcChart");
+  const labels = ["Gross", "Process", "Transport", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
   const contribRows = computeFeedstockContributions(result);
-  let labels = [];
-  let values = [];
-  let datasetLabel = "tCO2e/year";
+  let datasets = [];
 
   if (contribRows.length) {
-    labels = contribRows.map((r) => r.feedstock);
-    values = contribRows.map((r) => Number(r.annual_credits_tco2e || 0));
-    datasetLabel = "Feedstock contribution (annual credits)";
+    const totalGrossRaw = contribRows.reduce((s, r) => s + Number(r.gross_raw || 0), 0);
+    const weights = contribRows.map((r) => {
+      if (totalGrossRaw > 0) return Number(r.gross_raw || 0) / totalGrossRaw;
+      return Number(r.contribution_pct || 0) / 100;
+    });
+    datasets = contribRows.map((r, idx) => {
+      const w = weights[idx];
+      const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
+      return {
+        label: r.feedstock,
+        data: [
+          result.gross * w,
+          -result.processE * w,
+          -result.transportE * w,
+          -result.leakageE * w,
+          -result.uncertaintyLoss * w,
+          -result.bufferLoss * w,
+          -result.issuanceLoss * w,
+          result.final * w,
+        ],
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: 1,
+      };
+    });
   } else {
-    labels = ["Gross", "Process", "Transport", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
-    values = [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final];
-    datasetLabel = "tCO2e/year";
+    datasets = [
+      {
+        label: "tCO2e/year",
+        data: [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final],
+        backgroundColor: "#0f766e",
+      },
+    ];
   }
   if (breakdownChart) breakdownChart.destroy();
   breakdownChart = new window.Chart(ctx, {
     type: "bar",
-    data: { labels, datasets: [{ data: values, label: datasetLabel }] },
-    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: contribRows.length > 0, position: "right" } },
+      scales: { x: { stacked: true }, y: { beginAtZero: true, stacked: true } },
+    },
   });
 }
 
