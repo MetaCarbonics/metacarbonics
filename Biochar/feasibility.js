@@ -64,6 +64,7 @@ const checklistHeading = document.getElementById("checklistHeading");
 const toStep2Btn = document.getElementById("toStep2Btn");
 const backToStep1Btn = document.getElementById("backToStep1Btn");
 const saveCsvBtn = document.getElementById("saveCsvBtn");
+const feedstockQtyBody = document.getElementById("feedstockQtyBody");
 
 const feedstockType = document.getElementById("feedstockType");
 const feedstockSustainable = document.getElementById("feedstockSustainable");
@@ -75,6 +76,7 @@ let countries = [];
 let states = [];
 let cities = [];
 let feedstockMatrix = [];
+let feedstockQuantities = {};
 
 function option(label, value) {
   const opt = document.createElement("option");
@@ -129,6 +131,55 @@ function getSelectedFeedstocks() {
     .filter(Boolean);
 }
 
+function normalizeFeedstockQuantitiesBySelection(selectedFeedstocks) {
+  const next = {};
+  selectedFeedstocks.forEach((feedstock) => {
+    next[feedstock] = feedstockQuantities[feedstock] || "";
+  });
+  feedstockQuantities = next;
+}
+
+function renderFeedstockQtyTable() {
+  const selectedFeedstocks = getSelectedFeedstocks();
+  normalizeFeedstockQuantitiesBySelection(selectedFeedstocks);
+
+  feedstockQtyBody.innerHTML = "";
+  if (!selectedFeedstocks.length) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 2;
+    td.textContent = "No feedstocks selected yet.";
+    tr.appendChild(td);
+    feedstockQtyBody.appendChild(tr);
+    return;
+  }
+
+  selectedFeedstocks.forEach((feedstock) => {
+    const tr = document.createElement("tr");
+    const nameTd = document.createElement("td");
+    const qtyTd = document.createElement("td");
+    const input = document.createElement("input");
+
+    nameTd.textContent = feedstock;
+    input.type = "number";
+    input.min = "0";
+    input.step = "any";
+    input.value = feedstockQuantities[feedstock] || "";
+    input.className = "feedstock-qty-input";
+    input.placeholder = "Enter quantity";
+    input.addEventListener("input", () => {
+      feedstockQuantities[feedstock] = input.value;
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+
+    qtyTd.appendChild(input);
+    tr.appendChild(nameTd);
+    tr.appendChild(qtyTd);
+    feedstockQtyBody.appendChild(tr);
+  });
+}
+
 function setSelectedFeedstocks(selectedValues) {
   const selectedSet = new Set(selectedValues);
   Array.from(feedstockType.options).forEach((opt) => {
@@ -142,6 +193,33 @@ function parseStoredFeedstocks(value) {
     .split(/;|,/)
     .map((v) => v.trim())
     .filter(Boolean);
+}
+
+function parseStoredFeedstockQuantities(data) {
+  if (data.q_feedstock_qty_json) {
+    try {
+      const parsed = JSON.parse(data.q_feedstock_qty_json);
+      if (Array.isArray(parsed)) {
+        return parsed.reduce((acc, row) => {
+          if (row?.feedstock) acc[row.feedstock] = row.qty_tpy || "";
+          return acc;
+        }, {});
+      }
+    } catch (error) {
+      console.error("Failed to parse q_feedstock_qty_json", error);
+    }
+  }
+
+  const quantities = {};
+  String(data.q_feedstock_qty || "")
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .forEach((pair) => {
+      const [name, qty] = pair.split(":").map((x) => x.trim());
+      if (name) quantities[name] = qty || "";
+    });
+  return quantities;
 }
 
 function renderFeedstockOptions(registryId, preselected = []) {
@@ -171,6 +249,7 @@ function renderFeedstockOptions(registryId, preselected = []) {
   });
   feedstockType.disabled = false;
   setSelectedFeedstocks(preselected);
+  renderFeedstockQtyTable();
 }
 
 async function loadFeedstockMatrix() {
@@ -185,10 +264,17 @@ async function loadFeedstockMatrix() {
     feedstockType.innerHTML = "";
     feedstockType.appendChild(option("Unable to load feedstock matrix", ""));
     feedstockType.disabled = true;
+    renderFeedstockQtyTable();
   }
 }
 
 function getFormData() {
+  const selectedFeedstocks = getSelectedFeedstocks();
+  const qtyRows = selectedFeedstocks.map((feedstock) => ({
+    feedstock,
+    qty_tpy: feedstockQuantities[feedstock] || "",
+  }));
+
   return {
     user_id: userIdInput.value.trim(),
     country_code: countrySelect.value,
@@ -199,7 +285,11 @@ function getFormData() {
     registry_id: registrySelect.value,
     registry_name: selectedText(registrySelect),
     registry_type: getSelectedRegistry()?.type || "",
-    q_feedstock_type: getSelectedFeedstocks().join("; "),
+    q_feedstock_type: selectedFeedstocks.join("; "),
+    q_feedstock_qty: qtyRows
+      .map((row) => `${row.feedstock}: ${row.qty_tpy}`.trim())
+      .join("; "),
+    q_feedstock_qty_json: JSON.stringify(qtyRows),
     q_feedstock_sustainable: feedstockSustainable.value,
     q_annual_output_tpy: plantCapacity.value,
     q_monitoring_plan: monitoringPlan.value,
@@ -224,6 +314,13 @@ function renderSummary() {
   const selectedFeedstocks = getSelectedFeedstocks();
   if (selectedFeedstocks.length) {
     parts.push(`Feedstocks: ${selectedFeedstocks.length}`);
+  }
+  const totalQty = selectedFeedstocks.reduce((sum, feedstock) => {
+    const qty = Number(feedstockQuantities[feedstock] || 0);
+    return sum + (Number.isFinite(qty) ? qty : 0);
+  }, 0);
+  if (totalQty > 0) {
+    parts.push(`Total Feedstock Qty: ${totalQty} t/year`);
   }
 
   const completedAnswers = [
@@ -397,6 +494,7 @@ function loadUserFromLocalStorage() {
     citySelect.value = data.city_name || "";
     registrySelect.value = data.registry_id || "";
     updateRegistryMeta();
+    feedstockQuantities = parseStoredFeedstockQuantities(data);
     renderFeedstockOptions(registrySelect.value, parseStoredFeedstocks(data.q_feedstock_type));
 
     feedstockSustainable.value = data.q_feedstock_sustainable || "";
@@ -470,6 +568,7 @@ citySelect.addEventListener("change", () => {
 
 registrySelect.addEventListener("change", () => {
   updateRegistryMeta();
+  feedstockQuantities = {};
   renderFeedstockOptions(registrySelect.value);
   renderSummary();
   saveUserToLocalStorage();
@@ -487,6 +586,9 @@ registrySelect.addEventListener("change", () => {
     if (field === userIdInput) {
       loadUserFromLocalStorage();
     }
+    if (field === feedstockType) {
+      renderFeedstockQtyTable();
+    }
     renderSummary();
     saveUserToLocalStorage();
   });
@@ -498,5 +600,6 @@ saveCsvBtn.addEventListener("click", downloadCsv);
 
 Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
   loadUserFromLocalStorage();
+  renderFeedstockQtyTable();
   renderSummary();
 });

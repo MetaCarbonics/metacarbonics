@@ -68,6 +68,21 @@
         <div id="registryChecklist" class="checklist hidden">
           <h3 id="checklistHeading">Registry Feasibility Questions</h3>
 
+          <label>Selected Feedstocks and Quantity (t/year)</label>
+          <table class="feedstock-table">
+            <thead>
+              <tr>
+                <th>Feedstock</th>
+                <th>Quantity (t/year)</th>
+              </tr>
+            </thead>
+            <tbody id="feedstockQtyBody">
+              <tr>
+                <td colspan="2">No feedstocks selected yet.</td>
+              </tr>
+            </tbody>
+          </table>
+
           <label for="feedstockType">1. Feedstock Type</label>
           <select id="feedstockType" class="multi-select" multiple disabled>
             <option value="">Select a registry first</option>
