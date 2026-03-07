@@ -258,15 +258,14 @@ textarea {
 
 .step1-layout {
   display: grid;
-  grid-template-columns: 1.25fr 1fr;
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: start;
 }
 
 .step1-map-panel {
   margin: 0;
-  position: sticky;
-  top: 80px;
+  position: static;
 }
 
 .progress-step.done {

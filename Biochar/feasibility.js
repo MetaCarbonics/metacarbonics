@@ -1085,7 +1085,7 @@ async function downloadPreviewPdf() {
       y = 50;
     }
     y += 6;
-    const mapX = marginX;
+    const mapX = marginX + (maxWidth - mapW);
     const mapY = y;
     const mapW = 330;
     const mapH = 190;

@@ -607,7 +607,6 @@ function computeFeedstockContributions(baseResult) {
       carbon_default_pct: r.carbon_default_pct,
       carbon_reference: r.carbon_reference,
       annual_credits_tco2e: Number(annualCredits.toFixed(2)),
-      ten_year_credits_tco2e: Number((annualCredits * 10).toFixed(2)),
       contribution_pct: Number((weight * 100).toFixed(2)),
     };
   });
@@ -640,28 +639,27 @@ function renderFeedstockContributionViews(baseResult) {
     perFeedstockCharts = [];
     if (feedstockChartsWrap) {
       feedstockChartsWrap.innerHTML = "";
-      rows.forEach((r, idx) => {
+      if (rows.length) {
         const card = document.createElement("div");
         card.className = "questionnaire-card";
         const title = document.createElement("div");
         title.className = "small";
-        title.innerHTML = `<strong>${r.feedstock}</strong> | ${r.contribution_pct}% contribution`;
+        title.innerHTML = "<strong>Feedstock Contribution Bars (Annual)</strong>";
         const cv = document.createElement("canvas");
-        cv.id = `feedstockChart_${idx}`;
+        cv.id = "feedstockBarsChart";
         card.appendChild(title);
         card.appendChild(cv);
         feedstockChartsWrap.appendChild(card);
-        const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
+        const labels = rows.map((r) => r.feedstock);
+        const vals = rows.map((r) => Number(r.annual_credits_tco2e || 0));
+        const colors = rows.map((_, idx) => `hsl(${(idx * 67) % 360} 70% 45%)`);
         const chart = new window.Chart(cv, {
           type: "bar",
-          data: {
-            labels: ["Annual", "10-Year"],
-            datasets: [{ label: "tCO2e", data: [r.annual_credits_tco2e, r.ten_year_credits_tco2e], backgroundColor: [color, color] }],
-          },
+          data: { labels, datasets: [{ label: "Annual credits (tCO2e/year)", data: vals, backgroundColor: colors }] },
           options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
         });
         perFeedstockCharts.push(chart);
-      });
+      }
     }
 
     if (feedstockContributionChart) {
