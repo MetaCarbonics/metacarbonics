@@ -36,13 +36,12 @@ const step1Card = document.getElementById("step1Card");
 const toFeedstockBtn = document.getElementById("toFeedstockBtn");
 const feedstockSection = document.getElementById("feedstockSection");
 const previousSummaryInFeedstock = document.getElementById("previousSummaryInFeedstock");
-const editPreviousInfoCheckbox = document.getElementById("editPreviousInfoCheckbox");
+const editStep1FromFeedstockBtn = document.getElementById("editStep1FromFeedstockBtn");
+const editFeedstockFromFeedstockBtn = document.getElementById("editFeedstockFromFeedstockBtn");
 const feedstockQcSummary = document.getElementById("feedstockQcSummary");
 const feedstockFeedback = document.getElementById("feedstockFeedback");
 
 const feedstockType = document.getElementById("feedstockType");
-const copyPreviousWrap = document.getElementById("copyPreviousWrap");
-const copyPreviousCheckbox = document.getElementById("copyPreviousCheckbox");
 const addFeedstockBtn = document.getElementById("addFeedstockBtn");
 const activeFeedstockCard = document.getElementById("activeFeedstockCard");
 const activeFeedstockTitle = document.getElementById("activeFeedstockTitle");
@@ -64,6 +63,9 @@ const biomassTotalPyro = document.getElementById("biomassTotalPyro");
 
 const toBiocharPageBtn = document.getElementById("toBiocharPageBtn");
 const biocharSection = document.getElementById("biocharSection");
+const previousSummaryInBiochar = document.getElementById("previousSummaryInBiochar");
+const editStep1FromBiocharBtn = document.getElementById("editStep1FromBiocharBtn");
+const editFeedstockFromBiocharBtn = document.getElementById("editFeedstockFromBiocharBtn");
 const plantCapacity = document.getElementById("plantCapacity");
 const biocharCarbonContent = document.getElementById("biocharCarbonContent");
 const biocharHcorg = document.getElementById("biocharHcorg");
@@ -75,7 +77,11 @@ const biocharTransportDistance = document.getElementById("biocharTransportDistan
 const toPyrolysisPageBtn = document.getElementById("toPyrolysisPageBtn");
 
 const pyrolysisSection = document.getElementById("pyrolysisSection");
+const previousSummaryInPyro = document.getElementById("previousSummaryInPyro");
+const editStep1FromPyroBtn = document.getElementById("editStep1FromPyroBtn");
+const editFeedstockFromPyroBtn = document.getElementById("editFeedstockFromPyroBtn");
 const biocharCriticalInfo = document.getElementById("biocharCriticalInfo");
+const editBiocharFromPyroBtn = document.getElementById("editBiocharFromPyroBtn");
 const pyroQ13 = document.getElementById("pyroQ13");
 const pyroQ14 = document.getElementById("pyroQ14");
 const pyroQ15 = document.getElementById("pyroQ15");
@@ -91,6 +97,14 @@ const addAdditionalInfoBtn = document.getElementById("addAdditionalInfoBtn");
 const contractSignedCheckbox = document.getElementById("contractSignedCheckbox");
 const toCorcSectionBtn = document.getElementById("toCorcSectionBtn");
 const corcSection = document.getElementById("corcSection");
+const previousSummaryInCorc = document.getElementById("previousSummaryInCorc");
+const feedstockSummaryInCorc = document.getElementById("feedstockSummaryInCorc");
+const biocharCriticalInfoCorc = document.getElementById("biocharCriticalInfoCorc");
+const pyroCriticalInfoCorc = document.getElementById("pyroCriticalInfoCorc");
+const editStep1FromCorcBtn = document.getElementById("editStep1FromCorcBtn");
+const editFeedstockFromCorcBtn = document.getElementById("editFeedstockFromCorcBtn");
+const editBiocharFromCorcBtn = document.getElementById("editBiocharFromCorcBtn");
+const editPyroFromCorcBtn = document.getElementById("editPyroFromCorcBtn");
 
 const backToStep1Btn = document.getElementById("backToStep1Btn");
 const saveCsvBtn = document.getElementById("saveCsvBtn");
@@ -101,6 +115,7 @@ let cities = [];
 let feedstockMatrix = [];
 let feedstockEntries = [];
 let additionalInfoEntries = [];
+let showStep1Editor = false;
 
 let draftFeedstockName = "";
 let draftFeedstockIndex = -1;
@@ -182,13 +197,6 @@ function updatePlantCapacityFromBiomass() {
   plantCapacity.value = total > 0 ? String(total) : "";
 }
 
-function updateCopyOptionState() {
-  const hasPrevious = feedstockEntries.length > 0;
-  copyPreviousCheckbox.checked = hasPrevious ? copyPreviousCheckbox.checked : false;
-  copyPreviousCheckbox.disabled = !hasPrevious;
-  copyPreviousWrap.style.display = hasPrevious ? "inline-flex" : "none";
-}
-
 function renderFeedstockQc() {
   if (!feedstockEntries.length) {
     feedstockQcSummary.textContent = "QA/QC: No feedstock entries yet.";
@@ -263,7 +271,6 @@ function renderAllFeedstockTables() {
   biomassTotalPyro.textContent = String(total);
 
   updatePlantCapacityFromBiomass();
-  updateCopyOptionState();
 }
 
 function hideFeedstockForm() {
@@ -306,16 +313,14 @@ function openFeedstockFormBySelection() {
     return;
   }
 
-  const previous = feedstockEntries[feedstockEntries.length - 1] || null;
-  const copy = copyPreviousCheckbox.checked && previous;
   const draft = {
     feedstock: selected,
-    quantity_tpy: copy ? previous.quantity_tpy : "",
-    q1_source_supply: copy ? previous.q1_source_supply : "",
-    q2_suppliers_relation: copy ? previous.q2_suppliers_relation : "",
-    q3_current_use: copy ? previous.q3_current_use : "",
-    q4_transport_km: copy ? previous.q4_transport_km : "",
-    notes: copy ? previous.notes : "",
+    quantity_tpy: "",
+    q1_source_supply: "",
+    q2_suppliers_relation: "",
+    q3_current_use: "",
+    q4_transport_km: "",
+    notes: "",
   };
 
   draftFeedstockIndex = -1;
@@ -430,7 +435,17 @@ function renderBiocharCriticalInfo() {
   const content = biocharCarbonContent.value || "N/A";
   const hcorg = biocharHcorg.value || "N/A";
   const annual = plantCapacity.value || "0";
-  biocharCriticalInfo.textContent = `Annual biochar (t): ${annual} | Carbon content (%): ${content} | H/Corg: ${hcorg} | Certifications: ${certs}`;
+  const text = `Annual biochar (t): ${annual} | Carbon content (%): ${content} | H/Corg: ${hcorg} | Certifications: ${certs}`;
+  biocharCriticalInfo.textContent = text;
+  biocharCriticalInfoCorc.textContent = text;
+}
+
+function renderPyrolysisSummary() {
+  const p13 = pyroQ13.value ? "Q13: provided" : "Q13: pending";
+  const p14 = pyroQ14.value ? "Q14: provided" : "Q14: pending";
+  const p15 = pyroQ15.value ? "Q15: provided" : "Q15: pending";
+  const energy = pyroQ20.value || "N/A";
+  pyroCriticalInfoCorc.textContent = `${p13} | ${p14} | ${p15} | Energy source: ${energy}`;
 }
 
 function renderAdditionalInfo() {
@@ -466,14 +481,15 @@ function showSectionsFor(sectionName) {
   const showPyro = sectionName === "pyrolysis";
   const showCorc = sectionName === "corc";
 
-  const hideStep1 = showBiochar || showPyro || showCorc || (showFeedstock && !editPreviousInfoCheckbox.checked);
+  const hideStep1 = showBiochar || showPyro || showCorc || (showFeedstock && !showStep1Editor);
   step1Card.classList.toggle("hidden", hideStep1);
   feedstockSection.classList.toggle("hidden", !showFeedstock);
   biocharSection.classList.toggle("hidden", !showBiochar);
   pyrolysisSection.classList.toggle("hidden", !showPyro);
   corcSection.classList.toggle("hidden", !showCorc);
 
-  if (showPyro) renderBiocharCriticalInfo();
+  if (showPyro || showCorc) renderBiocharCriticalInfo();
+  if (showCorc) renderPyrolysisSummary();
 }
 
 function navigateToSection(sectionName) {
@@ -481,6 +497,7 @@ function navigateToSection(sectionName) {
     alert("Select registry before opening feedstock section.");
     return;
   }
+  if (sectionName !== "feedstock") showStep1Editor = false;
   const current = getCurrentSectionFromUrl();
   const url = new URL(window.location.href);
   url.searchParams.set("section", sectionName);
@@ -507,20 +524,42 @@ function navigateBackByHistory() {
   navigateToSection(fallback);
 }
 
+function openStep1Editor() {
+  showStep1Editor = true;
+  navigateToSection("feedstock");
+  showSectionsFor("feedstock");
+  step1Card.classList.remove("hidden");
+  step1Card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function renderPreviousSectionSummary() {
   const parts = [];
   if (selectedText(countrySelect)) parts.push(`Country: ${selectedText(countrySelect)}`);
   if (selectedText(stateSelect)) parts.push(`State: ${selectedText(stateSelect)}`);
   if (citySelect.value) parts.push(`City: ${citySelect.value}`);
   if (selectedText(registrySelect)) parts.push(`Registry: ${selectedText(registrySelect)}`);
-  previousSummaryInFeedstock.textContent = parts.length ? parts.join(" | ") : "Select country, location, and registry.";
+  const text = parts.length ? parts.join(" | ") : "Select country, location, and registry.";
+  previousSummaryInFeedstock.textContent = text;
+  previousSummaryInBiochar.textContent = text;
+  previousSummaryInPyro.textContent = text;
+  previousSummaryInCorc.textContent = text;
+}
+
+function renderFeedstockSummaryText() {
+  if (!feedstockEntries.length) {
+    feedstockSummaryInCorc.textContent = "No feedstock added yet.";
+    return;
+  }
+  const total = computeTotalBiomass();
+  const list = feedstockEntries.map((entry) => entry.feedstock).join(", ");
+  feedstockSummaryInCorc.textContent = `Total biomass: ${total} t/year | Feedstocks: ${list}`;
 }
 
 function updateFeedstockAvailability() {
   const enabled = canEnterFeedstockSection();
   if (!enabled) {
     feedstockSection.classList.add("hidden");
-    editPreviousInfoCheckbox.checked = false;
+    showStep1Editor = false;
     step1Card.classList.remove("hidden");
     hideFeedstockForm();
     feedstockFeedback.textContent = "Select a registry to unlock feedstock section.";
@@ -579,6 +618,8 @@ function renderSummary() {
   summary.textContent = parts.join(" | ");
   renderPreviousSectionSummary();
   renderFeedstockQc();
+  renderFeedstockSummaryText();
+  renderPyrolysisSummary();
 }
 
 function csvEscape(value) {
@@ -792,6 +833,7 @@ function applySectionFromUrl() {
     return;
   }
 
+  if (section !== "feedstock") showStep1Editor = false;
   showSectionsFor(section);
 }
 
@@ -857,14 +899,20 @@ toFeedstockBtn.addEventListener("click", () => {
   navigateToSection("feedstock");
 });
 
-editPreviousInfoCheckbox.addEventListener("change", () => {
-  if (getCurrentSectionFromUrl() === "feedstock") {
-    showSectionsFor("feedstock");
-  }
-});
+editStep1FromFeedstockBtn.addEventListener("click", openStep1Editor);
+editStep1FromBiocharBtn.addEventListener("click", openStep1Editor);
+editStep1FromPyroBtn.addEventListener("click", openStep1Editor);
+editStep1FromCorcBtn.addEventListener("click", openStep1Editor);
 
 feedstockType.addEventListener("change", openFeedstockFormBySelection);
 addFeedstockBtn.addEventListener("click", openFeedstockFormBySelection);
+editFeedstockFromFeedstockBtn.addEventListener("click", () => {
+  feedstockType.focus();
+  feedstockSection.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+editFeedstockFromBiocharBtn.addEventListener("click", () => navigateToSection("feedstock"));
+editFeedstockFromPyroBtn.addEventListener("click", () => navigateToSection("feedstock"));
+editFeedstockFromCorcBtn.addEventListener("click", () => navigateToSection("feedstock"));
 saveFeedstockInfoBtn.addEventListener("click", saveFeedstockInfo);
 
 feedstockTableBodyFeedstock.addEventListener("click", (event) => {
@@ -886,6 +934,10 @@ toBiocharPageBtn.addEventListener("click", () => {
 toPyrolysisPageBtn.addEventListener("click", () => {
   navigateToSection("pyrolysis");
 });
+
+editBiocharFromPyroBtn.addEventListener("click", () => navigateToSection("biochar"));
+editBiocharFromCorcBtn.addEventListener("click", () => navigateToSection("biochar"));
+editPyroFromCorcBtn.addEventListener("click", () => navigateToSection("pyrolysis"));
 
 toCorcSectionBtn.addEventListener("click", () => {
   navigateToSection("corc");
