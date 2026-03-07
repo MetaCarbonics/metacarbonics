@@ -42,6 +42,7 @@ const cumulative10YearEl = document.getElementById("cumulative10Year");
 const feedstockContributionSummaryEl = document.getElementById("feedstockContributionSummary");
 const feedstockContributionTableWrap = document.getElementById("feedstockContributionTableWrap");
 const feedstockChartsWrap = document.getElementById("feedstockChartsWrap");
+const feedstockSharePieChartEl = document.getElementById("feedstockSharePieChart");
 const feedstockContributionChartEl = document.getElementById("feedstockContributionChart");
 const parameterDefaultsSummaryEl = document.getElementById("parameterDefaultsSummary");
 const openGuideLink = document.getElementById("openGuideLink");
@@ -53,6 +54,7 @@ const useResultBtn = document.getElementById("useResultBtn");
 
 let breakdownChart = null;
 let sensitivityChart = null;
+let feedstockSharePieChart = null;
 let feedstockContributionChart = null;
 let perFeedstockCharts = [];
 let payload = null;
@@ -666,6 +668,20 @@ function renderFeedstockContributionViews(baseResult) {
     if (feedstockContributionChart) {
       feedstockContributionChart.destroy();
       feedstockContributionChart = null;
+    }
+    if (feedstockSharePieChart) {
+      feedstockSharePieChart.destroy();
+      feedstockSharePieChart = null;
+    }
+    if (feedstockSharePieChartEl && rows.length) {
+      const labels = rows.map((r) => r.feedstock);
+      const vals = rows.map((r) => Number(r.share_pct || 0));
+      const colors = rows.map((_, idx) => `hsl(${(idx * 67) % 360} 70% 45%)`);
+      feedstockSharePieChart = new window.Chart(feedstockSharePieChartEl, {
+        type: "pie",
+        data: { labels, datasets: [{ label: "Feedstock share (%)", data: vals, backgroundColor: colors }] },
+        options: { responsive: true, plugins: { legend: { display: true, position: "right" } } },
+      });
     }
     if (feedstockContributionChartEl && rows.length) {
       const labels = rows.map((r) => r.feedstock);
