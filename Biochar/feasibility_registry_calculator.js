@@ -22,6 +22,10 @@ const inputBufferPct = document.getElementById("inputBufferPct");
 const inputIssuance = document.getElementById("inputIssuance");
 const inputAdditionalityAdj = document.getElementById("inputAdditionalityAdj");
 
+const permanenceClassSelect = document.getElementById("permanenceClassSelect");
+const transportFactorSelect = document.getElementById("transportFactorSelect");
+const autoTransportNote = document.getElementById("autoTransportNote");
+
 const calcStatusEl = document.getElementById("calcStatus");
 const grossCreditsEl = document.getElementById("grossCredits");
 const netBeforeBufferEl = document.getElementById("netBeforeBuffer");
@@ -32,12 +36,19 @@ const sensitivityLowEl = document.getElementById("sensitivityLow");
 const sensitivityHighEl = document.getElementById("sensitivityHigh");
 const sensitivityValueEl = document.getElementById("sensitivityValue");
 
+const carbonGuideBody = document.getElementById("carbonGuideBody");
+const permanenceGuideBody = document.getElementById("permanenceGuideBody");
+const transportGuideBody = document.getElementById("transportGuideBody");
+const tenYearCreditsBody = document.getElementById("tenYearCreditsBody");
+const cumulative10YearEl = document.getElementById("cumulative10Year");
+
 const backBtn = document.getElementById("backToFeasibilityBtn");
 const useResultBtn = document.getElementById("useResultBtn");
 
 let breakdownChart = null;
 let sensitivityChart = null;
 let payload = null;
+let feedstockEntries = [];
 
 const REGISTRY_CONFIG = {
   verra: {
@@ -45,61 +56,106 @@ const REGISTRY_CONFIG = {
     standard: "VCS",
     methodology: "VM0044",
     links: [
-      { label: "Verra VM0044 (official)", url: "https://verra.org/methodologies/vm0044-methodology-for-biochar-utilization-in-soil-and-non-soil-applications/" },
-      { label: "Verra VT0008 Additionality Tool", url: "https://verra.org/methodologies-tools/" },
+      { label: "Verra VM0044", url: "https://verra.org/methodologies/vm0044-methodology-for-biochar-utilization-in-soil-and-non-soil-applications/" },
+      { label: "Verra Methodologies and Tools", url: "https://verra.org/methodologies-tools/" },
     ],
-    compliance: "This calculator follows VM0044 logic by quantifying gross removals from biochar carbon storage, subtracting project/transport/leakage emissions, applying uncertainty and buffer deductions, then applying issuance factors for conservative ex-ante screening.",
-    defaults: { stableCarbon: 0.80, processE: 120, transportE: 40, leakageE: 30, uncertainty: 10, buffer: 12, issuance: 0.95, additionalityAdj: 1.00 },
+    compliance: "Guide-level screening aligned with VM0044 structure: quantify durable storage, subtract project emissions/leakage, apply conservative uncertainty and risk deductions, then issuance adjustment.",
+    defaults: { stableCarbon: 0.80, processE: 120, leakageE: 30, uncertainty: 10, buffer: 12, issuance: 0.95, additionalityAdj: 1.00 },
   },
   puro: {
     name: "Puro.earth",
     standard: "Puro Standard",
     methodology: "Biochar Methodology",
     links: [
-      { label: "Puro Biochar Methodology (official)", url: "https://puro.earth/biochar" },
+      { label: "Puro Biochar Overview", url: "https://puro.earth/biochar" },
       { label: "Puro Registry", url: "https://registry.puro.earth/projects" },
     ],
-    compliance: "This calculator maps to Puro biochar quantification by starting with durable carbon storage and then applying conservative deductions for emissions, leakage, uncertainty and risk buffering before issuance-level adjustment.",
-    defaults: { stableCarbon: 0.82, processE: 100, transportE: 35, leakageE: 25, uncertainty: 8, buffer: 8, issuance: 0.92, additionalityAdj: 1.00 },
+    compliance: "Guide-level screening aligned with Puro biochar pathway logic, using durable carbon accounting and conservative project deductions.",
+    defaults: { stableCarbon: 0.82, processE: 100, leakageE: 25, uncertainty: 8, buffer: 8, issuance: 0.92, additionalityAdj: 1.00 },
   },
   gs: {
     name: "Gold Standard",
     standard: "GS4GG",
-    methodology: "Project-specific quantification pathway",
+    methodology: "Project-specific approved pathway",
     links: [
       { label: "Gold Standard for the Global Goals", url: "https://globalgoals.goldstandard.org/" },
-      { label: "Gold Standard Our Standard", url: "https://www.goldstandard.org/gold-standard-for-the-global-goals/our-standard" },
+      { label: "Gold Standard - Our Standard", url: "https://www.goldstandard.org/gold-standard-for-the-global-goals/our-standard" },
     ],
-    compliance: "This tool applies GS-style conservative impact accounting logic as a pre-feasibility screening model. Final crediting requires approved GS methodology pathway selection and full MRV documentation during project development.",
-    defaults: { stableCarbon: 0.78, processE: 130, transportE: 45, leakageE: 35, uncertainty: 12, buffer: 15, issuance: 0.90, additionalityAdj: 0.98 },
+    compliance: "Guide-level screening for GS projects. Final compliance requires approved GS quantification pathway, validation and monitoring evidence.",
+    defaults: { stableCarbon: 0.78, processE: 130, leakageE: 35, uncertainty: 12, buffer: 15, issuance: 0.90, additionalityAdj: 0.98 },
   },
   isometric: {
     name: "Isometric",
     standard: "Isometric Biochar Protocol",
-    methodology: "Biochar Production and Storage Protocol",
+    methodology: "Protocol-aligned pathway",
     links: [
       { label: "Isometric Biochar", url: "https://isometric.com/biochar" },
-      { label: "Isometric Biochar Pathway", url: "https://isometric.com/pathways/biochar" },
+      { label: "Isometric Pathways", url: "https://isometric.com/pathways/biochar" },
     ],
-    compliance: "This calculator aligns with Isometric-style protocol structure by quantifying gross durable storage, deducting full life-cycle emissions/leakage, then applying explicit uncertainty and issuance assumptions for conservative feasibility outputs.",
-    defaults: { stableCarbon: 0.84, processE: 95, transportE: 30, leakageE: 20, uncertainty: 7, buffer: 10, issuance: 0.94, additionalityAdj: 1.00 },
+    compliance: "Guide-level screening aligned with Isometric protocol framing for durable removals, lifecycle deductions and conservative credit issuance assumptions.",
+    defaults: { stableCarbon: 0.84, processE: 95, leakageE: 20, uncertainty: 7, buffer: 10, issuance: 0.94, additionalityAdj: 1.00 },
   },
 };
 
+const CARBON_GUIDE = [
+  { feedstock: "Animal manure", carbon: 0.38, source: "Literature default (screening)" },
+  { feedstock: "Wood", carbon: 0.77, source: "Literature default (screening)" },
+  { feedstock: "Biosolids (Paper sludge)", carbon: 0.35, source: "Literature default (screening)" },
+];
+
+const PERMANENCE_GUIDE = [
+  { key: "high", label: "High temperature pyrolysis / gasification (>600 C)", factor: 0.89 },
+  { key: "medium", label: "Medium temperature pyrolysis (450-600 C)", factor: 0.80 },
+  { key: "low", label: "Low temperature pyrolysis (350-450 C)", factor: 0.65 },
+];
+
+const TRANSPORT_GUIDE = [
+  { key: "truck", mode: "Road truck", factorKgTkm: 0.10, source: "Typical logistics default for screening" },
+  { key: "rail", mode: "Rail", factorKgTkm: 0.03, source: "Typical logistics default for screening" },
+  { key: "ship", mode: "Sea/river vessel", factorKgTkm: 0.015, source: "Typical logistics default for screening" },
+];
+
 const ASSUMPTIONS = [
-  "Feedstock eligibility and sustainability checks are completed and documented before validation.",
-  "Biochar quality parameters (carbon content, H/Corg, and stability proxy) are based on representative lab data.",
-  "All major project emissions (production energy, transport, preprocessing) are included in lifecycle deductions.",
-  "Leakage risk is conservatively estimated and updated during project design and monitoring.",
-  "Uncertainty deduction is applied to account for measurement, sampling, and model error margins.",
-  "Buffer/risk deduction is assumed ex-ante and may change at validation/verification.",
-  "Additionality and financial need must be evidenced with project-specific documentation.",
-  "Final issuance depends on verifier review, registry rules, and monitoring evidence during project operation.",
+  "Defaults are screening values; project-specific measured values should replace these during development.",
+  "Feedstock eligibility and sustainability are validated against selected registry requirements.",
+  "Carbon content and stability should be replaced with lab-tested values for issuance.",
+  "Transport and process emissions must include all significant sources in final LCA/MRV.",
+  "Leakage, uncertainty, buffer and issuance factors are conservative placeholders pending verifier review.",
+  "Final credit issuance depends on registry verification and monitoring evidence.",
 ];
 
 function num(el, fallback = 0) {
   const v = Number(el.value);
   return Number.isFinite(v) ? v : fallback;
+}
+
+function dominantFeedstockName() {
+  if (!feedstockEntries.length) return "";
+  const sorted = [...feedstockEntries].sort((a, b) => Number(b.quantity_tpy || 0) - Number(a.quantity_tpy || 0));
+  return String(sorted[0]?.feedstock || "").toLowerCase();
+}
+
+function inferCarbonDefault() {
+  const name = dominantFeedstockName();
+  if (!name) return 0.77;
+  if (name.includes("manure")) return 0.38;
+  if (name.includes("sludge") || name.includes("biosolid") || name.includes("paper")) return 0.35;
+  return 0.77;
+}
+
+function averageTransportDistanceKm() {
+  if (!feedstockEntries.length) return 0;
+  let weightedDist = 0;
+  let totalQty = 0;
+  feedstockEntries.forEach((e) => {
+    const q = Number(e.quantity_tpy || 0);
+    const d = Number(e.q4_transport_km || 0);
+    if (q > 0 && d >= 0) {
+      weightedDist += q * d;
+      totalQty += q;
+    }
+  });
+  return totalQty > 0 ? weightedDist / totalQty : 0;
 }
 
 function loadPayload() {
@@ -113,11 +169,11 @@ function loadPayload() {
   }
 }
 
-function setTextList(parent, items, asLinks = false) {
+function setList(parent, items, linkMode = false) {
   parent.innerHTML = "";
   items.forEach((item) => {
     const li = document.createElement("li");
-    if (asLinks) {
+    if (linkMode) {
       const a = document.createElement("a");
       a.href = item.url;
       a.target = "_blank";
@@ -131,18 +187,73 @@ function setTextList(parent, items, asLinks = false) {
   });
 }
 
-function calculateCredits(inputOverride = {}) {
-  const annualBiochar = inputOverride.annualBiochar ?? num(inputAnnualBiochar);
-  const carbonContent = (inputOverride.carbonContent ?? num(inputCarbonContent)) / 100;
-  const permanence = inputOverride.permanence ?? num(inputPermanence);
-  const stableCarbon = inputOverride.stableCarbon ?? num(inputStableCarbon);
-  const processE = inputOverride.processE ?? num(inputProcessEmissions);
-  const transportE = inputOverride.transportE ?? num(inputTransportEmissions);
-  const leakageE = inputOverride.leakageE ?? num(inputLeakage);
-  const uncertaintyPct = (inputOverride.uncertaintyPct ?? num(inputUncertaintyPct)) / 100;
-  const bufferPct = (inputOverride.bufferPct ?? num(inputBufferPct)) / 100;
-  const issuance = inputOverride.issuance ?? num(inputIssuance);
-  const additionalityAdj = inputOverride.additionalityAdj ?? num(inputAdditionalityAdj);
+function fillGuideTables() {
+  carbonGuideBody.innerHTML = CARBON_GUIDE.map((r) => `<tr><td>${r.feedstock}</td><td>${r.carbon}</td><td>${r.source}</td></tr>`).join("");
+  permanenceGuideBody.innerHTML = PERMANENCE_GUIDE.map((r) => `<tr><td>${r.label}</td><td>${r.factor}</td></tr>`).join("");
+  transportGuideBody.innerHTML = TRANSPORT_GUIDE.map((r) => `<tr><td>${r.mode}</td><td>${r.factorKgTkm}</td><td>${r.source}</td></tr>`).join("");
+
+  permanenceClassSelect.innerHTML = PERMANENCE_GUIDE.map((r) => `<option value="${r.key}">${r.label}</option>`).join("");
+  transportFactorSelect.innerHTML = TRANSPORT_GUIDE.map((r) => `<option value="${r.key}">${r.mode} (${r.factorKgTkm} kgCO2e/t-km)</option>`).join("");
+}
+
+function applyGuidedDefaults(config) {
+  const d = config.defaults;
+  inputStableCarbon.value = String(d.stableCarbon);
+  inputProcessEmissions.value = String(d.processE);
+  inputLeakage.value = String(d.leakageE);
+  inputUncertaintyPct.value = String(d.uncertainty);
+  inputBufferPct.value = String(d.buffer);
+  inputIssuance.value = String(d.issuance);
+  inputAdditionalityAdj.value = String(d.additionalityAdj);
+
+  if (!inputAnnualBiochar.value) inputAnnualBiochar.value = "0";
+  if (!inputCarbonContent.value || Number(inputCarbonContent.value) <= 0) {
+    inputCarbonContent.value = String((inferCarbonDefault() * 100).toFixed(2));
+  }
+
+  if (!inputPermanence.value || Number(inputPermanence.value) <= 0) {
+    permanenceClassSelect.value = "medium";
+    inputPermanence.value = String(PERMANENCE_GUIDE.find((x) => x.key === "medium").factor);
+  }
+}
+
+function applyPayloadValues() {
+  payload = loadPayload();
+  if (!payload) return;
+  const d = payload.form_data || {};
+  try {
+    const parsed = JSON.parse(d.feedstock_entries_json || "[]");
+    feedstockEntries = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    feedstockEntries = [];
+  }
+
+  if (d.q5_annual_biochar_t) inputAnnualBiochar.value = d.q5_annual_biochar_t;
+  if (d.q6_biochar_carbon_content_pct) inputCarbonContent.value = d.q6_biochar_carbon_content_pct;
+  if (payload.tentative_permanence_factor) inputPermanence.value = payload.tentative_permanence_factor;
+}
+
+function autoTransportEmissions() {
+  const avgKm = averageTransportDistanceKm();
+  const annualBiomass = feedstockEntries.reduce((s, e) => s + Number(e.quantity_tpy || 0), 0);
+  const selected = TRANSPORT_GUIDE.find((x) => x.key === transportFactorSelect.value) || TRANSPORT_GUIDE[0];
+  const tco2e = (annualBiomass * avgKm * selected.factorKgTkm) / 1000;
+  inputTransportEmissions.value = tco2e.toFixed(2);
+  autoTransportNote.textContent = `Auto transport emissions from avg distance ${avgKm.toFixed(1)} km and ${selected.mode} factor.`;
+}
+
+function calculateCredits(overrides = {}) {
+  const annualBiochar = overrides.annualBiochar ?? num(inputAnnualBiochar);
+  const carbonContent = (overrides.carbonContent ?? num(inputCarbonContent)) / 100;
+  const permanence = overrides.permanence ?? num(inputPermanence);
+  const stableCarbon = overrides.stableCarbon ?? num(inputStableCarbon);
+  const processE = overrides.processE ?? num(inputProcessEmissions);
+  const transportE = overrides.transportE ?? num(inputTransportEmissions);
+  const leakageE = overrides.leakageE ?? num(inputLeakage);
+  const uncertaintyPct = (overrides.uncertaintyPct ?? num(inputUncertaintyPct)) / 100;
+  const bufferPct = (overrides.bufferPct ?? num(inputBufferPct)) / 100;
+  const issuance = overrides.issuance ?? num(inputIssuance);
+  const additionalityAdj = overrides.additionalityAdj ?? num(inputAdditionalityAdj);
 
   const gross = Math.max(0, annualBiochar * carbonContent * stableCarbon * permanence * 3.667 * additionalityAdj);
   const deductions = Math.max(0, processE) + Math.max(0, transportE) + Math.max(0, leakageE);
@@ -164,124 +275,96 @@ function calculateCredits(inputOverride = {}) {
   };
 }
 
+function renderTenYearTable(finalAnnual) {
+  let cumulative = 0;
+  tenYearCreditsBody.innerHTML = "";
+  for (let y = 1; y <= 10; y += 1) {
+    cumulative += finalAnnual;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${y}</td><td>${finalAnnual.toFixed(2)}</td><td>${cumulative.toFixed(2)}</td>`;
+    tenYearCreditsBody.appendChild(tr);
+  }
+  cumulative10YearEl.textContent = `${cumulative.toFixed(2)} tCO2e over 10 years`;
+}
+
 function renderBreakdownChart(result) {
   if (!window.Chart) return;
   const ctx = document.getElementById("calcChart");
-  const labels = ["Gross", "Process E", "Transport E", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
-  const values = [
-    result.gross,
-    -result.processE,
-    -result.transportE,
-    -result.leakageE,
-    -result.uncertaintyLoss,
-    -result.bufferLoss,
-    -result.issuanceLoss,
-    result.final,
-  ];
-
+  const labels = ["Gross", "Process", "Transport", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
+  const values = [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final];
   if (breakdownChart) breakdownChart.destroy();
   breakdownChart = new window.Chart(ctx, {
     type: "bar",
-    data: {
-      labels,
-      datasets: [{ label: "tCO2e/year", data: values }],
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } },
-    },
+    data: { labels, datasets: [{ data: values, label: "tCO2e/year" }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
   });
 }
 
 function renderSensitivityChart() {
   if (!window.Chart) return;
   const variable = sensitivityVariableEl.value;
-  const lowPct = num(sensitivityLowEl, -20);
-  const highPct = num(sensitivityHighEl, 20);
-
+  const low = num(sensitivityLowEl, -20);
+  const high = num(sensitivityHighEl, 20);
   const points = [];
-  for (let p = lowPct; p <= highPct; p += 5) {
-    const multiplier = 1 + (p / 100);
-    const overrides = {};
-    if (variable === "carbonContent") overrides.carbonContent = num(inputCarbonContent) * multiplier;
-    if (variable === "permanence") overrides.permanence = num(inputPermanence) * multiplier;
-    if (variable === "stableCarbon") overrides.stableCarbon = num(inputStableCarbon) * multiplier;
-    if (variable === "processE") overrides.processE = num(inputProcessEmissions) * multiplier;
-    points.push({ x: p, y: calculateCredits(overrides).final });
+  for (let p = low; p <= high; p += 5) {
+    const m = 1 + p / 100;
+    const o = {};
+    if (variable === "carbonContent") o.carbonContent = num(inputCarbonContent) * m;
+    if (variable === "permanence") o.permanence = num(inputPermanence) * m;
+    if (variable === "stableCarbon") o.stableCarbon = num(inputStableCarbon) * m;
+    if (variable === "processE") o.processE = num(inputProcessEmissions) * m;
+    points.push({ x: p, y: calculateCredits(o).final });
   }
-
-  const current = calculateCredits().final;
-  sensitivityValueEl.textContent = `${current.toFixed(2)} tCO2e/year at current inputs`;
+  sensitivityValueEl.textContent = `${calculateCredits().final.toFixed(2)} tCO2e/year at current inputs`;
 
   const ctx = document.getElementById("sensitivityChart");
   if (sensitivityChart) sensitivityChart.destroy();
   sensitivityChart = new window.Chart(ctx, {
     type: "line",
-    data: {
-      datasets: [{
-        label: "Final credits sensitivity",
-        data: points,
-        parsing: false,
-        borderWidth: 2,
-      }],
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: { type: "linear", title: { display: true, text: "Input variation (%)" } },
-        y: { beginAtZero: true, title: { display: true, text: "Final credits (tCO2e/year)" } },
-      },
-    },
+    data: { datasets: [{ data: points, parsing: false, borderWidth: 2, label: "Final credits" }] },
+    options: { responsive: true, scales: { x: { type: "linear", title: { display: true, text: "Input variation (%)" } }, y: { beginAtZero: true } } },
   });
 }
 
 function renderAll() {
-  const result = calculateCredits();
-  grossCreditsEl.value = result.gross.toFixed(2);
-  netBeforeBufferEl.value = result.netBeforeDiscounts.toFixed(2);
-  finalCreditsEl.value = result.final.toFixed(2);
-
-  const requiredOk = num(inputAnnualBiochar) > 0 && num(inputCarbonContent) > 0 && num(inputPermanence) > 0;
-  calcStatusEl.textContent = requiredOk
-    ? "Inputs complete for screening calculation."
-    : "Provide required inputs (annual biochar, carbon content, permanence) for valid result.";
-
-  renderBreakdownChart(result);
+  const res = calculateCredits();
+  grossCreditsEl.value = res.gross.toFixed(2);
+  netBeforeBufferEl.value = res.netBeforeDiscounts.toFixed(2);
+  finalCreditsEl.value = res.final.toFixed(2);
+  calcStatusEl.textContent = num(inputAnnualBiochar) > 0 ? "Using guided defaults and your project values." : "Provide annual output to activate full calculation.";
+  renderTenYearTable(res.final);
+  renderBreakdownChart(res);
   renderSensitivityChart();
 }
 
-function initDefaults(config) {
-  const d = config.defaults;
-  inputStableCarbon.value = String(d.stableCarbon);
-  inputProcessEmissions.value = String(d.processE);
-  inputTransportEmissions.value = String(d.transportE);
-  inputLeakage.value = String(d.leakageE);
-  inputUncertaintyPct.value = String(d.uncertainty);
-  inputBufferPct.value = String(d.buffer);
-  inputIssuance.value = String(d.issuance);
-  inputAdditionalityAdj.value = String(d.additionalityAdj);
-}
-
-function initFromPayload() {
-  payload = loadPayload();
-  if (!payload) return;
-  const d = payload.form_data || {};
-  inputAnnualBiochar.value = d.q5_annual_biochar_t || "0";
-  inputCarbonContent.value = d.q6_biochar_carbon_content_pct || "0";
-  inputPermanence.value = payload.tentative_permanence_factor || "0.80";
-}
-
-function initPage() {
+function init() {
   const config = REGISTRY_CONFIG[registryId] || REGISTRY_CONFIG.verra;
-  registryNameEl.textContent = `${config.name} | ${config.standard}`;
+  registryNameEl.textContent = `${config.name} | ${config.standard} | ${config.methodology}`;
+  setList(methodologyLinksEl, config.links, true);
+  setList(assumptionsListEl, ASSUMPTIONS, false);
   complianceTextEl.textContent = config.compliance;
-  setTextList(methodologyLinksEl, config.links, true);
-  setTextList(assumptionsListEl, ASSUMPTIONS, false);
-  initDefaults(config);
-  initFromPayload();
+
+  fillGuideTables();
+  applyPayloadValues();
+  applyGuidedDefaults(config);
+  autoTransportEmissions();
+
+  const pMatch = PERMANENCE_GUIDE.find((x) => Number(x.factor).toFixed(2) === Number(inputPermanence.value).toFixed(2));
+  if (pMatch) permanenceClassSelect.value = pMatch.key;
+
   renderAll();
 }
+
+permanenceClassSelect.addEventListener("change", () => {
+  const p = PERMANENCE_GUIDE.find((x) => x.key === permanenceClassSelect.value);
+  if (p) inputPermanence.value = String(p.factor);
+  renderAll();
+});
+
+transportFactorSelect.addEventListener("change", () => {
+  autoTransportEmissions();
+  renderAll();
+});
 
 [
   inputAnnualBiochar,
@@ -306,15 +389,12 @@ backBtn.addEventListener("click", () => {
 
 useResultBtn.addEventListener("click", () => {
   const result = calculateCredits();
-  const config = REGISTRY_CONFIG[registryId] || REGISTRY_CONFIG.verra;
-  const payloadRegistry = payload?.registry_id || registryId;
-
   localStorage.setItem(
     FINAL_CREDITS_STORAGE_KEY,
     JSON.stringify({
       transfer_token: transferToken,
-      registry_id: payloadRegistry,
-      registry_name: payload?.registry_name || config.name,
+      registry_id: payload?.registry_id || registryId,
+      registry_name: payload?.registry_name || (REGISTRY_CONFIG[registryId]?.name || registryId.toUpperCase()),
       final_credits_tco2e: result.final,
       issuance_factor: num(inputIssuance),
       buffer_percent: num(inputBufferPct),
@@ -325,8 +405,7 @@ useResultBtn.addEventListener("click", () => {
       calculated_at_utc: new Date().toISOString(),
     })
   );
-
   window.location.href = "./biochar-phase1-feasibility-tool.html?section=tentative";
 });
 
-initPage();
+init();
