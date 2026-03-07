@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Biochar Phase 1 Feasibility Tool</title>
     <link rel="stylesheet" href="./styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
   </head>
   <body>
     <main class="page">
@@ -72,6 +78,15 @@
           <option value="isometric">Isometric</option>
         </select>
         <p id="registryMeta" class="registry-meta"></p>
+
+        <div class="questionnaire-card">
+          <div class="title-row">
+            <h4>Project Facility Location</h4>
+            <button id="editFacilityMarkerBtn" class="btn btn-secondary btn-sm" type="button">Edit Facility Marker</button>
+          </div>
+          <div id="facilityMap" class="facility-map" aria-label="Project facility map"></div>
+          <div id="facilityLocationSummary" class="small">Marker not set.</div>
+        </div>
 
         <button id="toFeedstockBtn" class="btn" type="button">Next: Feedstock Section</button>
       </section>
@@ -393,28 +408,17 @@
         </label>
       </section>
 
-      <section class="card">
-        <h2>Data Source</h2>
-        <ul class="sources">
-          <li>
-            Country/State/City data:
-            <a href="https://cdn.jsdelivr.net/npm/country-state-city@3.2.1/lib/assets/" target="_blank" rel="noreferrer">
-              country-state-city package assets (jsDelivr)
-            </a>
-          </li>
-          <li>
-            Registry feedstock matrix:
-            <a href="./feedstock-registry.csv" target="_blank" rel="noreferrer">feedstock-registry.csv</a>
-          </li>
-        </ul>
-      </section>
-
       <div class="btn-row">
         <button id="backToStep1Btn" class="btn btn-secondary" type="button">Back</button>
         <button id="saveCsvBtn" class="btn" type="button">Save User Data (CSV)</button>
       </div>
     </main>
 
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
     <script src="./feasibility.js"></script>
   </body>
 </html>

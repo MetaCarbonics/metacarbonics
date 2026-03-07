@@ -31,6 +31,9 @@ const citySelect = document.getElementById("citySelect");
 const registrySelect = document.getElementById("registrySelect");
 const registryMeta = document.getElementById("registryMeta");
 const summary = document.getElementById("summary");
+const facilityMapEl = document.getElementById("facilityMap");
+const editFacilityMarkerBtn = document.getElementById("editFacilityMarkerBtn");
+const facilityLocationSummary = document.getElementById("facilityLocationSummary");
 const progressFill = document.getElementById("progressFill");
 const progressStep1 = document.getElementById("progressStep1");
 const progressStep2 = document.getElementById("progressStep2");
@@ -145,6 +148,11 @@ let feedstockMatrix = [];
 let feedstockEntries = [];
 let additionalInfoEntries = [];
 let showStep1Editor = false;
+let facilityLat = null;
+let facilityLng = null;
+let mapEditMode = false;
+let facilityMap = null;
+let facilityMarker = null;
 
 let draftFeedstockName = "";
 let draftFeedstockIndex = -1;
@@ -174,6 +182,89 @@ function setMultiValues(selectEl, values) {
   Array.from(selectEl.options).forEach((opt) => {
     opt.selected = set.has(opt.value);
   });
+}
+
+function updateFacilityLocationSummary() {
+  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) {
+    facilityLocationSummary.textContent = "Marker not set.";
+    return;
+  }
+  facilityLocationSummary.textContent = `Facility marker: ${facilityLat.toFixed(6)}, ${facilityLng.toFixed(6)}`;
+}
+
+function setFacilityMarker(lat, lng, recenter = true) {
+  facilityLat = Number(lat);
+  facilityLng = Number(lng);
+  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) return;
+
+  if (facilityMap && !facilityMarker && window.L) {
+    facilityMarker = window.L.marker([facilityLat, facilityLng], { draggable: mapEditMode }).addTo(facilityMap);
+    facilityMarker.on("dragend", () => {
+      const pos = facilityMarker.getLatLng();
+      facilityLat = pos.lat;
+      facilityLng = pos.lng;
+      updateFacilityLocationSummary();
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  } else if (facilityMarker) {
+    facilityMarker.setLatLng([facilityLat, facilityLng]);
+  }
+
+  if (facilityMarker) {
+    facilityMarker.dragging[mapEditMode ? "enable" : "disable"]();
+  }
+
+  if (facilityMap && recenter) {
+    facilityMap.setView([facilityLat, facilityLng], 11);
+  }
+  updateFacilityLocationSummary();
+}
+
+function updateMapEditMode(enabled) {
+  mapEditMode = Boolean(enabled);
+  editFacilityMarkerBtn.textContent = mapEditMode ? "Save Marker" : "Edit Facility Marker";
+  editFacilityMarkerBtn.classList.toggle("btn-danger", mapEditMode);
+  if (facilityMarker) {
+    facilityMarker.dragging[mapEditMode ? "enable" : "disable"]();
+  }
+}
+
+function geocodeProjectLocation() {
+  const parts = [citySelect.value, selectedText(stateSelect), selectedText(countrySelect)].filter(Boolean);
+  if (!parts.length) return;
+  const query = encodeURIComponent(parts.join(", "));
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+    .then((res) => res.json())
+    .then((rows) => {
+      const first = Array.isArray(rows) ? rows[0] : null;
+      if (!first) return;
+      setFacilityMarker(Number(first.lat), Number(first.lon), true);
+      renderSummary();
+      saveUserToLocalStorage();
+    })
+    .catch(() => {});
+}
+
+function initFacilityMap() {
+  if (!window.L || !facilityMapEl) return;
+  facilityMap = window.L.map(facilityMapEl).setView([20, 0], 2);
+  window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap contributors",
+  }).addTo(facilityMap);
+
+  facilityMap.on("click", (e) => {
+    if (!mapEditMode) return;
+    setFacilityMarker(e.latlng.lat, e.latlng.lng, false);
+    renderSummary();
+    saveUserToLocalStorage();
+  });
+
+  if (Number.isFinite(facilityLat) && Number.isFinite(facilityLng)) {
+    setFacilityMarker(facilityLat, facilityLng, true);
+  }
+  updateFacilityLocationSummary();
 }
 
 function parseCsvLine(line) {
@@ -601,6 +692,9 @@ function showSectionsFor(sectionName) {
     renderTentativeCredits();
     renderProjectPreview();
   }
+  if (showStep1 && facilityMap) {
+    setTimeout(() => facilityMap.invalidateSize(), 0);
+  }
   updateProgressUI(sectionName);
 }
 
@@ -695,6 +789,8 @@ function getFormData() {
     city_name: citySelect.value,
     registry_id: registrySelect.value,
     registry_name: selectedText(registrySelect),
+    facility_lat: Number.isFinite(facilityLat) ? String(facilityLat) : "",
+    facility_lng: Number.isFinite(facilityLng) ? String(facilityLng) : "",
 
     feedstock_entries_json: JSON.stringify(feedstockEntries),
     biomass_total_tpy: String(computeTotalBiomass()),
@@ -733,6 +829,7 @@ function renderSummary() {
   if (data.user_id) parts.push(`User: ${data.user_id}`);
   if (data.country_name) parts.push(`Country: ${data.country_name}`);
   if (data.registry_name) parts.push(`Registry: ${data.registry_name}`);
+  if (data.facility_lat && data.facility_lng) parts.push(`Facility: ${Number(data.facility_lat).toFixed(4)}, ${Number(data.facility_lng).toFixed(4)}`);
   if (feedstockEntries.length) parts.push(`Feedstocks: ${feedstockEntries.length}`);
   parts.push(`Biomass Total: ${data.biomass_total_tpy || "0"} t/year`);
   if (data.contract_signed === "yes") parts.push("Contract: Signed");
@@ -782,6 +879,8 @@ function loadUserFromLocalStorage() {
 
     citySelect.value = data.city_name || "";
     registrySelect.value = data.registry_id || "";
+    facilityLat = data.facility_lat ? Number(data.facility_lat) : null;
+    facilityLng = data.facility_lng ? Number(data.facility_lng) : null;
     updateRegistryMeta();
     renderFeedstockOptions(registrySelect.value);
 
@@ -835,6 +934,8 @@ function loadUserFromLocalStorage() {
     updateFeedstockAvailability();
 
     renderBiocharCriticalInfo();
+    if (facilityMap) setFacilityMarker(facilityLat, facilityLng, true);
+    updateFacilityLocationSummary();
     renderSummary();
   } catch (error) {
     console.error("Failed to load saved data", error);
@@ -974,6 +1075,7 @@ countrySelect.addEventListener("change", () => {
 
   loadStates(countryCode);
   if (stateSelect.disabled) loadCities(countryCode);
+  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) geocodeProjectLocation();
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -981,11 +1083,13 @@ countrySelect.addEventListener("change", () => {
 stateSelect.addEventListener("change", () => {
   if (!countrySelect.value) return;
   loadCities(countrySelect.value, stateSelect.value);
+  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) geocodeProjectLocation();
   renderSummary();
   saveUserToLocalStorage();
 });
 
 citySelect.addEventListener("change", () => {
+  if (!Number.isFinite(facilityLat) || !Number.isFinite(facilityLng)) geocodeProjectLocation();
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -1004,6 +1108,16 @@ registrySelect.addEventListener("change", () => {
 
 userIdInput.addEventListener("change", () => {
   loadUserFromLocalStorage();
+  renderSummary();
+  saveUserToLocalStorage();
+});
+
+editFacilityMarkerBtn.addEventListener("click", () => {
+  if (!mapEditMode) {
+    updateMapEditMode(true);
+    return;
+  }
+  updateMapEditMode(false);
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -1150,6 +1264,7 @@ contractSignedCheckbox.addEventListener("change", () => {
 saveCsvBtn.addEventListener("click", downloadCsv);
 
 Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
+  initFacilityMap();
   renderAdditionalInfo();
   loadUserFromLocalStorage();
   renderAllFeedstockTables();
