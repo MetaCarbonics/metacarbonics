@@ -607,7 +607,12 @@ function renderFacilityMarkerDates() {
         <td>${Number(p.lat).toFixed(6)}</td>
         <td>${Number(p.lng).toFixed(6)}</td>
         <td>${startDate}</td>
-        <td><button type="button" class="btn btn-secondary btn-sm" data-edit-facility-idx="${idx}">Edit</button></td>
+        <td>
+          <div class="btn-row">
+            <button type="button" class="btn btn-secondary btn-sm" data-edit-facility-idx="${idx}">Edit</button>
+            <button type="button" class="btn btn-danger btn-sm" data-delete-facility-idx="${idx}">Delete</button>
+          </div>
+        </td>
       </tr>`;
     })
     .join("");
@@ -660,6 +665,22 @@ function renderFacilityMarkerDates() {
       if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
       editingFacilityIndex = idx;
       renderFacilityMarkerDates();
+    });
+  });
+  facilityMarkerDates.querySelectorAll("button[data-delete-facility-idx]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.deleteFacilityIdx);
+      if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
+      facilityPoints.splice(idx, 1);
+      if (editingFacilityIndex === idx) editingFacilityIndex = -1;
+      if (editingFacilityIndex > idx) editingFacilityIndex -= 1;
+      syncPrimaryFacilityPoint();
+      reconcileFeedstockWithFacilities();
+      renderFacilityMarkers(false);
+      updateFacilityLocationSummary();
+      renderFacilityMarkerDates();
+      renderSummary();
+      saveUserToLocalStorage();
     });
   });
   const stateEl = document.getElementById("facilityEditState");
