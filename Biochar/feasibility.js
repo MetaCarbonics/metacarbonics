@@ -1165,10 +1165,10 @@ function buildContractPreviewLines() {
   }
   lines.push(`City: ${fmt(data.city_name)}`);
   lines.push(`Registry: ${fmt(data.registry_name)}`);
-  lines.push(`Facility markers count: ${facilityPoints.length}`);
+  lines.push(`Facility count: ${facilityPoints.length}`);
   facilityPoints.forEach((p, i) =>
     lines.push(
-      `  Marker ${i + 1}: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)} | State: ${fmt(p.state_name)} | City: ${fmt(p.city_name)} | Start date: ${fmt(p.start_date)}`
+      `  Facility ${i + 1}: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)} | State: ${fmt(p.state_name)} | City: ${fmt(p.city_name)} | Start date: ${fmt(p.start_date)}`
     )
   );
   if (facilityPoints.length) {
@@ -1523,13 +1523,37 @@ async function downloadPreviewPdf() {
 
   doc.setTextColor(30, 41, 59);
   doc.setFontSize(10);
+  const profilePointsForPdf = facilityPoints.length
+    ? facilityPoints
+    : [{
+        lat: Number(data.facility_lat),
+        lng: Number(data.facility_lng),
+        start_date: data.facility_start_date || "",
+        state_name: data.state_name || "",
+        city_name: data.city_name || "",
+      }].filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  const showProfileMap = profilePointsForPdf.length > 0;
+  const profileMapW = 220;
+  const profileMapH = 132;
+  const profileMapX = marginX + maxWidth - profileMapW;
+  const profileMapY = 78;
+  const profileTextWidth = showProfileMap ? maxWidth - profileMapW - 14 : maxWidth;
   y = 78;
   doc.text(`Date: ${new Date().toLocaleString()}`, marginX, y);
   y += 14;
-  doc.text(`Project Name: ${inferProjectName(data)}`, marginX, y);
-  y += 14;
-  doc.text(`Registry: ${fmt(data.registry_name)} | Standard: ${fmt(methodology.standard)} | Methodology: ${fmt(methodology.methodology)}`, marginX, y);
-  y += 14;
+  const projectNameWrapped = doc.splitTextToSize(`Project Name: ${inferProjectName(data)}`, profileTextWidth);
+  projectNameWrapped.forEach((w) => {
+    doc.text(w, marginX, y);
+    y += lineHeight;
+  });
+  const registryWrapped = doc.splitTextToSize(
+    `Registry: ${fmt(data.registry_name)} | Standard: ${fmt(methodology.standard)} | Methodology: ${fmt(methodology.methodology)}`,
+    profileTextWidth
+  );
+  registryWrapped.forEach((w) => {
+    doc.text(w, marginX, y);
+    y += lineHeight;
+  });
   doc.text(
     `Methodology Version (as of ${fmt(finalRegistryCredits?.methodology_version_as_of || methodology.version_as_of)}): ${fmt(finalRegistryCredits?.methodology_version || methodology.version)}`,
     marginX,
@@ -1539,7 +1563,7 @@ async function downloadPreviewPdf() {
   if (finalRegistryCredits?.methodology_version_note || methodology.version_note) {
     const versionNoteWrapped = doc.splitTextToSize(
       `Methodology Version Note: ${fmt(finalRegistryCredits?.methodology_version_note || methodology.version_note)}`,
-      maxWidth
+      profileTextWidth
     );
     versionNoteWrapped.forEach((w) => {
       doc.text(w, marginX, y);
@@ -1547,11 +1571,41 @@ async function downloadPreviewPdf() {
     });
   }
   if (methodology.references.length) {
-    const refWrapped = doc.splitTextToSize(`Reference: ${methodology.references.join(" | ")}`, maxWidth);
+    const refWrapped = doc.splitTextToSize(`Reference: ${methodology.references.join(" | ")}`, profileTextWidth);
     refWrapped.forEach((w) => {
       doc.text(w, marginX, y);
       y += lineHeight;
     });
+  }
+  if (showProfileMap) {
+    const profileBounds = computePdfMapExtent(profilePointsForPdf, stateBoundaryFeatures);
+    let drawn = false;
+    if (profileBounds) {
+      try {
+        const sat = await fetchSatelliteMapDataUrl(profileBounds);
+        doc.addImage(sat.dataUrl, "PNG", profileMapX, profileMapY, profileMapW, profileMapH, undefined, "FAST");
+        const toX = (lng) => profileMapX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng || 1e-9)) * profileMapW;
+        const toY = (lat) => profileMapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat || 1e-9)) * profileMapH;
+        doc.setDrawColor(220, 38, 38);
+        doc.setFillColor(220, 38, 38);
+        profilePointsForPdf.forEach((pt) => {
+          doc.circle(toX(Number(pt.lng)), toY(Number(pt.lat)), 3.4, "F");
+        });
+        drawn = true;
+      } catch {
+        drawn = false;
+      }
+    }
+    if (!drawn) {
+      doc.setDrawColor(148, 163, 184);
+      doc.rect(profileMapX, profileMapY, profileMapW, profileMapH);
+      doc.setFontSize(8);
+      doc.text("Satellite image unavailable.", profileMapX + 8, profileMapY + 14);
+      doc.setFillColor(220, 38, 38);
+      doc.circle(profileMapX + profileMapW * 0.5, profileMapY + profileMapH * 0.5, 3.4, "F");
+      doc.setFontSize(10);
+    }
+    y = Math.max(y, profileMapY + profileMapH + 8);
   }
   y += 6;
   doc.setDrawColor(203, 213, 225);
@@ -1612,7 +1666,7 @@ async function downloadPreviewPdf() {
     }
     y += 10;
     doc.setFont("helvetica", "bold");
-    doc.text("Georeferenced Facility Legend", marginX, y);
+    doc.text("Georeferenced Facility Details", marginX, y);
     doc.setFont("helvetica", "normal");
     y += 14;
     const pointsForPdf = facilityPoints.length
@@ -1627,12 +1681,12 @@ async function downloadPreviewPdf() {
           (p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)
         );
     const p0 = pointsForPdf[0] || null;
-    const markerStartDates = pointsForPdf.map((p, idx) => `M${idx + 1} start: ${fmt(p.start_date)}`).join(" | ");
+    const facilityStartDates = pointsForPdf.map((p, idx) => `Facility ${idx + 1} start: ${fmt(p.start_date)}`).join(" | ");
     const geoLines = [
-      `Marker count: ${pointsForPdf.length}`,
-      markerStartDates || "Marker start date(s): N/A",
+      `Facility count: ${pointsForPdf.length}`,
+      facilityStartDates || "Facility start date(s): N/A",
       p0 ? `Map link: https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}` : "Map link: N/A",
-      "Legend: Red points = facility marker(s) | Yellow lines = selected state boundaries",
+      "Legend: Red points = facilities | Yellow lines = selected state boundaries",
     ];
     geoLines.forEach((gl) => {
       const wrapped = doc.splitTextToSize(gl, maxWidth);
@@ -1705,7 +1759,7 @@ async function downloadPreviewPdf() {
     }
     doc.setFontSize(8);
     doc.setTextColor(30, 41, 59);
-    doc.text("Legend: red marker = facility location on satellite imagery", mapX, mapY + mapH + 12);
+    doc.text("Legend: red point = facility location on satellite imagery", mapX, mapY + mapH + 12);
     y = mapY + mapH + 18;
     doc.setFontSize(9);
     drawTable(
