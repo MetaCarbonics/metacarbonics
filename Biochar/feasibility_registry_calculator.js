@@ -9,6 +9,7 @@ const registryNameEl = document.getElementById("registryName");
 const methodologyLinksEl = document.getElementById("methodologyLinks");
 const complianceTextEl = document.getElementById("complianceText");
 const assumptionsListEl = document.getElementById("assumptionsList");
+const monitoringParamsBodyEl = document.getElementById("monitoringParamsBody");
 
 const inputAnnualBiochar = document.getElementById("inputAnnualBiochar");
 const inputCarbonContent = document.getElementById("inputCarbonContent");
@@ -79,6 +80,14 @@ const REGISTRY_CONFIG = {
     ],
     compliance: "Guide-level screening aligned with VM0044 structure: quantify durable storage, subtract project emissions/leakage, apply conservative uncertainty and risk deductions, then issuance adjustment.",
     defaults: { stableCarbon: 0.80, processE: 120, leakageE: 30, uncertainty: 10, buffer: 12, issuance: 0.95, additionalityAdj: 1.00 },
+    monitoring: [
+      { parameter: "Feedstock type, source, and quantity", explanation: "Track eligible biomass type, supplier records, and mass balance to verify project boundaries and sustainability claims." },
+      { parameter: "Pyrolysis operating temperature profile", explanation: "Continuously monitor reactor temperatures and retain logs to support carbon stability assumptions." },
+      { parameter: "Biochar batch carbon properties", explanation: "Measure C content and H/Corg (or equivalent stability metrics) by representative lab testing and QA/QC." },
+      { parameter: "Biochar production and inventory", explanation: "Record produced, stored, sold, and applied quantities with batch IDs for chain of custody." },
+      { parameter: "Process, transport, and leakage emissions", explanation: "Monitor energy use, transport distances/modes, and non-CO2 releases used in net-removal calculations." },
+      { parameter: "End-use application and permanence controls", explanation: "Document where and how biochar is applied/used, with evidence of durable storage and non-reversal safeguards." },
+    ],
   },
   puro: {
     name: "Puro.earth",
@@ -90,6 +99,14 @@ const REGISTRY_CONFIG = {
     ],
     compliance: "Guide-level screening aligned with Puro biochar pathway logic, using durable carbon accounting and conservative project deductions.",
     defaults: { stableCarbon: 0.82, processE: 100, leakageE: 25, uncertainty: 8, buffer: 8, issuance: 0.92, additionalityAdj: 1.00 },
+    monitoring: [
+      { parameter: "Feedstock provenance and sustainability", explanation: "Maintain auditable records of biomass origin, eligibility, and sustainability compliance." },
+      { parameter: "Process conditions (temperature/residence)", explanation: "Log reactor conditions required to demonstrate consistent biochar quality and permanence." },
+      { parameter: "Biochar carbon and stability metrics", explanation: "Test and document carbon content and durability indicators per certification/standard requirements." },
+      { parameter: "Mass balance and chain of custody", explanation: "Track feedstock-in to biochar-out with inventory reconciliation and delivery/application records." },
+      { parameter: "Lifecycle emissions inputs", explanation: "Monitor process energy, transport, and leakage factors used in net credit accounting." },
+      { parameter: "Storage/application evidence", explanation: "Retain evidence that produced biochar is durably stored or applied according to approved pathway." },
+    ],
   },
   gs: {
     name: "Gold Standard",
@@ -101,6 +118,14 @@ const REGISTRY_CONFIG = {
     ],
     compliance: "Guide-level screening for GS projects. Final compliance requires approved GS quantification pathway, validation and monitoring evidence.",
     defaults: { stableCarbon: 0.78, processE: 130, leakageE: 35, uncertainty: 12, buffer: 15, issuance: 0.90, additionalityAdj: 0.98 },
+    monitoring: [
+      { parameter: "Project boundary activity data", explanation: "Monitor all relevant activity data inside boundary, including biomass intake and production outputs." },
+      { parameter: "Technology operating records", explanation: "Maintain continuous operational logs for process parameters that influence permanence and emissions." },
+      { parameter: "Biochar quality and stability tests", explanation: "Use periodic representative sampling and laboratory results to support claimed removals." },
+      { parameter: "Emission source monitoring", explanation: "Quantify process, transport, and leakage emissions with transparent assumptions and evidence." },
+      { parameter: "Safeguards and sustainable development indicators", explanation: "Collect monitoring evidence required by GS safeguards and SDG-related reporting." },
+      { parameter: "Verification-ready documentation", explanation: "Retain QA/QC trail for validation and verification against approved GS pathway requirements." },
+    ],
   },
   isometric: {
     name: "Isometric",
@@ -112,6 +137,14 @@ const REGISTRY_CONFIG = {
     ],
     compliance: "Guide-level screening aligned with Isometric protocol framing for durable removals, lifecycle deductions and conservative credit issuance assumptions.",
     defaults: { stableCarbon: 0.84, processE: 95, leakageE: 20, uncertainty: 7, buffer: 10, issuance: 0.94, additionalityAdj: 1.00 },
+    monitoring: [
+      { parameter: "Eligible feedstock and supplier data", explanation: "Track feedstock classes, suppliers, and intake quantities for protocol alignment and auditability." },
+      { parameter: "Production process telemetry", explanation: "Capture operating parameters and control logs supporting consistent biochar generation." },
+      { parameter: "Durability-linked biochar analytics", explanation: "Measure carbon/stability properties on representative batches for removal quality claims." },
+      { parameter: "Full traceability and custody", explanation: "Record batch-level movement from production through final application/storage." },
+      { parameter: "Lifecycle deductions dataset", explanation: "Monitor energy, transport, and leakage inputs used for deduction calculations." },
+      { parameter: "Continuous evidence package", explanation: "Maintain protocol-ready evidence and QA/QC records for verifier review and issuance." },
+    ],
   },
 };
 
@@ -437,6 +470,14 @@ function fillGuideTables() {
 
   permanenceClassSelect.innerHTML = PERMANENCE_GUIDE.map((r) => `<option value="${r.key}">${r.label}</option>`).join("");
   transportFactorSelect.innerHTML = TRANSPORT_GUIDE.map((r) => `<option value="${r.key}">${r.mode} (${r.factorKgTkm} kgCO2e/t-km)</option>`).join("");
+}
+
+function renderMonitoringParams(config) {
+  if (!monitoringParamsBodyEl) return;
+  const rows = Array.isArray(config?.monitoring) ? config.monitoring : [];
+  monitoringParamsBodyEl.innerHTML = rows
+    .map((r) => `<tr><td>${r.parameter}</td><td>${r.explanation}</td></tr>`)
+    .join("");
 }
 
 function applyGuidedDefaults(config) {
@@ -884,6 +925,7 @@ function init() {
   setList(methodologyLinksEl, config.links, true);
   setList(assumptionsListEl, ASSUMPTIONS, false);
   complianceTextEl.textContent = config.compliance;
+  renderMonitoringParams(config);
 
   fillGuideTables();
   applyPayloadValues();
@@ -948,6 +990,7 @@ useResultBtn.addEventListener("click", () => {
   const result = calculateCredits();
   const sensitivityDetails = collectSensitivityDetails();
   const inferred = inferCarbonDefault();
+  const cfg = REGISTRY_CONFIG[registryId] || REGISTRY_CONFIG.verra;
 
   localStorage.setItem(
     FINAL_CREDITS_STORAGE_KEY,
@@ -974,6 +1017,7 @@ useResultBtn.addEventListener("click", () => {
         : null,
       feedstock_contributions: lastFeedstockContributions,
       parameter_defaults_summary: lastParameterDefaults,
+      monitoring_parameters: Array.isArray(cfg.monitoring) ? cfg.monitoring : [],
       breakdown: {
         gross: Number(result.gross.toFixed(2)),
         process: Number(result.processE.toFixed(2)),

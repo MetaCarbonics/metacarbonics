@@ -806,6 +806,12 @@ function buildContractPreviewLines() {
       );
     });
   }
+  if (Array.isArray(finalRegistryCredits?.monitoring_parameters) && finalRegistryCredits.monitoring_parameters.length) {
+    lines.push("Monitoring parameters (methodology-aligned):");
+    finalRegistryCredits.monitoring_parameters.forEach((m) => {
+      lines.push(`  ${fmt(m.parameter)}: ${fmt(m.explanation)}`);
+    });
+  }
   if (finalRegistryCredits?.sensitivity?.details && Array.isArray(finalRegistryCredits.sensitivity.details)) {
     lines.push("Sensitivity scenarios:");
     finalRegistryCredits.sensitivity.details.forEach((s) => {
@@ -1152,7 +1158,8 @@ async function downloadPreviewPdf() {
 
   const feedstockDefaults = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
   const parameterDefaults = Array.isArray(finalRegistryCredits?.parameter_defaults_summary) ? finalRegistryCredits.parameter_defaults_summary : [];
-  if (feedstockDefaults.length || parameterDefaults.length) {
+  const monitoringParams = Array.isArray(finalRegistryCredits?.monitoring_parameters) ? finalRegistryCredits.monitoring_parameters : [];
+  if (feedstockDefaults.length || parameterDefaults.length || monitoringParams.length) {
     doc.addPage();
     y = 50;
     doc.setFont("helvetica", "bold");
@@ -1262,6 +1269,51 @@ async function downloadPreviewPdf() {
           doc.line(x, rowY, x, rowY + rowH);
         });
         rowY += rowH;
+      });
+      y = rowY + 8;
+    }
+
+    if (monitoringParams.length) {
+      if (y > 700) {
+        doc.addPage();
+        y = 50;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.text("C) Monitoring Parameters (Methodology-Aligned)", marginX, y);
+      doc.setFont("helvetica", "normal");
+      y += 10;
+      const colsC = [
+        { title: "Parameter", w: 170 },
+        { title: "Explanation", w: 345 },
+      ];
+      const tableW = colsC.reduce((s, c) => s + c.w, 0);
+      const rowH = 16;
+      let rowY = y;
+      doc.setDrawColor(148, 163, 184);
+      doc.setFillColor(241, 245, 249);
+      doc.rect(marginX, rowY, tableW, rowH, "FD");
+      let xh = marginX;
+      colsC.forEach((c) => {
+        doc.text(c.title, xh + 3, rowY + 11);
+        xh += c.w;
+        doc.line(xh, rowY, xh, rowY + rowH);
+      });
+      rowY += rowH;
+      monitoringParams.forEach((m) => {
+        const pText = String(m.parameter || "");
+        const eText = String(m.explanation || "");
+        const wrappedExp = doc.splitTextToSize(eText, colsC[1].w - 8);
+        const maxLines = Math.max(1, wrappedExp.length);
+        const dynamicRowH = Math.max(rowH, 12 + maxLines * 10);
+        if (rowY + dynamicRowH > 790) {
+          doc.addPage();
+          rowY = 50;
+        }
+        doc.rect(marginX, rowY, tableW, dynamicRowH);
+        doc.text(pText.slice(0, 30), marginX + 3, rowY + 11);
+        wrappedExp.forEach((ln, idx) => doc.text(ln, marginX + colsC[0].w + 3, rowY + 11 + idx * 10));
+        doc.line(marginX + colsC[0].w, rowY, marginX + colsC[0].w, rowY + dynamicRowH);
+        rowY += dynamicRowH;
       });
       y = rowY + 8;
     }
