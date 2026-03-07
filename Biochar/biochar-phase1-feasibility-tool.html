@@ -43,46 +43,52 @@
 
       <section id="step1Card" class="card">
         <h2>Step 1: Country, Location, Registry</h2>
-        <label for="countrySelect">Country</label>
-        <select id="countrySelect">
-          <option value="">Loading countries...</option>
-        </select>
+        <div class="step1-layout">
+          <div>
+            <label for="countrySelect">Country</label>
+            <select id="countrySelect">
+              <option value="">Loading countries...</option>
+            </select>
 
-        <div class="grid">
-          <div>
-            <label for="stateSelect">State / Province</label>
-            <select id="stateSelect" disabled>
-              <option value="">Select country first</option>
+            <div class="grid">
+              <div>
+                <label for="stateSelect">State / Province</label>
+                <select id="stateSelect" disabled>
+                  <option value="">Select country first</option>
+                </select>
+              </div>
+              <div>
+                <label for="citySelect">City</label>
+                <select id="citySelect" disabled>
+                  <option value="">Select state first</option>
+                </select>
+              </div>
+            </div>
+
+            <label for="registrySelect">Registry</label>
+            <select id="registrySelect">
+              <option value="">Select registry</option>
+              <option value="verra">Verra</option>
+              <option value="gs">Gold Standard (GS)</option>
+              <option value="puro">Puro.earth</option>
+              <option value="isometric">Isometric</option>
             </select>
+            <p id="registryMeta" class="registry-meta"></p>
           </div>
-          <div>
-            <label for="citySelect">City</label>
-            <select id="citySelect" disabled>
-              <option value="">Select state first</option>
-            </select>
-          </div>
+
+          <aside class="questionnaire-card step1-map-panel">
+            <div class="title-row">
+              <h4>Project Facility Location</h4>
+              <button id="editFacilityMarkerBtn" class="btn btn-secondary btn-sm" type="button">Edit Facility Marker</button>
+            </div>
+            <div id="facilityMap" class="facility-map" aria-label="Project facility map"></div>
+            <div id="facilityLocationSummary" class="small">Marker not set.</div>
+          </aside>
         </div>
 
-        <label for="registrySelect">Registry</label>
-        <select id="registrySelect">
-          <option value="">Select registry</option>
-          <option value="verra">Verra</option>
-          <option value="gs">Gold Standard (GS)</option>
-          <option value="puro">Puro.earth</option>
-          <option value="isometric">Isometric</option>
-        </select>
-        <p id="registryMeta" class="registry-meta"></p>
-
-        <div class="questionnaire-card">
-          <div class="title-row">
-            <h4>Project Facility Location</h4>
-            <button id="editFacilityMarkerBtn" class="btn btn-secondary btn-sm" type="button">Edit Facility Marker</button>
-          </div>
-          <div id="facilityMap" class="facility-map" aria-label="Project facility map"></div>
-          <div id="facilityLocationSummary" class="small">Marker not set.</div>
+        <div class="btn-row">
+          <button id="toFeedstockBtn" class="btn" type="button">Next: Feedstock Section</button>
         </div>
-
-        <button id="toFeedstockBtn" class="btn" type="button">Next: Feedstock Section</button>
       </section>
 
       <section id="feedstockSection" class="card hidden">
