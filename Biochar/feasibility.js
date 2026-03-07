@@ -261,9 +261,9 @@ function geocodeProjectLocation() {
 function initFacilityMap() {
   if (!window.L || !facilityMapEl) return;
   facilityMap = window.L.map(facilityMapEl).setView([20, 0], 2);
-  window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  window.L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 19,
-    attribution: "&copy; OpenStreetMap contributors",
+    attribution: "Tiles &copy; Esri",
   }).addTo(facilityMap);
 
   facilityMap.on("click", (e) => {
