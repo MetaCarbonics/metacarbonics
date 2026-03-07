@@ -37,6 +37,7 @@ const summary = document.getElementById("summary");
 const facilityMapEl = document.getElementById("facilityMap");
 const editFacilityMarkerBtn = document.getElementById("editFacilityMarkerBtn");
 const facilityLocationSummary = document.getElementById("facilityLocationSummary");
+const facilityMarkerDates = document.getElementById("facilityMarkerDates");
 const progressFill = document.getElementById("progressFill");
 const progressStep1 = document.getElementById("progressStep1");
 const progressStep2 = document.getElementById("progressStep2");
@@ -266,31 +267,45 @@ function pointInFeature(lat, lng, feature) {
   return false;
 }
 
-function isPlacementAllowed(lat, lng) {
+function getPlacementError(lat, lng) {
   if (multiStateCheckbox?.checked) {
     const selected = getMultiValues(multiStateSelect);
-    if (!selected.length) return false;
-    if (!stateBoundaryFeatures.length) return false;
+    if (!selected.length) return "Select one or more allowed states before adding facility marker(s).";
+    if (!stateBoundaryFeatures.length) return "State boundary is still loading. Try again in a moment.";
   }
-  if (!stateBoundaryFeatures.length) return true;
-  return stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f));
+  if (!stateBoundaryFeatures.length) return "";
+  return stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f))
+    ? ""
+    : "Facility marker is outside selected boundary. Place it inside selected state boundary.";
 }
 
-function promptFacilityStartDate(defaultValue = "") {
-  const seed = defaultValue || new Date().toISOString().slice(0, 10);
-  const input = window.prompt("Facility start date for this marker (YYYY-MM-DD)", seed);
-  if (input === null) return null;
-  const value = String(input).trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    alert("Enter date in YYYY-MM-DD format.");
-    return null;
+function renderFacilityMarkerDates() {
+  if (!facilityMarkerDates) return;
+  if (!facilityPoints.length) {
+    facilityMarkerDates.textContent = "Add marker(s) in edit mode, then set operation start date below.";
+    return;
   }
-  const parsed = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) {
-    alert("Invalid date.");
-    return null;
-  }
-  return value;
+  facilityMarkerDates.innerHTML = facilityPoints
+    .map((p, idx) => {
+      const coords = `${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}`;
+      return `<div class="questionnaire-card" style="margin:8px 0;padding:8px;">
+        <strong>Facility ${idx + 1}</strong><br>
+        <span class="small">Coordinates: ${coords}</span><br>
+        <label for="facilityStartDate${idx}">Operation start date</label>
+        <input id="facilityStartDate${idx}" type="date" data-marker-date-idx="${idx}" value="${p.start_date || ""}" />
+      </div>`;
+    })
+    .join("");
+  facilityMarkerDates.querySelectorAll("input[data-marker-date-idx]").forEach((inputEl) => {
+    inputEl.addEventListener("change", () => {
+      const idx = Number(inputEl.dataset.markerDateIdx);
+      if (!Number.isInteger(idx) || !facilityPoints[idx]) return;
+      facilityPoints[idx].start_date = inputEl.value || "";
+      updateFacilityLocationSummary();
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  });
 }
 
 function renderFacilityMarkers(recenter = false) {
@@ -302,8 +317,9 @@ function renderFacilityMarkers(recenter = false) {
     if (p.start_date) marker.bindTooltip(`Start: ${p.start_date}`);
     marker.on("dragend", () => {
       const pos = marker.getLatLng();
-      if (!isPlacementAllowed(pos.lat, pos.lng)) {
-        alert("Marker must be within selected state boundary.");
+      const placementError = getPlacementError(pos.lat, pos.lng);
+      if (placementError) {
+        alert(placementError);
         marker.setLatLng([p.lat, p.lng]);
         return;
       }
@@ -327,18 +343,21 @@ function renderFacilityMarkers(recenter = false) {
     const latlngs = facilityPoints.map((p) => [p.lat, p.lng]);
     facilityMap.fitBounds(latlngs, { padding: [20, 20] });
   }
+  renderFacilityMarkerDates();
 }
 
 function setFacilityMarker(lat, lng, recenter = true) {
   const la = Number(lat);
   const ln = Number(lng);
   if (!Number.isFinite(la) || !Number.isFinite(ln)) return;
-  if (!isPlacementAllowed(la, ln)) return;
+  const placementError = getPlacementError(la, ln);
+  if (placementError) return;
   if (!facilityPoints.length) facilityPoints.push({ lat: la, lng: ln, start_date: "" });
   else facilityPoints[0] = { lat: la, lng: ln, start_date: facilityPoints[0]?.start_date || "" };
   syncPrimaryFacilityPoint();
   renderFacilityMarkers(recenter);
   updateFacilityLocationSummary();
+  renderFacilityMarkerDates();
 }
 
 function updateMapEditMode(enabled) {
@@ -416,13 +435,12 @@ function initFacilityMap() {
 
   facilityMap.on("click", (e) => {
     if (!mapEditMode) return;
-    if (!isPlacementAllowed(e.latlng.lat, e.latlng.lng)) {
-      alert("Marker must be within selected state boundary.");
+    const placementError = getPlacementError(e.latlng.lat, e.latlng.lng);
+    if (placementError) {
+      alert(placementError);
       return;
     }
-    const startDate = promptFacilityStartDate("");
-    if (startDate === null) return;
-    facilityPoints.push({ lat: Number(e.latlng.lat), lng: Number(e.latlng.lng), start_date: startDate });
+    facilityPoints.push({ lat: Number(e.latlng.lat), lng: Number(e.latlng.lng), start_date: "" });
     syncPrimaryFacilityPoint();
     renderFacilityMarkers(false);
     renderSummary();
@@ -432,6 +450,7 @@ function initFacilityMap() {
   if (facilityPoints.length) renderFacilityMarkers(true);
   else if (Number.isFinite(facilityLat) && Number.isFinite(facilityLng)) setFacilityMarker(facilityLat, facilityLng, true);
   updateFacilityLocationSummary();
+  renderFacilityMarkerDates();
 }
 
 function parseCsvLine(line) {
