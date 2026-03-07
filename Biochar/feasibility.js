@@ -325,9 +325,13 @@ function renderFacilityPlanQc() {
   const added = facilityPoints.length;
   const pending = Math.max(0, expected - added);
   const missingDistrict = plans.filter((p) => !p.city_name).length;
+  const districtLimitMismatch = multiStateCheckbox?.checked
+    ? multiStateLocations.filter((m) => Array.isArray(m.districts) && m.districts.length > Math.max(1, Number(m.facility_count || 1))).length
+    : 0;
   const msg = [
     `QA/QC: planned ${expected}, added ${added}, pending ${pending}.`,
     missingDistrict ? `${missingDistrict} plan row(s) missing district.` : "",
+    districtLimitMismatch ? `${districtLimitMismatch} row(s) exceed district limit (districts must be <= facility count).` : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -416,6 +420,16 @@ function findTargetPlanForPoint(lat, lng) {
   return candidates[0];
 }
 
+function enforceDistrictLimitForRow(idx) {
+  if (!Number.isInteger(idx) || !multiStateLocations[idx]) return false;
+  const row = multiStateLocations[idx];
+  const limit = Math.max(1, Number(row.facility_count || 1));
+  const selected = Array.isArray(row.districts) ? row.districts.filter(Boolean) : [];
+  if (selected.length <= limit) return false;
+  row.districts = selected.slice(0, limit);
+  return true;
+}
+
 function renderMultiStateLocationRows(focusIdx = -1) {
   if (!multiStateLocationList) return;
   if (!multiStateCheckbox?.checked) {
@@ -452,6 +466,7 @@ function renderMultiStateLocationRows(focusIdx = -1) {
           <select data-ms-city-idx="${idx}" ${row.state_code ? "" : "disabled"} multiple size="5">
             ${cityOptionsHtml}
           </select>
+          <small>Select up to ${Math.max(1, Number(row.facility_count || 1))} district(s) for this row.</small>
         </div>
       </div>
       <label>Facilities in this state/district</label>
@@ -479,7 +494,14 @@ function renderMultiStateLocationRows(focusIdx = -1) {
     el.addEventListener("change", () => {
       const idx = Number(el.dataset.msCityIdx);
       if (!Number.isInteger(idx) || !multiStateLocations[idx]) return;
-      multiStateLocations[idx].districts = Array.from(el.selectedOptions).map((o) => o.value).filter(Boolean);
+      const limit = Math.max(1, Number(multiStateLocations[idx].facility_count || 1));
+      const selected = Array.from(el.selectedOptions).map((o) => o.value).filter(Boolean);
+      if (selected.length > limit) {
+        multiStateLocations[idx].districts = selected.slice(0, limit);
+        renderMultiStateLocationRows(idx);
+      } else {
+        multiStateLocations[idx].districts = selected;
+      }
       refreshStateBoundaryLayer();
       renderSummary();
       saveUserToLocalStorage();
@@ -491,6 +513,8 @@ function renderMultiStateLocationRows(focusIdx = -1) {
       if (!Number.isInteger(idx) || !multiStateLocations[idx]) return;
       const count = Math.max(1, Number(el.value || 1));
       multiStateLocations[idx].facility_count = count;
+      const trimmed = enforceDistrictLimitForRow(idx);
+      if (trimmed) renderMultiStateLocationRows(idx);
       renderSummary();
       saveUserToLocalStorage();
     });
