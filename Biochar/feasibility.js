@@ -172,6 +172,7 @@ let facilityMap = null;
 let facilityMarkersLayer = null;
 let previewFacilityMap = null;
 let previewFacilityMarkersLayer = null;
+let previewBoundaryLayer = null;
 let stateBoundaryLayer = null;
 let stateBoundaryFeatures = [];
 let finalRegistryCredits = null;
@@ -417,8 +418,8 @@ function renderFacilityMarkerDates() {
   }
   const tableRows = facilityPoints
     .map((p, idx) => {
-      const stateName = fmt(p.state_name || getStateNameFromCode(countryCode, p.state_code) || selectedText(stateSelect));
-      const cityName = fmt(p.city_name || citySelect.value);
+      const stateName = fmt(p.state_name || getStateNameFromCode(countryCode, p.state_code));
+      const cityName = fmt(p.city_name);
       const startDate = fmt(p.start_date);
       return `<tr>
         <td>Facility ${idx + 1}</td>
@@ -1332,6 +1333,9 @@ function initPreviewFacilityMap() {
     attribution: "Tiles &copy; Esri",
   }).addTo(previewFacilityMap);
   previewFacilityMarkersLayer = window.L.layerGroup().addTo(previewFacilityMap);
+  previewBoundaryLayer = window.L.geoJSON([], {
+    style: { color: "#eab308", weight: 2, opacity: 0.9, fillOpacity: 0.05 },
+  }).addTo(previewFacilityMap);
 }
 
 function renderPreviewFacilityBlock() {
@@ -1342,16 +1346,26 @@ function renderPreviewFacilityBlock() {
       previewFacilityTableBody.innerHTML = facilityPoints
         .map(
           (p, idx) =>
-            `<tr><td>Facility ${idx + 1}</td><td>${fmt(p.state_name || selectedText(stateSelect))}</td><td>${fmt(p.city_name || citySelect.value)}</td><td>${Number(p.lat).toFixed(6)}</td><td>${Number(p.lng).toFixed(6)}</td><td>${fmt(p.start_date)}</td></tr>`
+            `<tr><td>Facility ${idx + 1}</td><td>${fmt(p.state_name)}</td><td>${fmt(p.city_name)}</td><td>${Number(p.lat).toFixed(6)}</td><td>${Number(p.lng).toFixed(6)}</td><td>${fmt(p.start_date)}</td></tr>`
         )
         .join("");
     }
   }
-  if (!previewFacilityMap || !window.L || !previewFacilityMarkersLayer) return;
+  if (!previewFacilityMap || !window.L || !previewFacilityMarkersLayer || !previewBoundaryLayer) return;
   previewFacilityMap.invalidateSize();
   previewFacilityMarkersLayer.clearLayers();
+  previewBoundaryLayer.clearLayers();
+  if (stateBoundaryFeatures.length) {
+    previewBoundaryLayer.addData({ type: "FeatureCollection", features: stateBoundaryFeatures });
+  }
   if (!facilityPoints.length) {
-    previewFacilityMap.setView([20, 0], 2);
+    if (stateBoundaryFeatures.length) {
+      const b = previewBoundaryLayer.getBounds();
+      if (b.isValid()) previewFacilityMap.fitBounds(b.pad(0.1));
+      else previewFacilityMap.setView([20, 0], 2);
+    } else {
+      previewFacilityMap.setView([20, 0], 2);
+    }
     return;
   }
   const latlngs = facilityPoints.map((p) => [Number(p.lat), Number(p.lng)]);
