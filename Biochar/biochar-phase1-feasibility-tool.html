@@ -64,7 +64,7 @@
               <select id="multiStateSelect" class="multi-select hidden" multiple disabled>
                 <option value="">Select country first</option>
               </select>
-              <p class="small">Facility markers can only be placed inside selected state boundaries.</p>
+              <p class="small">Set state, district, and facility count for each row. Markers are constrained to selected district and state boundaries.</p>
             </div>
 
             <div class="grid">
@@ -75,12 +75,14 @@
                 </select>
               </div>
               <div>
-                <label for="citySelect">City</label>
+                <label for="citySelect">District / City</label>
                 <select id="citySelect" disabled>
                   <option value="">Select state first</option>
                 </select>
               </div>
             </div>
+            <label for="singleFacilityCount">Facility count in selected state/district</label>
+            <input id="singleFacilityCount" type="number" min="1" step="1" value="1" />
 
             <label for="registrySelect">Registry</label>
             <select id="registrySelect">
@@ -129,9 +131,14 @@
           <label>Feedstock Summary Table</label>
           <button id="editFeedstockFromFeedstockBtn" class="btn btn-secondary btn-sm" type="button">Edit Feedstock Details</button>
         </div>
+        <label for="feedstockFacilitySelect">Select Facility</label>
+        <select id="feedstockFacilitySelect">
+          <option value="">Select facility first</option>
+        </select>
         <table class="feedstock-table">
           <thead>
             <tr>
+              <th>Facility</th>
               <th>Feedstock</th>
               <th>Qty (t/year)</th>
               <th>Distance (km)</th>
@@ -139,7 +146,7 @@
             </tr>
           </thead>
           <tbody id="feedstockTableBodyFeedstock">
-            <tr><td colspan="4">No feedstock added yet.</td></tr>
+            <tr><td colspan="5">No feedstock added yet.</td></tr>
           </tbody>
         </table>
 
@@ -203,13 +210,14 @@
         <table class="feedstock-table">
           <thead>
             <tr>
+              <th>Facility</th>
               <th>Feedstock</th>
               <th>Qty (t/year)</th>
               <th>Distance (km)</th>
             </tr>
           </thead>
           <tbody id="feedstockTableBodyBiochar">
-            <tr><td colspan="3">No feedstock added yet.</td></tr>
+            <tr><td colspan="4">No feedstock added yet.</td></tr>
           </tbody>
         </table>
 
@@ -267,13 +275,14 @@
         <table class="feedstock-table">
           <thead>
             <tr>
+              <th>Facility</th>
               <th>Feedstock</th>
               <th>Qty (t/year)</th>
               <th>Distance (km)</th>
             </tr>
           </thead>
           <tbody id="feedstockTableBodyPyro">
-            <tr><td colspan="3">No feedstock added yet.</td></tr>
+            <tr><td colspan="4">No feedstock added yet.</td></tr>
           </tbody>
         </table>
         <div class="btn-row">
@@ -454,6 +463,15 @@
             <thead><tr><th>Parameter</th><th>Explanation</th></tr></thead>
             <tbody id="step7MonitoringBody">
               <tr><td colspan="2">No monitoring parameters yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="questionnaire-card">
+          <h4>Facility Matrix (Step 7)</h4>
+          <table class="feedstock-table">
+            <thead><tr><th>Facility</th><th>State</th><th>City</th><th>Start Date</th><th>Biomass (t/year)</th><th>Feedstocks</th></tr></thead>
+            <tbody id="step7FacilityMatrixBody">
+              <tr><td colspan="6">No facility matrix yet.</td></tr>
             </tbody>
           </table>
         </div>

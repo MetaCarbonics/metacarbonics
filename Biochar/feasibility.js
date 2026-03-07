@@ -28,6 +28,7 @@ const userIdInput = document.getElementById("userIdInput");
 const countrySelect = document.getElementById("countrySelect");
 const stateSelect = document.getElementById("stateSelect");
 const citySelect = document.getElementById("citySelect");
+const singleFacilityCount = document.getElementById("singleFacilityCount");
 const multiStateCheckbox = document.getElementById("multiStateCheckbox");
 const multiStateWrap = document.getElementById("multiStateWrap");
 const multiStateSelect = document.getElementById("multiStateSelect");
@@ -59,6 +60,7 @@ const feedstockQcSummary = document.getElementById("feedstockQcSummary");
 const feedstockFeedback = document.getElementById("feedstockFeedback");
 
 const feedstockType = document.getElementById("feedstockType");
+const feedstockFacilitySelect = document.getElementById("feedstockFacilitySelect");
 const addFeedstockBtn = document.getElementById("addFeedstockBtn");
 const activeFeedstockCard = document.getElementById("activeFeedstockCard");
 const activeFeedstockTitle = document.getElementById("activeFeedstockTitle");
@@ -146,6 +148,7 @@ const step7SummaryBody = document.getElementById("step7SummaryBody");
 const step7ContributionBody = document.getElementById("step7ContributionBody");
 const step7DefaultsBody = document.getElementById("step7DefaultsBody");
 const step7MonitoringBody = document.getElementById("step7MonitoringBody");
+const step7FacilityMatrixBody = document.getElementById("step7FacilityMatrixBody");
 const refreshPreviewBtn = document.getElementById("refreshPreviewBtn");
 const downloadPreviewPdfBtn = document.getElementById("downloadPreviewPdfBtn");
 const projectPreview = document.getElementById("projectPreview");
@@ -175,6 +178,7 @@ let previewFacilityMarkersLayer = null;
 let previewBoundaryLayer = null;
 let stateBoundaryLayer = null;
 let stateBoundaryFeatures = [];
+let districtBoundaryFeatures = [];
 let finalRegistryCredits = null;
 let editingFacilityIndex = -1;
 
@@ -216,6 +220,67 @@ function setMultiValues(selectEl, values) {
   });
 }
 
+function getFacilityLabelById(facilityId) {
+  const idx = facilityPoints.findIndex((f) => f.id === facilityId);
+  return idx >= 0 ? `Facility ${idx + 1}` : "Facility N/A";
+}
+
+function listFacilities() {
+  return facilityPoints.map((f, idx) => ({ id: f.id, label: `Facility ${idx + 1}` }));
+}
+
+function renderFeedstockFacilityOptions() {
+  if (!feedstockFacilitySelect) return;
+  const current = feedstockFacilitySelect.value;
+  feedstockFacilitySelect.innerHTML = "";
+  if (!facilityPoints.length) {
+    feedstockFacilitySelect.appendChild(option("Select facility first", ""));
+    feedstockFacilitySelect.disabled = true;
+    return;
+  }
+  feedstockFacilitySelect.appendChild(option("Select facility", ""));
+  listFacilities().forEach((f) => feedstockFacilitySelect.appendChild(option(f.label, f.id)));
+  feedstockFacilitySelect.disabled = false;
+  if (current && facilityPoints.some((f) => f.id === current)) feedstockFacilitySelect.value = current;
+}
+
+function reconcileFeedstockWithFacilities() {
+  const valid = new Set(facilityPoints.map((f) => f.id));
+  feedstockEntries = feedstockEntries.filter((e) => !e.facility_id || valid.has(e.facility_id));
+  if (feedstockFacilitySelect?.value && !valid.has(feedstockFacilitySelect.value)) {
+    feedstockFacilitySelect.value = "";
+  }
+}
+
+function reconcileFacilitiesWithPlan() {
+  const plans = getFacilityPlanRows();
+  const planMap = new Map(plans.map((p) => [p.key, p]));
+  facilityPoints = facilityPoints.filter((f) => !f.plan_key || planMap.has(f.plan_key));
+  const byPlan = new Map();
+  facilityPoints.forEach((f) => {
+    const key = f.plan_key || "";
+    if (!byPlan.has(key)) byPlan.set(key, []);
+    byPlan.get(key).push(f);
+  });
+  const trimmed = [];
+  byPlan.forEach((arr, key) => {
+    const limit = Math.max(0, Number(planMap.get(key)?.facility_count || 0));
+    trimmed.push(...arr.slice(0, limit || arr.length));
+  });
+  facilityPoints = trimmed;
+  syncPrimaryFacilityPoint();
+}
+
+function getSingleStateFacilityPlan() {
+  const count = Math.max(1, Number(singleFacilityCount?.value || 1));
+  return {
+    state_code: stateSelect.value || "",
+    state_name: getStateNameFromCode(countrySelect.value, stateSelect.value || "") || selectedText(stateSelect),
+    city_name: citySelect.value || "",
+    facility_count: count,
+  };
+}
+
 function getCountryStates(countryCode) {
   return states
     .filter((state) => state.countryCode === countryCode)
@@ -247,6 +312,40 @@ function getBoundaryStateNames() {
   return getMultiValues(multiStateSelect);
 }
 
+function getFacilityPlanRows() {
+  if (multiStateCheckbox?.checked) {
+    return multiStateLocations
+      .filter((m) => m.state_name && m.city_name)
+      .map((m, idx) => ({
+        key: `${m.state_name}::${m.city_name}::${idx}`,
+        state_name: m.state_name,
+        state_code: m.state_code || "",
+        city_name: m.city_name,
+        facility_count: Math.max(1, Number(m.facility_count || 1)),
+      }));
+  }
+  const single = getSingleStateFacilityPlan();
+  if (!single.state_name || !single.city_name) return [];
+  return [{ key: `${single.state_name}::${single.city_name}::single`, ...single }];
+}
+
+function getPlanFacilityCount(planKey) {
+  return facilityPoints.filter((f) => f.plan_key === planKey).length;
+}
+
+function findTargetPlanForPoint(lat, lng) {
+  const plans = getFacilityPlanRows();
+  if (!plans.length) return null;
+  const candidates = plans.filter((p) => getPlanFacilityCount(p.key) < p.facility_count);
+  if (!candidates.length) return null;
+  if (!districtBoundaryFeatures.length) return candidates[0];
+  for (const p of candidates) {
+    const df = districtBoundaryFeatures.filter((f) => String(f?.properties?.name || "").toLowerCase() === String(p.city_name || "").toLowerCase());
+    if (df.length && df.some((f) => pointInFeature(lat, lng, f))) return p;
+  }
+  return candidates[0];
+}
+
 function renderMultiStateLocationRows() {
   if (!multiStateLocationList) return;
   if (!multiStateCheckbox?.checked) {
@@ -255,7 +354,7 @@ function renderMultiStateLocationRows() {
   }
   const countryCode = countrySelect.value;
   const countryStates = getCountryStates(countryCode);
-  if (!multiStateLocations.length) multiStateLocations.push({ state_code: "", state_name: "", city_name: "" });
+  if (!multiStateLocations.length) multiStateLocations.push({ state_code: "", state_name: "", city_name: "", facility_count: 1 });
   multiStateLocationList.innerHTML = "";
   multiStateLocations.forEach((row, idx) => {
     const wrap = document.createElement("div");
@@ -285,6 +384,8 @@ function renderMultiStateLocationRows() {
           </select>
         </div>
       </div>
+      <label>Facilities in this state/district</label>
+      <input type="number" min="1" step="1" data-ms-facility-count-idx="${idx}" value="${Number(row.facility_count || 1)}" />
       ${multiStateLocations.length > 1 ? `<div class="btn-row"><button type="button" class="btn btn-secondary btn-sm" data-ms-remove-idx="${idx}">Remove</button></div>` : ""}
     `;
     multiStateLocationList.appendChild(wrap);
@@ -309,6 +410,17 @@ function renderMultiStateLocationRows() {
       const idx = Number(el.dataset.msCityIdx);
       if (!Number.isInteger(idx) || !multiStateLocations[idx]) return;
       multiStateLocations[idx].city_name = el.value || "";
+      refreshStateBoundaryLayer();
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  });
+  multiStateLocationList.querySelectorAll("input[data-ms-facility-count-idx]").forEach((el) => {
+    el.addEventListener("change", () => {
+      const idx = Number(el.dataset.msFacilityCountIdx);
+      if (!Number.isInteger(idx) || !multiStateLocations[idx]) return;
+      const count = Math.max(1, Number(el.value || 1));
+      multiStateLocations[idx].facility_count = count;
       renderSummary();
       saveUserToLocalStorage();
     });
@@ -328,8 +440,10 @@ function renderMultiStateLocationRows() {
 }
 
 function updateFacilityLocationSummary() {
+  const plans = getFacilityPlanRows();
+  const expected = plans.reduce((s, p) => s + Number(p.facility_count || 0), 0);
   if (!facilityPoints.length) {
-    facilityLocationSummary.textContent = "Marker not set.";
+    facilityLocationSummary.textContent = expected ? `No facility added yet. Expected: ${expected}.` : "No facility added yet.";
     return;
   }
   const list = facilityPoints
@@ -339,7 +453,7 @@ function updateFacilityLocationSummary() {
       return `${i + 1}) ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)}${startDate}`;
     })
     .join(" | ");
-  facilityLocationSummary.textContent = `Facility marker(s): ${facilityPoints.length}. ${list}${facilityPoints.length > 4 ? " ..." : ""}`;
+  facilityLocationSummary.textContent = `Facilities: ${facilityPoints.length}${expected ? ` / ${expected}` : ""}. ${list}${facilityPoints.length > 4 ? " ..." : ""}`;
 }
 
 function syncPrimaryFacilityPoint() {
@@ -387,16 +501,26 @@ function pointInFeature(lat, lng, feature) {
   return false;
 }
 
-function getPlacementError(lat, lng) {
-  if (multiStateCheckbox?.checked) {
-    const selected = getBoundaryStateNames();
-    if (!selected.length) return "Select one or more allowed states before adding facility marker(s).";
-    if (!stateBoundaryFeatures.length) return "State boundary is still loading. Try again in a moment.";
+function getPlacementError(lat, lng, plan = null) {
+  const plans = getFacilityPlanRows();
+  if (!plans.length) return "Set state, district and facility count before adding facilities.";
+  if (!stateBoundaryFeatures.length) return "State boundary is still loading. Try again in a moment.";
+  const insideState = stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f));
+  if (!insideState) return "Facility is outside selected state boundary.";
+  if (districtBoundaryFeatures.length) {
+    const scopedDistricts = plan
+      ? districtBoundaryFeatures.filter((f) => String(f?.properties?.name || "").toLowerCase() === String(plan.city_name || "").toLowerCase())
+      : districtBoundaryFeatures;
+    const insideDistrict = scopedDistricts.some((f) => pointInFeature(lat, lng, f));
+    if (!insideDistrict) return "Facility is outside selected district boundary.";
   }
-  if (!stateBoundaryFeatures.length) return "";
-  return stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f))
-    ? ""
-    : "Facility marker is outside selected boundary. Place it inside selected state boundary.";
+  if (plan) {
+    const existing = getPlanFacilityCount(plan.key);
+    if (existing >= Number(plan.facility_count || 0)) {
+      return `Facility limit reached for ${plan.state_name} / ${plan.city_name}.`;
+    }
+  }
+  return "";
 }
 
 function renderFacilityMarkerDates() {
@@ -545,6 +669,8 @@ function renderFacilityMarkers(recenter = false) {
         return;
       }
       facilityPoints[idx] = {
+        id: p.id || `${Date.now()}-${idx}`,
+        plan_key: p.plan_key || "",
         lat: Number(pos.lat),
         lng: Number(pos.lng),
         start_date: p.start_date || "",
@@ -580,20 +706,30 @@ function setFacilityMarker(lat, lng, recenter = true) {
   const la = Number(lat);
   const ln = Number(lng);
   if (!Number.isFinite(la) || !Number.isFinite(ln)) return;
-  const placementError = getPlacementError(la, ln);
+  const targetPlan = findTargetPlanForPoint(la, ln);
+  const placementError = getPlacementError(la, ln, targetPlan);
   if (placementError) return;
-  const defaultStateCode = multiStateCheckbox?.checked
-    ? (multiStateLocations.find((m) => m.state_code)?.state_code || "")
-    : (stateSelect.value || "");
-  const defaultStateName = getStateNameFromCode(countrySelect.value, defaultStateCode) || selectedText(stateSelect);
-  const defaultCity = citySelect.value || "";
+  const defaultStateCode = targetPlan?.state_code || (multiStateCheckbox?.checked ? (multiStateLocations.find((m) => m.state_code)?.state_code || "") : (stateSelect.value || ""));
+  const defaultStateName = targetPlan?.state_name || getStateNameFromCode(countrySelect.value, defaultStateCode) || selectedText(stateSelect);
+  const defaultCity = targetPlan?.city_name || citySelect.value || "";
   if (!facilityPoints.length) {
-    facilityPoints.push({ lat: la, lng: ln, start_date: "", state_code: defaultStateCode, state_name: defaultStateName, city_name: defaultCity });
+    facilityPoints.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      lat: la,
+      lng: ln,
+      plan_key: targetPlan?.key || "",
+      start_date: "",
+      state_code: defaultStateCode,
+      state_name: defaultStateName,
+      city_name: defaultCity,
+    });
     editingFacilityIndex = 0;
   } else {
     facilityPoints[0] = {
       lat: la,
       lng: ln,
+      id: facilityPoints[0]?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      plan_key: facilityPoints[0]?.plan_key || targetPlan?.key || "",
       start_date: facilityPoints[0]?.start_date || "",
       state_code: facilityPoints[0]?.state_code || defaultStateCode,
       state_name: facilityPoints[0]?.state_name || defaultStateName,
@@ -624,10 +760,22 @@ async function fetchStateBoundaryFeature(stateName, countryName) {
   return { type: "Feature", properties: { name: stateName }, geometry: first.geojson };
 }
 
+async function fetchDistrictBoundaryFeature(cityName, stateName, countryName) {
+  if (!cityName) return null;
+  const query = encodeURIComponent([cityName, stateName, countryName].filter(Boolean).join(", "));
+  const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=1&q=${query}`;
+  const res = await fetch(url);
+  const rows = await res.json();
+  const first = Array.isArray(rows) ? rows[0] : null;
+  if (!first?.geojson) return null;
+  return { type: "Feature", properties: { name: cityName, state: stateName }, geometry: first.geojson };
+}
+
 async function refreshStateBoundaryLayer() {
   if (!facilityMap || !window.L) return;
   const stateNames = getBoundaryStateNames();
   stateBoundaryFeatures = [];
+  districtBoundaryFeatures = [];
   if (!stateNames.length) {
     if (stateBoundaryLayer) stateBoundaryLayer.clearLayers();
     return;
@@ -641,6 +789,18 @@ async function refreshStateBoundaryLayer() {
       // ignore boundary fetch failures for individual states
     }
   }
+  const districtPlans = multiStateCheckbox?.checked
+    ? multiStateLocations
+    : [{ state_name: selectedText(stateSelect), city_name: citySelect.value }];
+  for (const d of districtPlans) {
+    if (!d?.city_name) continue;
+    try {
+      const f = await fetchDistrictBoundaryFeature(d.city_name, d.state_name, country);
+      if (f) districtBoundaryFeatures.push(f);
+    } catch {
+      // ignore district fetch failures
+    }
+  }
   if (!stateBoundaryLayer) {
     stateBoundaryLayer = window.L.geoJSON([], {
       style: { color: "#eab308", weight: 2, opacity: 0.9, fillOpacity: 0.05 },
@@ -649,9 +809,13 @@ async function refreshStateBoundaryLayer() {
   stateBoundaryLayer.clearLayers();
   if (stateBoundaryFeatures.length) {
     stateBoundaryLayer.addData({ type: "FeatureCollection", features: stateBoundaryFeatures });
+    if (districtBoundaryFeatures.length) {
+      stateBoundaryLayer.addData({ type: "FeatureCollection", features: districtBoundaryFeatures });
+    }
     const b = stateBoundaryLayer.getBounds();
     if (b.isValid()) facilityMap.fitBounds(b.pad(0.1));
   }
+  renderPreviewFacilityBlock();
 }
 
 function geocodeProjectLocation() {
@@ -680,21 +844,26 @@ function initFacilityMap() {
 
   facilityMap.on("click", (e) => {
     if (!mapEditMode) return;
-    const placementError = getPlacementError(e.latlng.lat, e.latlng.lng);
+    const targetPlan = findTargetPlanForPoint(e.latlng.lat, e.latlng.lng);
+    if (!targetPlan) {
+      alert("All facility counts are already fulfilled. Increase facility count or add a new state/district row.");
+      return;
+    }
+    const placementError = getPlacementError(e.latlng.lat, e.latlng.lng, targetPlan);
     if (placementError) {
       alert(placementError);
       return;
     }
-    const defaultStateCode = multiStateCheckbox?.checked
-      ? (multiStateLocations.find((m) => m.state_code)?.state_code || "")
-      : (stateSelect.value || "");
+    const defaultStateCode = targetPlan.state_code || (stateSelect.value || "");
     facilityPoints.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       lat: Number(e.latlng.lat),
       lng: Number(e.latlng.lng),
+      plan_key: targetPlan.key,
       start_date: "",
       state_code: defaultStateCode,
-      state_name: getStateNameFromCode(countrySelect.value, defaultStateCode) || selectedText(stateSelect),
-      city_name: citySelect.value || "",
+      state_name: targetPlan.state_name || getStateNameFromCode(countrySelect.value, defaultStateCode) || selectedText(stateSelect),
+      city_name: targetPlan.city_name || citySelect.value || "",
     });
     editingFacilityIndex = facilityPoints.length - 1;
     syncPrimaryFacilityPoint();
@@ -781,6 +950,22 @@ function computeTotalBiomass() {
   }, 0);
 }
 
+function computeFacilityMatrices() {
+  return facilityPoints.map((f, idx) => {
+    const rows = feedstockEntries.filter((e) => e.facility_id === f.id);
+    const biomass = rows.reduce((s, r) => s + Number(r.quantity_tpy || 0), 0);
+    return {
+      facility_id: f.id,
+      facility_label: `Facility ${idx + 1}`,
+      state_name: f.state_name || "",
+      city_name: f.city_name || "",
+      start_date: f.start_date || "",
+      biomass_tpy: biomass,
+      feedstocks: rows,
+    };
+  });
+}
+
 function updatePlantCapacityFromBiomass() {
   const total = computeTotalBiomass();
   plantCapacity.value = total > 0 ? String(total) : "";
@@ -810,17 +995,17 @@ function renderFeedstockQc() {
     if (requiredOk) passCount += 1;
     else {
       warnCount += 1;
-      warnings.push(`${entry.feedstock}: missing required fields`);
+      warnings.push(`${getFacilityLabelById(entry.facility_id)} - ${entry.feedstock}: missing required fields`);
     }
 
     if (!Number.isFinite(qty) || qty <= 0) {
       warnCount += 1;
-      warnings.push(`${entry.feedstock}: quantity should be > 0`);
+      warnings.push(`${getFacilityLabelById(entry.facility_id)} - ${entry.feedstock}: quantity should be > 0`);
     }
 
     if (Number.isFinite(km) && km > 1000) {
       warnCount += 1;
-      warnings.push(`${entry.feedstock}: transport distance is high (>1000 km)`);
+      warnings.push(`${getFacilityLabelById(entry.facility_id)} - ${entry.feedstock}: transport distance is high (>1000 km)`);
     }
   });
 
@@ -832,19 +1017,24 @@ function renderFeedstockQc() {
 
 function renderFeedstockTable(tbodyEl, withActions = false) {
   tbodyEl.innerHTML = "";
-  if (!feedstockEntries.length) {
+  const selectedFacility = feedstockFacilitySelect?.value || "";
+  const rows = withActions && selectedFacility
+    ? feedstockEntries.filter((e) => e.facility_id === selectedFacility)
+    : feedstockEntries;
+  if (!rows.length) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="${withActions ? 4 : 3}">No feedstock added yet.</td>`;
+    tr.innerHTML = `<td colspan="${withActions ? 5 : 4}">No feedstock added yet.</td>`;
     tbodyEl.appendChild(tr);
     return;
   }
 
-  feedstockEntries.forEach((entry, idx) => {
+  rows.forEach((entry) => {
+    const idx = feedstockEntries.findIndex((e) => e === entry);
     const tr = document.createElement("tr");
     const action = withActions
       ? `<td><div class="btn-row"><button class="btn btn-secondary btn-sm" type="button" data-edit-feedstock-index="${idx}">Edit</button><button class="btn btn-danger btn-sm" type="button" data-delete-feedstock-index="${idx}">Delete</button></div></td>`
       : "";
-    tr.innerHTML = `<td>${entry.feedstock}</td><td>${entry.quantity_tpy || ""}</td><td>${entry.q4_transport_km || ""}</td>${action}`;
+    tr.innerHTML = `<td>${getFacilityLabelById(entry.facility_id)}</td><td>${entry.feedstock}</td><td>${entry.quantity_tpy || ""}</td><td>${entry.q4_transport_km || ""}</td>${action}`;
     tbodyEl.appendChild(tr);
   });
 }
@@ -887,13 +1077,17 @@ function showFeedstockForm(entry, modeLabel) {
 }
 
 function openFeedstockFormBySelection() {
+  if (!feedstockFacilitySelect?.value) {
+    feedstockFeedback.textContent = "Select facility first.";
+    return;
+  }
   const selected = feedstockType.value;
   if (!selected) {
     hideFeedstockForm();
     return;
   }
 
-  const existingIdx = feedstockEntries.findIndex((x) => x.feedstock === selected);
+  const existingIdx = feedstockEntries.findIndex((x) => x.feedstock === selected && x.facility_id === feedstockFacilitySelect.value);
   if (existingIdx >= 0) {
     draftFeedstockIndex = existingIdx;
     draftFeedstockName = selected;
@@ -903,6 +1097,7 @@ function openFeedstockFormBySelection() {
   }
 
   const draft = {
+    facility_id: feedstockFacilitySelect.value,
     feedstock: selected,
     quantity_tpy: "",
     q1_source_supply: "",
@@ -919,6 +1114,7 @@ function openFeedstockFormBySelection() {
 }
 
 function validateFeedstockDraft() {
+  if (!feedstockFacilitySelect?.value) return "Select facility first.";
   if (!draftFeedstockName) return "Select a feedstock type first.";
   if (!feedstockQty.value) return "Enter feedstock quantity.";
   if (!q1SourceSupply.value) return "Fill Q1.";
@@ -936,6 +1132,7 @@ function saveFeedstockInfo() {
   }
 
   const row = {
+    facility_id: feedstockFacilitySelect.value,
     feedstock: draftFeedstockName,
     quantity_tpy: feedstockQty.value,
     q1_source_supply: q1SourceSupply.value,
@@ -962,6 +1159,7 @@ function saveFeedstockInfo() {
 function openFeedstockFormForEdit(index) {
   if (!Number.isInteger(index) || index < 0 || index >= feedstockEntries.length) return;
   const entry = feedstockEntries[index];
+  if (feedstockFacilitySelect) feedstockFacilitySelect.value = entry.facility_id || "";
   feedstockType.value = entry.feedstock;
   draftFeedstockIndex = index;
   draftFeedstockName = entry.feedstock;
@@ -1007,6 +1205,11 @@ function renderFeedstockOptions(registryId) {
 
 function validateFeedstockEntriesBeforeBiochar() {
   if (!feedstockEntries.length) return "Add at least one feedstock before moving to Biochar section.";
+  for (const f of facilityPoints) {
+    if (!feedstockEntries.some((e) => e.facility_id === f.id)) {
+      return `${getFacilityLabelById(f.id)} has no feedstock entry. Add feedstock for each facility.`;
+    }
+  }
   for (const entry of feedstockEntries) {
     const missing = [];
     if (!entry.quantity_tpy) missing.push("quantity");
@@ -1059,7 +1262,7 @@ function renderTentativeCredits() {
 }
 
 function renderStep7Tables() {
-  if (!step7SummaryBody || !step7ContributionBody || !step7DefaultsBody || !step7MonitoringBody) return;
+  if (!step7SummaryBody || !step7ContributionBody || !step7DefaultsBody || !step7MonitoringBody || !step7FacilityMatrixBody) return;
   const methodology = getRegistryMethodologyMeta(registrySelect.value);
   const methodologyVersion = finalRegistryCredits?.methodology_version || methodology.version;
   const methodologyAsOf = finalRegistryCredits?.methodology_version_as_of || methodology.version_as_of || "2026-03-07";
@@ -1103,6 +1306,20 @@ function renderStep7Tables() {
     step7MonitoringBody.innerHTML = '<tr><td colspan="2">No monitoring parameters yet.</td></tr>';
   } else {
     step7MonitoringBody.innerHTML = monitoring.map((m) => `<tr><td>${fmt(m.parameter)}</td><td>${fmt(m.explanation)}</td></tr>`).join("");
+  }
+
+  const mats = computeFacilityMatrices();
+  if (!mats.length) {
+    step7FacilityMatrixBody.innerHTML = '<tr><td colspan="6">No facility matrix yet.</td></tr>';
+  } else {
+    step7FacilityMatrixBody.innerHTML = mats
+      .map((m) => {
+        const feedstocks = m.feedstocks.length
+          ? m.feedstocks.map((f) => `${fmt(f.feedstock)} (${fmt(f.quantity_tpy)} t/yr)`).join("; ")
+          : "None";
+        return `<tr><td>${m.facility_label}</td><td>${fmt(m.state_name)}</td><td>${fmt(m.city_name)}</td><td>${fmt(m.start_date)}</td><td>${Number(m.biomass_tpy || 0).toFixed(2)}</td><td>${feedstocks}</td></tr>`;
+      })
+      .join("");
   }
 }
 
@@ -1305,6 +1522,17 @@ function buildContractPreviewLines() {
     });
   } else if (finalRegistryCredits?.sensitivity) {
     lines.push(`Sensitivity: variable=${fmt(finalRegistryCredits.sensitivity.variable)}, range=${fmt(finalRegistryCredits.sensitivity.low_pct)}% to ${fmt(finalRegistryCredits.sensitivity.high_pct)}%, low=${fmt(finalRegistryCredits.sensitivity.low_final)}, high=${fmt(finalRegistryCredits.sensitivity.high_final)}`);
+  }
+  const facilityMatrices = computeFacilityMatrices();
+  if (facilityMatrices.length) {
+    lines.push("Facility-wise matrix:");
+    facilityMatrices.forEach((m) => {
+      lines.push(`  ${m.facility_label} | ${fmt(m.state_name)}, ${fmt(m.city_name)} | Start: ${fmt(m.start_date)} | Biomass: ${Number(m.biomass_tpy || 0).toFixed(2)} t/year`);
+      if (!m.feedstocks.length) lines.push("    No feedstock added.");
+      m.feedstocks.forEach((fs) => {
+        lines.push(`    - ${fmt(fs.feedstock)} | Qty: ${fmt(fs.quantity_tpy)} | Distance km: ${fmt(fs.q4_transport_km)}`);
+      });
+    });
   }
   lines.push("");
   lines.push(`Contract sign status: ${data.contract_signed === "yes" ? "SIGNED" : "PENDING"}`);
@@ -1959,6 +2187,19 @@ async function downloadPreviewPdf() {
     );
   }
 
+  const facilityMatricesPdf = computeFacilityMatrices();
+  facilityMatricesPdf.forEach((m) => {
+    const rows = m.feedstocks.map((fs) => ({
+      cells: [fmt(fs.feedstock), fmt(fs.quantity_tpy), fmt(fs.q4_transport_km), fmt(fs.q1_source_supply)],
+    }));
+    drawTable(
+      `${m.facility_label} - Detailed Matrix`,
+      ["Feedstock", "Qty (t/yr)", "Distance (km)", "Biomass Source/Supply"],
+      rows.length ? rows : [{ cells: ["No feedstock added", "", "", ""] }],
+      [120, 80, 80, 235]
+    );
+  });
+
   doc.save("metacarbonics_phase1_contract_preview.pdf");
 }
 
@@ -2169,6 +2410,7 @@ function getFormData() {
     multi_state_mode: multiStateCheckbox?.checked ? "yes" : "no",
     selected_states_json: JSON.stringify(getBoundaryStateNames()),
     multi_state_locations_json: JSON.stringify(multiStateLocations),
+    single_facility_count: String(Math.max(1, Number(singleFacilityCount?.value || 1))),
     city_name: citySelect.value,
     registry_id: registrySelect.value,
     registry_name: selectedText(registrySelect),
@@ -2210,6 +2452,11 @@ function getFormData() {
 }
 
 function renderSummary() {
+  reconcileFacilitiesWithPlan();
+  reconcileFeedstockWithFacilities();
+  if (facilityMap) renderFacilityMarkers(false);
+  renderFeedstockFacilityOptions();
+  renderAllFeedstockTables();
   const data = getFormData();
   const parts = [];
   if (data.country_name) parts.push(`Country: ${data.country_name}`);
@@ -2263,6 +2510,9 @@ function loadUserFromLocalStorage() {
     }
 
     citySelect.value = data.city_name || "";
+    if (singleFacilityCount) {
+      singleFacilityCount.value = String(Math.max(1, Number(data.single_facility_count || 1)));
+    }
     registrySelect.value = data.registry_id || "";
     facilityLat = data.facility_lat ? Number(data.facility_lat) : null;
     facilityLng = data.facility_lng ? Number(data.facility_lng) : null;
@@ -2275,10 +2525,13 @@ function loadUserFromLocalStorage() {
           state_code: String(m.state_code || ""),
           state_name: String(m.state_name || ""),
           city_name: String(m.city_name || ""),
+          facility_count: Math.max(1, Number(m.facility_count || 1)),
         }));
       } else {
         const ms = JSON.parse(data.selected_states_json || "[]");
-        multiStateLocations = Array.isArray(ms) ? ms.map((name) => ({ state_code: "", state_name: String(name || ""), city_name: "" })) : [];
+        multiStateLocations = Array.isArray(ms)
+          ? ms.map((name) => ({ state_code: "", state_name: String(name || ""), city_name: "", facility_count: 1 }))
+          : [];
       }
     } catch {
       multiStateLocations = [];
@@ -2290,6 +2543,7 @@ function loadUserFromLocalStorage() {
       if (Array.isArray(pts) && pts.length) {
         facilityPoints = pts
           .map((p) => ({
+            id: String(p.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
             lat: Number(p.lat),
             lng: Number(p.lng),
             start_date: String(p.start_date || ""),
@@ -2299,13 +2553,13 @@ function loadUserFromLocalStorage() {
           }))
           .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
       } else if (Number.isFinite(facilityLat) && Number.isFinite(facilityLng)) {
-        facilityPoints = [{ lat: facilityLat, lng: facilityLng, start_date: "", state_code: "", state_name: "", city_name: "" }];
+        facilityPoints = [{ id: `${Date.now()}-seed`, lat: facilityLat, lng: facilityLng, start_date: "", state_code: "", state_name: "", city_name: "" }];
       } else {
         facilityPoints = [];
       }
     } catch {
       facilityPoints = Number.isFinite(facilityLat) && Number.isFinite(facilityLng)
-        ? [{ lat: facilityLat, lng: facilityLng, start_date: "", state_code: "", state_name: "", city_name: "" }]
+        ? [{ id: `${Date.now()}-seed`, lat: facilityLat, lng: facilityLng, start_date: "", state_code: "", state_name: "", city_name: "" }]
         : [];
     }
     syncPrimaryFacilityPoint();
@@ -2419,7 +2673,7 @@ function loadStates(countryCode) {
         return { state_code: code, state_name: name, city_name: m.city_name || "" };
       })
       .filter((m) => m.state_code || m.state_name);
-    if (!multiStateLocations.length && countryStates.length) multiStateLocations.push({ state_code: "", state_name: "", city_name: "" });
+    if (!multiStateLocations.length && countryStates.length) multiStateLocations.push({ state_code: "", state_name: "", city_name: "", facility_count: 1 });
   }
   syncMultiStateSelectFromLocations();
   renderMultiStateLocationRows();
@@ -2553,10 +2807,17 @@ citySelect.addEventListener("change", () => {
   saveUserToLocalStorage();
 });
 
+if (singleFacilityCount) {
+  singleFacilityCount.addEventListener("change", () => {
+    renderSummary();
+    saveUserToLocalStorage();
+  });
+}
+
 multiStateCheckbox.addEventListener("change", () => {
   multiStateWrap.classList.toggle("hidden", !multiStateCheckbox.checked);
   if (multiStateCheckbox.checked && !multiStateLocations.length) {
-    multiStateLocations.push({ state_code: "", state_name: "", city_name: "" });
+    multiStateLocations.push({ state_code: "", state_name: "", city_name: "", facility_count: 1 });
   }
   if (!multiStateCheckbox.checked) {
     multiStateLocations = [];
@@ -2576,7 +2837,7 @@ multiStateSelect.addEventListener("change", () => {
 
 if (addMultiStateLocationBtn) {
   addMultiStateLocationBtn.addEventListener("click", () => {
-    multiStateLocations.push({ state_code: "", state_name: "", city_name: "" });
+    multiStateLocations.push({ state_code: "", state_name: "", city_name: "", facility_count: 1 });
     renderMultiStateLocationRows();
     renderSummary();
     saveUserToLocalStorage();
@@ -2623,6 +2884,16 @@ toFeedstockBtn.addEventListener("click", () => {
   if (!countrySelect.value) {
     feedstockFeedback.textContent = "Country is not selected yet. You can continue with feedstock and update location later.";
   }
+  const plans = getFacilityPlanRows();
+  if (!plans.length) {
+    alert("Set facility planning first (state, district, facility count).");
+    return;
+  }
+  const expected = plans.reduce((s, p) => s + Number(p.facility_count || 0), 0);
+  if (facilityPoints.length < expected) {
+    alert(`Add all planned facilities before moving to feedstock. Added ${facilityPoints.length} of ${expected}.`);
+    return;
+  }
   showSectionsFor("feedstock");
   feedstockSection.scrollIntoView({ behavior: "smooth", block: "start" });
   navigateToSection("feedstock");
@@ -2635,6 +2906,12 @@ editStep1FromFinancialBtn.addEventListener("click", openStep1Editor);
 editStep1FromAdditionalBtn.addEventListener("click", openStep1Editor);
 
 feedstockType.addEventListener("change", openFeedstockFormBySelection);
+if (feedstockFacilitySelect) {
+  feedstockFacilitySelect.addEventListener("change", () => {
+    hideFeedstockForm();
+    renderAllFeedstockTables();
+  });
+}
 addFeedstockBtn.addEventListener("click", openFeedstockFormBySelection);
 editFeedstockFromFeedstockBtn.addEventListener("click", () => {
   feedstockType.focus();
