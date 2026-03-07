@@ -29,8 +29,23 @@ jobs:
 
           copied_any=0
 
+          # Preferred: dedicated publish folder from private repo.
+          if [ -d "biochar-private/public-site" ]; then
+            rsync -av --delete "biochar-private/public-site/" "biochar-checklist/"
+            copied_any=1
+          elif [ -d "biochar-private/public" ]; then
+            rsync -av --delete "biochar-private/public/" "biochar-checklist/"
+            copied_any=1
+          fi
+
           if [ -f "biochar-private/README.md" ]; then
             cp "biochar-private/README.md" "biochar-checklist/README.md"
+            copied_any=1
+          fi
+
+          # Sync private repo index page if present so public site can link directly.
+          if [ -f "biochar-private/index.html" ]; then
+            cp "biochar-private/index.html" "biochar-checklist/index.html"
             copied_any=1
           fi
 
@@ -48,7 +63,7 @@ jobs:
 
           if [ "$copied_any" -eq 0 ]; then
             echo "No allowlisted checklist files found in private repo."
-            echo "Expected one of: README.md, checklist/, docs/checklist/"
+            echo "Expected one of: public-site/, public/, index.html, README.md, checklist/, docs/checklist/"
             exit 1
           fi
 
