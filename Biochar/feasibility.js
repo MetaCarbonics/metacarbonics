@@ -35,6 +35,8 @@ const summary = document.getElementById("summary");
 const step1Card = document.getElementById("step1Card");
 const toFeedstockBtn = document.getElementById("toFeedstockBtn");
 const feedstockSection = document.getElementById("feedstockSection");
+const previousSummaryInFeedstock = document.getElementById("previousSummaryInFeedstock");
+const editPreviousInfoCheckbox = document.getElementById("editPreviousInfoCheckbox");
 
 const feedstockType = document.getElementById("feedstockType");
 const copyPreviousWrap = document.getElementById("copyPreviousWrap");
@@ -303,7 +305,8 @@ function showSectionsFor(sectionName) {
   const showPyrolysis = sectionName === "pyrolysis";
   const showCorc = sectionName === "corc";
 
-  step1Card.classList.toggle("hidden", showBiochar || showPyrolysis || showCorc);
+  const hideStep1 = showBiochar || showPyrolysis || showCorc || (showFeedstock && !editPreviousInfoCheckbox.checked);
+  step1Card.classList.toggle("hidden", hideStep1);
   feedstockSection.classList.toggle("hidden", !showFeedstock);
   biocharSection.classList.toggle("hidden", !showBiochar);
   pyrolysisSection.classList.toggle("hidden", !showPyrolysis);
@@ -324,6 +327,10 @@ function getCurrentSectionFromUrl() {
 }
 
 function navigateToSection(sectionName) {
+  if (sectionName === "feedstock" && !canEnterFeedstockSection()) {
+    alert("Select registry before opening feedstock section.");
+    return;
+  }
   const currentSection = getCurrentSectionFromUrl();
   const url = new URL(window.location.href);
   url.searchParams.set("section", sectionName);
@@ -463,6 +470,32 @@ function renderSummary() {
   parts.push(`Biomass Total: ${data.biomass_total_tpy || "0"} t/year`);
   if (data.contract_signed === "yes") parts.push("Contract: Signed");
   summary.textContent = parts.join(" | ");
+  renderPreviousSectionSummary();
+}
+
+function renderPreviousSectionSummary() {
+  const parts = [];
+  if (selectedText(countrySelect)) parts.push(`Country: ${selectedText(countrySelect)}`);
+  if (selectedText(stateSelect)) parts.push(`State: ${selectedText(stateSelect)}`);
+  if (citySelect.value) parts.push(`City: ${citySelect.value}`);
+  if (selectedText(registrySelect)) parts.push(`Registry: ${selectedText(registrySelect)}`);
+  previousSummaryInFeedstock.textContent = parts.length
+    ? parts.join(" | ")
+    : "Select country, location, and registry.";
+}
+
+function canEnterFeedstockSection() {
+  return Boolean(registrySelect.value);
+}
+
+function updateFeedstockAvailability() {
+  const enabled = canEnterFeedstockSection();
+  toFeedstockBtn.disabled = !enabled;
+  if (!enabled) {
+    feedstockSection.classList.add("hidden");
+    editPreviousInfoCheckbox.checked = false;
+    step1Card.classList.remove("hidden");
+  }
 }
 
 function csvEscape(value) {
@@ -503,6 +536,7 @@ function loadUserFromLocalStorage() {
     registrySelect.value = data.registry_id || "";
     updateRegistryMeta();
     renderFeedstockOptions(registrySelect.value);
+    updateFeedstockAvailability();
 
     try {
       feedstockEntries = JSON.parse(data.feedstock_entries_json || "[]");
@@ -669,8 +703,14 @@ async function loadFeedstockMatrix() {
 }
 
 function applySectionFromUrl() {
-  const params = new URLSearchParams(window.location.search);
   const section = getCurrentSectionFromUrl();
+
+  if (!canEnterFeedstockSection()) {
+    showSectionsFor("feedstock");
+    feedstockSection.classList.add("hidden");
+    step1Card.classList.remove("hidden");
+    return;
+  }
 
   if ((section === "biochar" || section === "pyrolysis" || section === "corc") && !feedstockEntries.length) {
     showSectionsFor("feedstock");
@@ -733,6 +773,7 @@ citySelect.addEventListener("change", () => {
 registrySelect.addEventListener("change", () => {
   updateRegistryMeta();
   renderFeedstockOptions(registrySelect.value);
+  updateFeedstockAvailability();
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -748,7 +789,13 @@ toFeedstockBtn.addEventListener("click", () => {
     alert("Select country and registry before continuing.");
     return;
   }
-  showSectionsFor("feedstock");
+  navigateToSection("feedstock");
+});
+
+editPreviousInfoCheckbox.addEventListener("change", () => {
+  if (getCurrentSectionFromUrl() === "feedstock") {
+    showSectionsFor("feedstock");
+  }
 });
 
 addFeedstockBtn.addEventListener("click", addSelectedFeedstock);
@@ -842,6 +889,7 @@ Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
   renderAllFeedstockTables();
   updateCopyOptionState();
   renderBiocharCriticalInfo();
+  updateFeedstockAvailability();
   applySectionFromUrl();
   renderSummary();
 });

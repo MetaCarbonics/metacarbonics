@@ -58,11 +58,19 @@
         </select>
         <p id="registryMeta" class="registry-meta"></p>
 
-        <button id="toFeedstockBtn" class="btn" type="button">Next: Feedstock Section</button>
+        <button id="toFeedstockBtn" class="btn" type="button" disabled>Next: Feedstock Section</button>
       </section>
 
       <section id="feedstockSection" class="card hidden">
         <h2>Feedstock Section</h2>
+        <div class="questionnaire-card">
+          <h4>Previous Section Summary</h4>
+          <div id="previousSummaryInFeedstock" class="small">Select registry to begin.</div>
+          <label for="editPreviousInfoCheckbox">
+            <input id="editPreviousInfoCheckbox" type="checkbox" />
+            Edit previous info
+          </label>
+        </div>
 
         <label>Total Biomass (t/year)</label>
         <div id="biomassTotalFeedstock" class="summary">0</div>
