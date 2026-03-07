@@ -844,6 +844,7 @@ function renderBreakdownChart(result) {
       const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
       return {
         label: r.feedstock,
+        stack: "runtime",
         data: [
           result.gross * w,
           -result.processE * w,
@@ -860,7 +861,13 @@ function renderBreakdownChart(result) {
       };
     });
   } else {
-    datasets = [{ data: [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final], label: "tCO2e/year" }];
+    datasets = [
+      {
+        label: "Project",
+        stack: "runtime",
+        data: [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final],
+      },
+    ];
   }
   if (breakdownChart) breakdownChart.destroy();
   breakdownChart = new window.Chart(ctx, {
@@ -868,7 +875,7 @@ function renderBreakdownChart(result) {
     data: { labels, datasets },
     options: {
       responsive: true,
-      plugins: { legend: { display: contribRows.length > 0, position: "right" } },
+      plugins: { legend: { display: true, position: "right" } },
       scales: { x: { stacked: true }, y: { beginAtZero: true, stacked: true } },
     },
   });
