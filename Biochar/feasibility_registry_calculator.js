@@ -835,53 +835,12 @@ function renderBreakdownChart(result) {
   if (!window.Chart) return;
   const ctx = document.getElementById("calcChart");
   const labels = ["Gross", "Process", "Transport", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
-  const contribRows = computeFeedstockContributions(result);
-  let datasets = [];
-
-  if (contribRows.length) {
-    const totalGrossRaw = contribRows.reduce((s, r) => s + Number(r.gross_raw || 0), 0);
-    const weights = contribRows.map((r) => {
-      if (totalGrossRaw > 0) return Number(r.gross_raw || 0) / totalGrossRaw;
-      return Number(r.contribution_pct || 0) / 100;
-    });
-    datasets = contribRows.map((r, idx) => {
-      const w = weights[idx];
-      const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
-      return {
-        label: r.feedstock,
-        data: [
-          result.gross * w,
-          -result.processE * w,
-          -result.transportE * w,
-          -result.leakageE * w,
-          -result.uncertaintyLoss * w,
-          -result.bufferLoss * w,
-          -result.issuanceLoss * w,
-          result.final * w,
-        ],
-        backgroundColor: color,
-        borderColor: color,
-        borderWidth: 1,
-      };
-    });
-  } else {
-    datasets = [
-      {
-        label: "tCO2e/year",
-        data: [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final],
-        backgroundColor: "#0f766e",
-      },
-    ];
-  }
+  const values = [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final];
   if (breakdownChart) breakdownChart.destroy();
   breakdownChart = new window.Chart(ctx, {
     type: "bar",
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: contribRows.length > 0, position: "right" } },
-      scales: { x: { stacked: true }, y: { beginAtZero: true, stacked: true } },
-    },
+    data: { labels, datasets: [{ data: values, label: "tCO2e/year" }] },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
   });
 }
 
