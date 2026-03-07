@@ -518,7 +518,6 @@ function renderPreviousSectionSummary() {
 
 function updateFeedstockAvailability() {
   const enabled = canEnterFeedstockSection();
-  toFeedstockBtn.disabled = !enabled;
   if (!enabled) {
     feedstockSection.classList.add("hidden");
     editPreviousInfoCheckbox.checked = false;
@@ -846,12 +845,15 @@ userIdInput.addEventListener("change", () => {
 
 toFeedstockBtn.addEventListener("click", () => {
   if (!registrySelect.value) {
-    alert("Select registry before continuing.");
+    feedstockFeedback.textContent = "Select a registry first, then continue to Feedstock Section.";
+    registrySelect.focus();
     return;
   }
   if (!countrySelect.value) {
     feedstockFeedback.textContent = "Country is not selected yet. You can continue with feedstock and update location later.";
   }
+  showSectionsFor("feedstock");
+  feedstockSection.scrollIntoView({ behavior: "smooth", block: "start" });
   navigateToSection("feedstock");
 });
 
