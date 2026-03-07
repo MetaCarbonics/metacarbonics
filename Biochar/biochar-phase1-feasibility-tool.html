@@ -26,6 +26,7 @@
           <button id="progressStep4" class="progress-step" type="button">4. Pyrolysis</button>
           <button id="progressStep5" class="progress-step" type="button">5. Financial</button>
           <button id="progressStep6" class="progress-step" type="button">6. Additional</button>
+          <button id="progressStep7" class="progress-step" type="button">7. Tentative Credits</button>
         </div>
       </section>
 
@@ -78,9 +79,11 @@
       <section id="feedstockSection" class="card hidden">
         <h2>Step 2: Feedstock</h2>
         <div class="questionnaire-card">
-          <h4>Biochar Critical Info (Step 1)</h4>
+          <div class="title-row">
+            <h4>Biochar Critical Info</h4>
+            <button id="editStep1FromFeedstockBtn" class="btn btn-secondary btn-sm" type="button">Edit Step 1 Info</button>
+          </div>
           <div id="previousSummaryInFeedstock" class="small">Select registry to begin.</div>
-          <button id="editStep1FromFeedstockBtn" class="btn btn-secondary btn-sm" type="button">Edit Step 1 Info</button>
         </div>
 
         <label>Total Biomass (t/year)</label>
@@ -88,7 +91,7 @@
         <div id="feedstockQcSummary" class="small">QA/QC: No feedstock entries yet.</div>
         <div id="feedstockFeedback" class="small"></div>
 
-        <div class="btn-row">
+        <div class="title-row">
           <label>Feedstock Summary Table</label>
           <button id="editFeedstockFromFeedstockBtn" class="btn btn-secondary btn-sm" type="button">Edit Feedstock Details</button>
         </div>
@@ -149,9 +152,9 @@
       <section id="biocharSection" class="card hidden">
         <h2>Step 3: Biochar</h2>
         <div class="questionnaire-card">
-          <div class="btn-row">
-            <h4>Biochar Critical Info (Step 1)</h4>
-          <button id="editStep1FromBiocharBtn" class="btn btn-secondary btn-sm" type="button">Edit Step 1 Info</button>
+          <div class="title-row">
+            <h4>Biochar Critical Info</h4>
+            <button id="editStep1FromBiocharBtn" class="btn btn-secondary btn-sm" type="button">Edit Step 1 Info</button>
           </div>
           <div id="previousSummaryInBiochar" class="small">Select country, location, and registry.</div>
         </div>
@@ -159,7 +162,7 @@
         <label>Total Biomass (t/year)</label>
         <div id="biomassTotalBiochar" class="summary">0</div>
 
-        <div class="btn-row">
+        <div class="title-row">
           <label>Feedstock Summary Table</label>
           <button id="editFeedstockFromBiocharBtn" class="btn btn-secondary btn-sm" type="button">Edit Feedstock Details</button>
         </div>
@@ -213,8 +216,8 @@
       <section id="pyrolysisSection" class="card hidden">
         <h2>Step 4: Pyrolysis</h2>
         <div class="questionnaire-card">
-          <div class="btn-row">
-            <h4>Biochar Critical Info (Step 1)</h4>
+          <div class="title-row">
+            <h4>Biochar Critical Info</h4>
             <button id="editStep1FromPyroBtn" class="btn btn-secondary btn-sm" type="button">Edit Step 1 Info</button>
           </div>
           <div id="previousSummaryInPyro" class="small">Select country, location, and registry.</div>
@@ -223,7 +226,7 @@
         <label>Total Biomass (t/year)</label>
         <div id="biomassTotalPyro" class="summary">0</div>
 
-        <div class="btn-row">
+        <div class="title-row">
           <label>Feedstock Summary Table</label>
           <button id="editFeedstockFromPyroBtn" class="btn btn-secondary btn-sm" type="button">Edit Feedstock Details</button>
         </div>
@@ -239,9 +242,12 @@
             <tr><td colspan="3">No feedstock added yet.</td></tr>
           </tbody>
         </table>
+        <div class="btn-row">
+          <button id="toFinancialPageBtn" class="btn" type="button">Next: Financial</button>
+        </div>
 
         <div class="questionnaire-card">
-          <div class="btn-row">
+          <div class="title-row">
             <h4>Biochar Critical Info</h4>
             <button id="editBiocharFromPyroBtn" class="btn btn-secondary btn-sm" type="button">Edit Biochar Details</button>
           </div>
@@ -277,36 +283,33 @@
         <label for="pyroQ20">20. Energy source used</label>
         <textarea id="pyroQ20" rows="3"></textarea>
 
-        <div class="btn-row">
-          <button id="toFinancialPageBtn" class="btn" type="button">Next: Financial</button>
-        </div>
       </section>
 
       <section id="financialSection" class="card hidden">
         <h2>Step 5: Financial</h2>
         <div class="questionnaire-card">
-          <div class="btn-row">
-            <h4>Biochar Critical Info (Step 1)</h4>
+          <div class="title-row">
+            <h4>Biochar Critical Info</h4>
             <button id="editStep1FromFinancialBtn" class="btn btn-secondary btn-sm" type="button">Edit Step 1 Info</button>
           </div>
           <div id="previousSummaryInFinancial" class="small">Select country, location, and registry.</div>
         </div>
         <div class="questionnaire-card">
-          <div class="btn-row">
+          <div class="title-row">
             <h4>Feedstock Summary</h4>
             <button id="editFeedstockFromFinancialBtn" class="btn btn-secondary btn-sm" type="button">Edit Feedstock Details</button>
           </div>
           <div id="feedstockSummaryInFinancial" class="small">No feedstock added yet.</div>
         </div>
         <div class="questionnaire-card">
-          <div class="btn-row">
+          <div class="title-row">
             <h4>Biochar Critical Info</h4>
             <button id="editBiocharFromFinancialBtn" class="btn btn-secondary btn-sm" type="button">Edit Biochar Details</button>
           </div>
           <div id="biocharCriticalInfoFinancial" class="small">No biochar data yet.</div>
         </div>
         <div class="questionnaire-card">
-          <div class="btn-row">
+          <div class="title-row">
             <h4>Pyrolysis Summary</h4>
             <button id="editPyroFromFinancialBtn" class="btn btn-secondary btn-sm" type="button">Edit Pyrolysis Details</button>
           </div>
@@ -326,7 +329,35 @@
       <section id="additionalSection" class="card hidden">
         <h2>Step 6: Additional Information</h2>
         <div class="questionnaire-card">
-          <div class="btn-row">
+          <div class="title-row">
+            <h4>Biochar Critical Info</h4>
+            <button id="editStep1FromAdditionalBtn" class="btn btn-secondary btn-sm" type="button">Edit Step 1 Info</button>
+          </div>
+          <div id="previousSummaryInAdditional" class="small">Select country, location, and registry.</div>
+        </div>
+        <div class="questionnaire-card">
+          <div class="title-row">
+            <h4>Feedstock Summary</h4>
+            <button id="editFeedstockFromAdditionalBtn" class="btn btn-secondary btn-sm" type="button">Edit Feedstock Details</button>
+          </div>
+          <div id="feedstockSummaryInAdditional" class="small">No feedstock added yet.</div>
+        </div>
+        <div class="questionnaire-card">
+          <div class="title-row">
+            <h4>Biochar Summary</h4>
+            <button id="editBiocharFromAdditionalBtn" class="btn btn-secondary btn-sm" type="button">Edit Biochar Details</button>
+          </div>
+          <div id="biocharCriticalInfoAdditional" class="small">No biochar data yet.</div>
+        </div>
+        <div class="questionnaire-card">
+          <div class="title-row">
+            <h4>Pyrolysis Summary</h4>
+            <button id="editPyroFromAdditionalBtn" class="btn btn-secondary btn-sm" type="button">Edit Pyrolysis Details</button>
+          </div>
+          <div id="pyroCriticalInfoAdditional" class="small">No pyrolysis data yet.</div>
+        </div>
+        <div class="questionnaire-card">
+          <div class="title-row">
             <h4>Financial Summary</h4>
             <button id="editFinancialFromAdditionalBtn" class="btn btn-secondary btn-sm" type="button">Edit Financial Details</button>
           </div>
@@ -338,6 +369,23 @@
         <div class="btn-row">
           <button id="addAdditionalInfoBtn" class="btn" type="button">Add New Information</button>
         </div>
+        <div class="btn-row">
+          <button id="toTentativePageBtn" class="btn" type="button">Next: Tentative Credits</button>
+        </div>
+      </section>
+
+      <section id="tentativeSection" class="card hidden">
+        <h2>Step 7: Tentative Credits</h2>
+        <label for="tentativePermanenceFactor">Permanence factor (0 to 1)</label>
+        <input id="tentativePermanenceFactor" type="number" min="0" max="1" step="0.01" value="0.80" />
+        <label>Tentative credits (tCO2e/year)</label>
+        <div id="tentativeCreditsValue" class="summary">0</div>
+
+        <div class="title-row">
+          <h3>Project Preview</h3>
+          <button id="refreshPreviewBtn" class="btn btn-secondary btn-sm" type="button">Refresh Preview</button>
+        </div>
+        <pre id="projectPreview" class="preview-box">No data yet.</pre>
 
         <label for="contractSignedCheckbox">
           <input id="contractSignedCheckbox" type="checkbox" />

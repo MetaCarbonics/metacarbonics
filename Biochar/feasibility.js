@@ -38,6 +38,7 @@ const progressStep3 = document.getElementById("progressStep3");
 const progressStep4 = document.getElementById("progressStep4");
 const progressStep5 = document.getElementById("progressStep5");
 const progressStep6 = document.getElementById("progressStep6");
+const progressStep7 = document.getElementById("progressStep7");
 
 const step1Card = document.getElementById("step1Card");
 const toFeedstockBtn = document.getElementById("toFeedstockBtn");
@@ -113,10 +114,25 @@ const editPyroFromFinancialBtn = document.getElementById("editPyroFromFinancialB
 const toAdditionalPageBtn = document.getElementById("toAdditionalPageBtn");
 
 const additionalSection = document.getElementById("additionalSection");
+const previousSummaryInAdditional = document.getElementById("previousSummaryInAdditional");
+const feedstockSummaryInAdditional = document.getElementById("feedstockSummaryInAdditional");
+const biocharCriticalInfoAdditional = document.getElementById("biocharCriticalInfoAdditional");
+const pyroCriticalInfoAdditional = document.getElementById("pyroCriticalInfoAdditional");
 const financialCriticalInfoAdditional = document.getElementById("financialCriticalInfoAdditional");
+const editStep1FromAdditionalBtn = document.getElementById("editStep1FromAdditionalBtn");
+const editFeedstockFromAdditionalBtn = document.getElementById("editFeedstockFromAdditionalBtn");
+const editBiocharFromAdditionalBtn = document.getElementById("editBiocharFromAdditionalBtn");
+const editPyroFromAdditionalBtn = document.getElementById("editPyroFromAdditionalBtn");
 const editFinancialFromAdditionalBtn = document.getElementById("editFinancialFromAdditionalBtn");
+const toTentativePageBtn = document.getElementById("toTentativePageBtn");
 const additionalInfoList = document.getElementById("additionalInfoList");
 const addAdditionalInfoBtn = document.getElementById("addAdditionalInfoBtn");
+
+const tentativeSection = document.getElementById("tentativeSection");
+const tentativePermanenceFactor = document.getElementById("tentativePermanenceFactor");
+const tentativeCreditsValue = document.getElementById("tentativeCreditsValue");
+const refreshPreviewBtn = document.getElementById("refreshPreviewBtn");
+const projectPreview = document.getElementById("projectPreview");
 const contractSignedCheckbox = document.getElementById("contractSignedCheckbox");
 
 const backToStep1Btn = document.getElementById("backToStep1Btn");
@@ -189,7 +205,7 @@ function getSelectedRegistry() {
 function getCurrentSectionFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const section = params.get("section") || "step1";
-  return ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional"].includes(section)
+  return ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional", "tentative"].includes(section)
     ? section
     : "step1";
 }
@@ -451,6 +467,7 @@ function renderBiocharCriticalInfo() {
   const text = `Annual biochar (t): ${annual} | Carbon content (%): ${content} | H/Corg: ${hcorg} | Certifications: ${certs}`;
   biocharCriticalInfo.textContent = text;
   biocharCriticalInfoFinancial.textContent = text;
+  biocharCriticalInfoAdditional.textContent = text;
 }
 
 function renderPyrolysisSummary() {
@@ -459,12 +476,54 @@ function renderPyrolysisSummary() {
   const p15 = pyroQ15.value ? "Q15: provided" : "Q15: pending";
   const energy = pyroQ20.value || "N/A";
   pyroCriticalInfoFinancial.textContent = `${p13} | ${p14} | ${p15} | Energy source: ${energy}`;
+  pyroCriticalInfoAdditional.textContent = `${p13} | ${p14} | ${p15} | Energy source: ${energy}`;
 }
 
 function renderFinancialSummary() {
   const q21 = financeQ21.value ? "Q21: provided" : "Q21: pending";
   const q22 = financeQ22.value ? "Q22: provided" : "Q22: pending";
   financialCriticalInfoAdditional.textContent = `${q21} | ${q22}`;
+}
+
+function computeTentativeCredits() {
+  const annualBiochar = Number(plantCapacity.value || 0);
+  const carbonContent = Number(biocharCarbonContent.value || 0) / 100;
+  const permanence = Number(tentativePermanenceFactor.value || 0);
+  if (!Number.isFinite(annualBiochar) || !Number.isFinite(carbonContent) || !Number.isFinite(permanence)) return 0;
+  const raw = annualBiochar * carbonContent * 3.667 * permanence;
+  return raw > 0 ? raw : 0;
+}
+
+function renderTentativeCredits() {
+  tentativeCreditsValue.textContent = computeTentativeCredits().toFixed(2);
+}
+
+function renderProjectPreview() {
+  const data = getFormData();
+  const feedstockLines = feedstockEntries.length
+    ? feedstockEntries.map((entry, idx) => `${idx + 1}. ${entry.feedstock} | qty: ${entry.quantity_tpy} | km: ${entry.q4_transport_km}`).join("\n")
+    : "No feedstock added.";
+  const additionalLines = additionalInfoEntries.length
+    ? additionalInfoEntries.map((item, idx) => `${idx + 1}. ${item.text || "-"}`).join("\n")
+    : "No additional info.";
+  const preview = [
+    `User: ${data.user_id || "N/A"}`,
+    `Location: ${data.country_name || "N/A"} | ${data.state_name || "N/A"} | ${data.city_name || "N/A"}`,
+    `Registry: ${data.registry_name || "N/A"}`,
+    `Biomass total (t/year): ${data.biomass_total_tpy || "0"}`,
+    `Tentative credits (tCO2e/year): ${computeTentativeCredits().toFixed(2)}`,
+    "",
+    "Feedstocks:",
+    feedstockLines,
+    "",
+    `Biochar: Carbon=${data.q6_biochar_carbon_content_pct || "N/A"}% | H/Corg=${data.q7_biochar_h_corg_ratio || "N/A"} | End use=${data.q9_end_use_application || "N/A"}`,
+    `Pyrolysis: Q13=${data.q13_pollution_controls ? "provided" : "pending"} | Q14=${data.q14_waste_heat_utilization ? "provided" : "pending"} | Q15=${data.q15_pyrolytic_gas_recovery ? "provided" : "pending"} | Energy=${data.q20_energy_source || "N/A"}`,
+    `Financial: Q21=${data.q21_no_credit_revenue_scenario ? "provided" : "pending"} | Q22=${data.q22_financial_model_evidence ? "provided" : "pending"}`,
+    "",
+    "Additional Info:",
+    additionalLines,
+  ].join("\n");
+  projectPreview.textContent = preview;
 }
 
 function renderAdditionalInfo() {
@@ -502,18 +561,19 @@ function sectionToStep(sectionName) {
     pyrolysis: 4,
     financial: 5,
     additional: 6,
+    tentative: 7,
   }[sectionName] || 1;
 }
 
 function updateProgressUI(sectionName) {
   const step = sectionToStep(sectionName);
-  const steps = [progressStep1, progressStep2, progressStep3, progressStep4, progressStep5, progressStep6];
+  const steps = [progressStep1, progressStep2, progressStep3, progressStep4, progressStep5, progressStep6, progressStep7];
   steps.forEach((el, idx) => {
     const n = idx + 1;
     el.classList.toggle("active", n === step);
     el.classList.toggle("done", n < step);
   });
-  progressFill.style.width = `${((step - 1) / 5) * 100}%`;
+  progressFill.style.width = `${((step - 1) / 6) * 100}%`;
 }
 
 function showSectionsFor(sectionName) {
@@ -523,6 +583,7 @@ function showSectionsFor(sectionName) {
   const showPyro = sectionName === "pyrolysis";
   const showFinancial = sectionName === "financial";
   const showAdditional = sectionName === "additional";
+  const showTentative = sectionName === "tentative";
 
   const keepStep1Visible = showStep1 || (showFeedstock && showStep1Editor);
   step1Card.classList.toggle("hidden", !keepStep1Visible);
@@ -531,10 +592,15 @@ function showSectionsFor(sectionName) {
   pyrolysisSection.classList.toggle("hidden", !showPyro);
   financialSection.classList.toggle("hidden", !showFinancial);
   additionalSection.classList.toggle("hidden", !showAdditional);
+  tentativeSection.classList.toggle("hidden", !showTentative);
 
-  if (showPyro || showFinancial || showAdditional) renderBiocharCriticalInfo();
-  if (showFinancial || showAdditional) renderPyrolysisSummary();
-  if (showAdditional) renderFinancialSummary();
+  if (showPyro || showFinancial || showAdditional || showTentative) renderBiocharCriticalInfo();
+  if (showFinancial || showAdditional || showTentative) renderPyrolysisSummary();
+  if (showAdditional || showTentative) renderFinancialSummary();
+  if (showTentative) {
+    renderTentativeCredits();
+    renderProjectPreview();
+  }
   updateProgressUI(sectionName);
 }
 
@@ -556,13 +622,14 @@ function navigateToSection(sectionName) {
 function navigateBackByHistory() {
   const params = new URLSearchParams(window.location.search);
   const prev = params.get("prev");
-  if (prev && ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional"].includes(prev)) {
+  if (prev && ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional", "tentative"].includes(prev)) {
     navigateToSection(prev);
     return;
   }
 
   const current = getCurrentSectionFromUrl();
   const fallback = {
+    tentative: "additional",
     additional: "financial",
     financial: "pyrolysis",
     pyrolysis: "biochar",
@@ -592,16 +659,19 @@ function renderPreviousSectionSummary() {
   previousSummaryInBiochar.textContent = text;
   previousSummaryInPyro.textContent = text;
   previousSummaryInFinancial.textContent = text;
+  previousSummaryInAdditional.textContent = text;
 }
 
 function renderFeedstockSummaryText() {
   if (!feedstockEntries.length) {
     feedstockSummaryInFinancial.textContent = "No feedstock added yet.";
+    feedstockSummaryInAdditional.textContent = "No feedstock added yet.";
     return;
   }
   const total = computeTotalBiomass();
   const list = feedstockEntries.map((entry) => entry.feedstock).join(", ");
   feedstockSummaryInFinancial.textContent = `Total biomass: ${total} t/year | Feedstocks: ${list}`;
+  feedstockSummaryInAdditional.textContent = `Total biomass: ${total} t/year | Feedstocks: ${list}`;
 }
 
 function updateFeedstockAvailability() {
@@ -648,6 +718,8 @@ function getFormData() {
     q20_energy_source: pyroQ20.value,
     q21_no_credit_revenue_scenario: financeQ21.value,
     q22_financial_model_evidence: financeQ22.value,
+    q23_tentative_permanence_factor: tentativePermanenceFactor.value,
+    q24_tentative_credits_tco2e: computeTentativeCredits().toFixed(2),
 
     additional_info_json: JSON.stringify(additionalInfoEntries),
     contract_signed: contractSignedCheckbox.checked ? "yes" : "no",
@@ -670,6 +742,8 @@ function renderSummary() {
   renderFeedstockSummaryText();
   renderPyrolysisSummary();
   renderFinancialSummary();
+  renderTentativeCredits();
+  renderProjectPreview();
 }
 
 function csvEscape(value) {
@@ -746,6 +820,7 @@ function loadUserFromLocalStorage() {
     pyroQ20.value = data.q20_energy_source || "";
     financeQ21.value = data.q21_no_credit_revenue_scenario || "";
     financeQ22.value = data.q22_financial_model_evidence || "";
+    tentativePermanenceFactor.value = data.q23_tentative_permanence_factor || "0.80";
 
     try {
       additionalInfoEntries = JSON.parse(data.additional_info_json || "[]");
@@ -876,7 +951,7 @@ function applySectionFromUrl() {
     return;
   }
 
-  if ((section === "biochar" || section === "pyrolysis" || section === "financial" || section === "additional") && !feedstockEntries.length) {
+  if ((section === "biochar" || section === "pyrolysis" || section === "financial" || section === "additional" || section === "tentative") && !feedstockEntries.length) {
     showSectionsFor("feedstock");
     return;
   }
@@ -951,6 +1026,7 @@ editStep1FromFeedstockBtn.addEventListener("click", openStep1Editor);
 editStep1FromBiocharBtn.addEventListener("click", openStep1Editor);
 editStep1FromPyroBtn.addEventListener("click", openStep1Editor);
 editStep1FromFinancialBtn.addEventListener("click", openStep1Editor);
+editStep1FromAdditionalBtn.addEventListener("click", openStep1Editor);
 
 feedstockType.addEventListener("change", openFeedstockFormBySelection);
 addFeedstockBtn.addEventListener("click", openFeedstockFormBySelection);
@@ -961,6 +1037,7 @@ editFeedstockFromFeedstockBtn.addEventListener("click", () => {
 editFeedstockFromBiocharBtn.addEventListener("click", () => navigateToSection("feedstock"));
 editFeedstockFromPyroBtn.addEventListener("click", () => navigateToSection("feedstock"));
 editFeedstockFromFinancialBtn.addEventListener("click", () => navigateToSection("feedstock"));
+editFeedstockFromAdditionalBtn.addEventListener("click", () => navigateToSection("feedstock"));
 saveFeedstockInfoBtn.addEventListener("click", saveFeedstockInfo);
 
 feedstockTableBodyFeedstock.addEventListener("click", (event) => {
@@ -997,7 +1074,9 @@ toPyrolysisPageBtn.addEventListener("click", () => {
 
 editBiocharFromPyroBtn.addEventListener("click", () => navigateToSection("biochar"));
 editBiocharFromFinancialBtn.addEventListener("click", () => navigateToSection("biochar"));
+editBiocharFromAdditionalBtn.addEventListener("click", () => navigateToSection("biochar"));
 editPyroFromFinancialBtn.addEventListener("click", () => navigateToSection("pyrolysis"));
+editPyroFromAdditionalBtn.addEventListener("click", () => navigateToSection("pyrolysis"));
 editFinancialFromAdditionalBtn.addEventListener("click", () => navigateToSection("financial"));
 
 toFinancialPageBtn.addEventListener("click", () => {
@@ -1006,6 +1085,10 @@ toFinancialPageBtn.addEventListener("click", () => {
 
 toAdditionalPageBtn.addEventListener("click", () => {
   navigateToSection("additional");
+});
+
+toTentativePageBtn.addEventListener("click", () => {
+  navigateToSection("tentative");
 });
 
 backToStep1Btn.addEventListener("click", navigateBackByHistory);
@@ -1017,6 +1100,14 @@ progressStep3.addEventListener("click", () => navigateToSection("biochar"));
 progressStep4.addEventListener("click", () => navigateToSection("pyrolysis"));
 progressStep5.addEventListener("click", () => navigateToSection("financial"));
 progressStep6.addEventListener("click", () => navigateToSection("additional"));
+progressStep7.addEventListener("click", () => navigateToSection("tentative"));
+
+tentativePermanenceFactor.addEventListener("input", () => {
+  renderTentativeCredits();
+  saveUserToLocalStorage();
+});
+
+refreshPreviewBtn.addEventListener("click", renderProjectPreview);
 
 [
   biocharCarbonContent,

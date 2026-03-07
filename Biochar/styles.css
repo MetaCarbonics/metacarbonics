@@ -162,6 +162,14 @@ textarea {
   margin-top: 8px;
 }
 
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .btn {
   border: 1px solid #0f766e;
   background: #0f766e;
@@ -216,7 +224,7 @@ textarea {
 
 .progress-steps {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -228,6 +236,16 @@ textarea {
   padding: 6px 8px;
   font-size: 12px;
   cursor: pointer;
+}
+
+.preview-box {
+  border: 1px solid #dbe4ee;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px;
+  white-space: pre-wrap;
+  max-height: 420px;
+  overflow: auto;
 }
 
 .progress-step.done {
