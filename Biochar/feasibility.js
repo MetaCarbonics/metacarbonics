@@ -860,6 +860,16 @@ function downloadPreviewPdf() {
         doc.text("MetaCarbonics - Phase 1 Contract Preview (continued)", 40, 18);
         doc.setTextColor(30, 41, 59);
       }
+      if (
+        String(w).startsWith("STEP ") ||
+        String(w).startsWith("METACARBONICS BIOCHAR") ||
+        String(w).startsWith("Assumptions used:") ||
+        String(w).startsWith("Runtime breakdown values:")
+      ) {
+        doc.setFont("helvetica", "bold");
+      } else {
+        doc.setFont("helvetica", "normal");
+      }
       doc.text(w, marginX, y);
       y += lineHeight;
     });
@@ -889,31 +899,59 @@ function downloadPreviewPdf() {
     });
   }
 
-  if (y > 760) {
-    doc.addPage();
-    y = 50;
-  }
-  y += 10;
-  doc.setFont("helvetica", "bold");
-  doc.text("Methodology Guide Defaults (screening)", marginX, y);
-  doc.setFont("helvetica", "normal");
-  y += 14;
-  const guideLines = [
-    "Carbon content defaults: Animal manure 0.38 | Wood 0.77 | Biosolids (Paper sludge) 0.35",
-    "Permanence factors: High temp >600C = 0.89 | Medium 450-600C = 0.80 | Low 350-450C = 0.65",
-    "Transport factor guide (kgCO2e/t-km): Road truck 0.10 | Rail 0.03 | Sea/river vessel 0.015",
-  ];
-  guideLines.forEach((gl) => {
-    const wrapped = doc.splitTextToSize(gl, maxWidth);
-    wrapped.forEach((w) => {
-      if (y > 800) {
-        doc.addPage();
-        y = 50;
-      }
-      doc.text(w, marginX, y);
-      y += lineHeight;
+  if (data.facility_lat && data.facility_lng) {
+    if (y > 740) {
+      doc.addPage();
+      y = 50;
+    }
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text("Georeferenced Facility Legend", marginX, y);
+    doc.setFont("helvetica", "normal");
+    y += 14;
+    const geoLines = [
+      `Latitude: ${data.facility_lat}`,
+      `Longitude: ${data.facility_lng}`,
+      `Map link: https://www.openstreetmap.org/?mlat=${data.facility_lat}&mlon=${data.facility_lng}#map=12/${data.facility_lat}/${data.facility_lng}`,
+      "Legend: Red dot = facility marker | Arrow = North",
+    ];
+    geoLines.forEach((gl) => {
+      const wrapped = doc.splitTextToSize(gl, maxWidth);
+      wrapped.forEach((w) => {
+        if (y > 800) {
+          doc.addPage();
+          y = 50;
+        }
+        doc.text(w, marginX, y);
+        y += lineHeight;
+      });
     });
-  });
+    if (y > 760) {
+      doc.addPage();
+      y = 50;
+    }
+    y += 6;
+    const mapX = marginX;
+    const mapY = y;
+    const mapW = 220;
+    const mapH = 140;
+    doc.setDrawColor(148, 163, 184);
+    doc.rect(mapX, mapY, mapW, mapH);
+    doc.setFontSize(8);
+    doc.text("Georeferenced schematic panel (not to scale)", mapX + 6, mapY + 12);
+    doc.setDrawColor(203, 213, 225);
+    for (let gx = mapX + 20; gx < mapX + mapW; gx += 20) doc.line(gx, mapY + 20, gx, mapY + mapH - 8);
+    for (let gy = mapY + 20; gy < mapY + mapH; gy += 20) doc.line(mapX + 8, gy, mapX + mapW - 8, gy);
+    doc.setFillColor(220, 38, 38);
+    doc.circle(mapX + mapW * 0.62, mapY + mapH * 0.58, 3, "F");
+    doc.setDrawColor(15, 23, 42);
+    doc.line(mapX + mapW - 22, mapY + mapH - 24, mapX + mapW - 22, mapY + mapH - 50);
+    doc.line(mapX + mapW - 22, mapY + mapH - 50, mapX + mapW - 26, mapY + mapH - 44);
+    doc.line(mapX + mapW - 22, mapY + mapH - 50, mapX + mapW - 18, mapY + mapH - 44);
+    doc.text("N", mapX + mapW - 26, mapY + mapH - 54);
+    y = mapY + mapH + 12;
+    doc.setFontSize(9);
+  }
 
   if (finalRegistryCredits?.breakdown) {
     if (y > 680) {
