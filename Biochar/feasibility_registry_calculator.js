@@ -819,12 +819,24 @@ function renderTenYearTable(finalAnnual) {
 function renderBreakdownChart(result) {
   if (!window.Chart) return;
   const ctx = document.getElementById("calcChart");
-  const labels = ["Gross", "Process", "Transport", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
-  const values = [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final];
+  const contribRows = computeFeedstockContributions(result);
+  let labels = [];
+  let values = [];
+  let datasetLabel = "tCO2e/year";
+
+  if (contribRows.length) {
+    labels = contribRows.map((r) => r.feedstock);
+    values = contribRows.map((r) => Number(r.annual_credits_tco2e || 0));
+    datasetLabel = "Feedstock contribution (annual credits)";
+  } else {
+    labels = ["Gross", "Process", "Transport", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
+    values = [result.gross, -result.processE, -result.transportE, -result.leakageE, -result.uncertaintyLoss, -result.bufferLoss, -result.issuanceLoss, result.final];
+    datasetLabel = "tCO2e/year";
+  }
   if (breakdownChart) breakdownChart.destroy();
   breakdownChart = new window.Chart(ctx, {
     type: "bar",
-    data: { labels, datasets: [{ data: values, label: "tCO2e/year" }] },
+    data: { labels, datasets: [{ data: values, label: datasetLabel }] },
     options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
   });
 }
