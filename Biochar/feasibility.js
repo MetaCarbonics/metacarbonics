@@ -37,6 +37,8 @@ const toFeedstockBtn = document.getElementById("toFeedstockBtn");
 const feedstockSection = document.getElementById("feedstockSection");
 const previousSummaryInFeedstock = document.getElementById("previousSummaryInFeedstock");
 const editPreviousInfoCheckbox = document.getElementById("editPreviousInfoCheckbox");
+const feedstockQcSummary = document.getElementById("feedstockQcSummary");
+const feedstockFeedback = document.getElementById("feedstockFeedback");
 
 const feedstockType = document.getElementById("feedstockType");
 const copyPreviousWrap = document.getElementById("copyPreviousWrap");
@@ -187,6 +189,50 @@ function updateCopyOptionState() {
   copyPreviousWrap.style.display = hasPrevious ? "inline-flex" : "none";
 }
 
+function renderFeedstockQc() {
+  if (!feedstockEntries.length) {
+    feedstockQcSummary.textContent = "QA/QC: No feedstock entries yet.";
+    return;
+  }
+
+  let passCount = 0;
+  let warnCount = 0;
+  const warnings = [];
+
+  feedstockEntries.forEach((entry) => {
+    const qty = Number(entry.quantity_tpy || 0);
+    const km = Number(entry.q4_transport_km || 0);
+
+    const requiredOk =
+      Boolean(entry.quantity_tpy) &&
+      Boolean(entry.q1_source_supply) &&
+      Boolean(entry.q2_suppliers_relation) &&
+      Boolean(entry.q3_current_use) &&
+      Boolean(entry.q4_transport_km);
+
+    if (requiredOk) passCount += 1;
+    else {
+      warnCount += 1;
+      warnings.push(`${entry.feedstock}: missing required fields`);
+    }
+
+    if (!Number.isFinite(qty) || qty <= 0) {
+      warnCount += 1;
+      warnings.push(`${entry.feedstock}: quantity should be > 0`);
+    }
+
+    if (Number.isFinite(km) && km > 1000) {
+      warnCount += 1;
+      warnings.push(`${entry.feedstock}: transport distance is high (>1000 km)`);
+    }
+  });
+
+  feedstockQcSummary.textContent = `QA/QC: ${passCount} pass, ${warnCount} warnings.`;
+  if (!feedstockFeedback.textContent && warnings.length) {
+    feedstockFeedback.textContent = `Review: ${warnings.slice(0, 2).join(" | ")}${warnings.length > 2 ? " ..." : ""}`;
+  }
+}
+
 function renderFeedstockTable(tbodyEl, withActions = false) {
   tbodyEl.innerHTML = "";
   if (!feedstockEntries.length) {
@@ -198,10 +244,10 @@ function renderFeedstockTable(tbodyEl, withActions = false) {
 
   feedstockEntries.forEach((entry, idx) => {
     const tr = document.createElement("tr");
-    const actionCell = withActions
+    const action = withActions
       ? `<td><button class="btn btn-secondary" type="button" data-edit-feedstock-index="${idx}">Edit</button></td>`
       : "";
-    tr.innerHTML = `<td>${entry.feedstock}</td><td>${entry.quantity_tpy || ""}</td><td>${entry.q4_transport_km || ""}</td>${actionCell}`;
+    tr.innerHTML = `<td>${entry.feedstock}</td><td>${entry.quantity_tpy || ""}</td><td>${entry.q4_transport_km || ""}</td>${action}`;
     tbodyEl.appendChild(tr);
   });
 }
@@ -241,6 +287,7 @@ function showFeedstockForm(entry, modeLabel) {
   q4TransportKm.value = entry.q4_transport_km || "";
   feedstockQty.value = entry.quantity_tpy || "";
   feedstockNotes.value = entry.notes || "";
+  activeFeedstockCard.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function openFeedstockFormBySelection() {
@@ -255,6 +302,7 @@ function openFeedstockFormBySelection() {
     draftFeedstockIndex = existingIdx;
     draftFeedstockName = selected;
     showFeedstockForm(feedstockEntries[existingIdx], "Edit Feedstock");
+    feedstockFeedback.textContent = "Editing existing feedstock entry.";
     return;
   }
 
@@ -273,6 +321,7 @@ function openFeedstockFormBySelection() {
   draftFeedstockIndex = -1;
   draftFeedstockName = selected;
   showFeedstockForm(draft, "New Feedstock");
+  feedstockFeedback.textContent = "Fill feedstock questionnaire, then click Save Info.";
 }
 
 function validateFeedstockDraft() {
@@ -309,8 +358,10 @@ function saveFeedstockInfo() {
   }
 
   renderAllFeedstockTables();
+  renderFeedstockQc();
   renderSummary();
   saveUserToLocalStorage();
+  feedstockFeedback.textContent = `Saved ${row.feedstock} information.`;
   hideFeedstockForm();
 }
 
@@ -321,6 +372,7 @@ function openFeedstockFormForEdit(index) {
   draftFeedstockIndex = index;
   draftFeedstockName = entry.feedstock;
   showFeedstockForm(entry, "Edit Feedstock");
+  feedstockFeedback.textContent = "Editing existing feedstock entry.";
 }
 
 function updateRegistryMeta() {
@@ -433,7 +485,8 @@ function navigateToSection(sectionName) {
   const url = new URL(window.location.href);
   url.searchParams.set("section", sectionName);
   url.searchParams.set("prev", current);
-  window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
+  window.history.pushState({}, "", `${url.pathname}?${url.searchParams.toString()}`);
+  applySectionFromUrl();
 }
 
 function navigateBackByHistory() {
@@ -471,6 +524,7 @@ function updateFeedstockAvailability() {
     editPreviousInfoCheckbox.checked = false;
     step1Card.classList.remove("hidden");
     hideFeedstockForm();
+    feedstockFeedback.textContent = "Select a registry to unlock feedstock section.";
   }
 }
 
@@ -525,6 +579,7 @@ function renderSummary() {
   if (data.contract_signed === "yes") parts.push("Contract: Signed");
   summary.textContent = parts.join(" | ");
   renderPreviousSectionSummary();
+  renderFeedstockQc();
 }
 
 function csvEscape(value) {
@@ -776,6 +831,9 @@ registrySelect.addEventListener("change", () => {
   renderFeedstockOptions(registrySelect.value);
   updateFeedstockAvailability();
   hideFeedstockForm();
+  if (registrySelect.value) {
+    feedstockFeedback.textContent = "Registry selected. Select a feedstock and open the form.";
+  }
   renderSummary();
   saveUserToLocalStorage();
 });
@@ -829,6 +887,7 @@ toCorcSectionBtn.addEventListener("click", () => {
 });
 
 backToStep1Btn.addEventListener("click", navigateBackByHistory);
+window.addEventListener("popstate", applySectionFromUrl);
 
 [
   biocharCarbonContent,
