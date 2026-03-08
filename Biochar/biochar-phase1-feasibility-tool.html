@@ -145,12 +145,18 @@
             <tr><td colspan="5">No feedstock added yet.</td></tr>
           </tbody>
         </table>
+        <div class="small" style="margin-top: 8px; margin-bottom: 12px;">
+          Combined summary for all facilities.
+        </div>
 
         <label>Total Biomass (t/year)</label>
         <div id="biomassTotalFeedstock" class="summary">0</div>
         <div id="feedstockQcSummary" class="small">QA/QC: No feedstock entries yet.</div>
         <div id="feedstockFeedback" class="small"></div>
 
+        <div class="btn-row" style="margin-top: 10px; margin-bottom: 8px;">
+          <button id="addFeedstockBtn" class="btn" type="button">Add More Facility/Feedstock Details</button>
+        </div>
         <label for="feedstockFacilitySelect">Select Facility</label>
         <select id="feedstockFacilitySelect">
           <option value="">Select facility first</option>
@@ -160,10 +166,6 @@
         <select id="feedstockType" disabled>
           <option value="">Select a registry first</option>
         </select>
-
-        <div class="btn-row">
-          <button id="addFeedstockBtn" class="btn" type="button">Open Feedstock Form</button>
-        </div>
 
         <div id="activeFeedstockCard" class="questionnaire-card hidden">
           <h4 id="activeFeedstockTitle">Feedstock Questionnaire</h4>
