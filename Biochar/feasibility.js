@@ -33,6 +33,10 @@ const singleStateWrap = document.getElementById("singleStateWrap");
 const multiStateModeSelect = document.getElementById("multiStateMode");
 const multiStateCheckbox = document.getElementById("multiStateCheckbox");
 const multiStateWrap = document.getElementById("multiStateWrap");
+const multiStateSummary = document.getElementById("multiStateSummary");
+const multiStateEditor = document.getElementById("multiStateEditor");
+const openMultiStateEditorBtn = document.getElementById("openMultiStateEditorBtn");
+const closeMultiStateEditorBtn = document.getElementById("closeMultiStateEditorBtn");
 const multiStateSelect = document.getElementById("multiStateSelect");
 const multiStateLocationList = document.getElementById("multiStateLocationList");
 const addMultiStateLocationBtn = document.getElementById("addMultiStateLocationBtn");
@@ -180,6 +184,7 @@ let facilityLng = null;
 let facilityPoints = [];
 let multiStateLocations = [];
 let activeMultiStateIndex = 0;
+let multiStateEditorOpen = false;
 let mapEditMode = false;
 let facilityMap = null;
 let facilityMarkersLayer = null;
@@ -439,13 +444,19 @@ function findTargetPlanForPoint(lat, lng) {
 }
 
 function renderMultiStateLocationRows(focusIdx = -1) {
-  if (!multiStateLocationList) return;
+  if (!multiStateSummary) return;
   if (!isMultiStateEnabled()) {
-    multiStateLocationList.innerHTML = "";
+    multiStateSummary.textContent = "No states selected.";
+    if (multiStateEditor) multiStateEditor.classList.add("hidden");
+    if (closeMultiStateEditorBtn) closeMultiStateEditorBtn.classList.add("hidden");
+    if (openMultiStateEditorBtn) openMultiStateEditorBtn.textContent = "Add New State";
     return;
   }
   const names = getBoundaryStateNames();
-  multiStateLocationList.innerHTML = `<div class="small">Selected states: ${names.length ? names.join(", ") : "None selected"}</div>`;
+  multiStateSummary.textContent = names.length ? names.join(", ") : "No states selected.";
+  if (openMultiStateEditorBtn) openMultiStateEditorBtn.textContent = names.length ? "Edit States" : "Add New State";
+  if (multiStateEditor) multiStateEditor.classList.toggle("hidden", !multiStateEditorOpen);
+  if (closeMultiStateEditorBtn) closeMultiStateEditorBtn.classList.toggle("hidden", !multiStateEditorOpen);
 }
 
 function updateFacilityLocationSummary() {
@@ -2993,6 +3004,9 @@ function onMultiStateModeChange(enabled) {
       const unique = [...new Set(fallbackCodes.filter(Boolean))];
       if (unique.length) setMultiValues(multiStateSelect, unique);
     }
+    multiStateEditorOpen = false;
+  } else {
+    multiStateEditorOpen = false;
   }
   multiStateLocations = getSelectedStateCodes().map((code) => ({
     state_code: code,
@@ -3010,6 +3024,22 @@ if (multiStateModeSelect) {
 
 if (multiStateCheckbox) {
   multiStateCheckbox.addEventListener("change", () => onMultiStateModeChange(Boolean(multiStateCheckbox.checked)));
+}
+
+if (openMultiStateEditorBtn) {
+  openMultiStateEditorBtn.addEventListener("click", () => {
+    if (!isMultiStateEnabled()) return;
+    multiStateEditorOpen = true;
+    renderMultiStateLocationRows();
+    if (multiStateSelect) multiStateSelect.focus();
+  });
+}
+
+if (closeMultiStateEditorBtn) {
+  closeMultiStateEditorBtn.addEventListener("click", () => {
+    multiStateEditorOpen = false;
+    renderMultiStateLocationRows();
+  });
 }
 
 multiStateSelect.addEventListener("change", () => {

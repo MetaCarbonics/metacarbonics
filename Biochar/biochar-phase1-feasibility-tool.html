@@ -68,10 +68,20 @@
             </select>
             <input id="multiStateCheckbox" type="checkbox" class="hidden" />
             <div id="multiStateWrap" class="hidden">
-              <label for="multiStateSelect">Select State(s)</label>
-              <select id="multiStateSelect" class="multi-select" multiple disabled>
-                <option value="">Select country first</option>
-              </select>
+              <div class="title-row">
+                <label>Selected State(s)</label>
+                <div class="btn-row">
+                  <button id="openMultiStateEditorBtn" class="btn btn-secondary btn-sm" type="button">Add New State</button>
+                  <button id="closeMultiStateEditorBtn" class="btn btn-secondary btn-sm hidden" type="button">Done</button>
+                </div>
+              </div>
+              <div id="multiStateSummary" class="small">No states selected.</div>
+              <div id="multiStateEditor" class="hidden" style="margin-top:8px;">
+                <label for="multiStateSelect">Select State(s)</label>
+                <select id="multiStateSelect" class="multi-select" multiple disabled>
+                  <option value="">Select country first</option>
+                </select>
+              </div>
             </div>
 
             <div id="singleStateWrap" class="grid">
