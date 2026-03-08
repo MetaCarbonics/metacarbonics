@@ -195,6 +195,25 @@ textarea {
   color: var(--mc-muted);
   font-size: 13px;
 }
+.evidence-note {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+.step-optional-box {
+  margin-top: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+}
+.step-optional-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
 
 .table {
   width: 100%;
@@ -422,15 +441,6 @@ textarea {
       </div>
       <label for="baselineNarrative">Baseline narrative and justification</label>
       <textarea id="baselineNarrative" name="baselineNarrative" placeholder="Describe baseline assumptions, data sources, baseline scenario logic, and identified uncertainties."></textarea>
-
-      <div id="registryOptionalWrap" style="margin-top:12px;">
-        <div class="small" style="margin-bottom:8px;">Optional add-ons based on selected registry and methodology</div>
-        <div id="registryOptionalContent" class="card" style="padding:12px; background:#f8fafc; border:1px solid #cbd5e1;">
-          Select registry and methodology in Step 1 to view optional prompts.
-        </div>
-        <label for="registryOptionalNotes" style="margin-top:10px;">Optional notes</label>
-        <textarea id="registryOptionalNotes" name="registryOptionalNotes" placeholder="Capture any additional baseline evidence or methodology-specific notes."></textarea>
-      </div>
     </section>
 
     <section class="section-step" data-step="3">
@@ -564,7 +574,6 @@ const nextBtn = document.getElementById("nextBtn");
 const evaluateBtn = document.getElementById("evaluateBtn");
 const registrySelect = document.getElementById("registrySelect");
 const methodologySelect = document.getElementById("methodologySelect");
-const registryOptionalContent = document.getElementById("registryOptionalContent");
 
 let map = null;
 let boundaryPoints = [];
@@ -595,47 +604,122 @@ const REGISTRY_METHODOLOGIES = {
   ],
 };
 
-const REGISTRY_OPTIONAL_PROMPTS = {
+const STEP_COMMON_OPTIONAL = {
+  1: [
+    "Optional: Add project developer legal registration details.",
+    "Optional: Upload government alignment letter for ARR activity.",
+  ],
+  2: [
+    "Optional: Add geospatial baseline uncertainty memo.",
+    "Optional: Attach baseline data gap closure plan.",
+  ],
+  3: [
+    "Optional: Add nursery source details and species suitability matrix.",
+    "Optional: Attach survival-rate assumptions by species.",
+  ],
+  4: [
+    "Optional: Add summary of grievance redress mechanism.",
+    "Optional: Attach FPIC stakeholder attendance log.",
+  ],
+  5: [
+    "Optional: Add soil test laboratory certificates.",
+    "Optional: Attach rainfall and drought recurrence analysis.",
+  ],
+  6: [
+    "Optional: Add leakage belt map and livelihood substitution notes.",
+    "Optional: Attach leakage mitigation budget.",
+  ],
+  7: [
+    "Optional: Add fire management SOP and grazing control plan.",
+    "Optional: Attach pest surveillance schedule.",
+  ],
+  8: [
+    "Optional: Add equation workbook assumptions with versioning.",
+    "Optional: Attach uncertainty deduction rationale.",
+  ],
+  9: [
+    "Optional: Add common-practice benchmark evidence package.",
+    "Optional: Attach barrier analysis references.",
+  ],
+  10: [
+    "Optional: Add credit price sensitivity and downside case.",
+    "Optional: Attach financing term sheet assumptions.",
+  ],
+};
+
+const STEP_REGISTRY_OPTIONAL = {
   verra: {
-    default: [
-      "Optional: Provide dynamic baseline land-use transition evidence.",
-      "Optional: Upload ARR eligibility screening notes and leakage belt approach.",
-      "Optional: Record uncertainty deduction approach for ex-ante credits.",
-    ],
-    vm0047: [
-      "VM0047 optional: Provide baseline fuelwood extraction assumptions and evidence.",
-      "VM0047 optional: Add guidance for stratified sampling design and confidence intervals.",
-      "VM0047 optional: Capture N2O/CH4 non-CO2 significance screening references.",
-    ],
+    default: {
+      2: ["Verra optional: include baseline scenario continuation narrative for audit trail."],
+      6: ["Verra optional: include leakage quantification approach and evidence hierarchy."],
+      8: ["Verra optional: include uncertainty treatment and conservativeness checks."],
+    },
+    vm0047: {
+      2: ["VM0047 optional: include stratified sampling confidence target and formulas."],
+      8: ["VM0047 optional: include non-CO2 significance screening notes."],
+    },
   },
   gold_standard: {
-    default: [
-      "GS optional: Add SDG co-benefit baseline indicators and monitoring plan notes.",
-      "GS optional: Include stakeholder consultation baseline concerns register.",
-    ],
-    "gs-arr": [
-      "GS ARR optional: Add baseline biomass growth assumptions and conservative factors.",
-      "GS ARR optional: Note rationale for baseline continuation scenario.",
-    ],
+    default: {
+      2: ["GS optional: include SDG baseline co-benefit indicator set."],
+      4: ["GS optional: include stakeholder consultation issue-response matrix."],
+    },
   },
   acr: {
-    default: [
-      "ACR optional: Add baseline inventory design memo and stratification logic.",
-      "ACR optional: Record how baseline disturbances are represented.",
-    ],
+    default: {
+      2: ["ACR optional: include baseline disturbance treatment note."],
+      9: ["ACR optional: include additionality support memo mapped to ACR criteria."],
+    },
   },
   car: {
-    default: [
-      "CAR optional: Provide baseline stocking assumptions and protocol-fit justification.",
-      "CAR optional: Add non-permanence risk pre-screen comments.",
-    ],
+    default: {
+      2: ["CAR optional: include protocol applicability checklist output."],
+      7: ["CAR optional: include permanence risk pre-screen and mitigation references."],
+    },
   },
   isometric: {
-    default: [
-      "Isometric optional: Document measurement boundaries and data assurance approach.",
-      "Isometric optional: Note digital MRV readiness and evidence provenance.",
-    ],
+    default: {
+      2: ["Isometric optional: include data provenance and digital chain-of-custody details."],
+      8: ["Isometric optional: include model reproducibility settings and assumptions."],
+    },
   },
+};
+
+const EVIDENCE_HINTS = {
+  registrySelect: "Probable evidence: registry eligibility check note and latest applicable methodology version.",
+  methodologySelect: "Probable evidence: methodology applicability screening sheet for the selected project type.",
+  projectPartner: "Probable evidence: partner MoU, incorporation certificate, or authorized signatory letter.",
+  projectName: "Probable evidence: internal concept note or project ID from your pipeline tracker.",
+  kmlUpload: "Probable evidence: signed GIS boundary file (KML/KMZ/Shapefile) with source and date.",
+  baselineData: "Probable evidence: historical land-use datasets, satellite time series, and land records.",
+  baselineLandUseChange: "Probable evidence: remote sensing change-detection report or land-cover analysis.",
+  baselineCarbon: "Probable evidence: baseline biomass/SOC inventory report with sampling protocol.",
+  baselineStratification: "Probable evidence: GIS strata map and stratification logic note.",
+  baselineScenarioQuality: "Probable evidence: documented baseline scenario narrative with assumptions.",
+  baselineRemoteSensing: "Probable evidence: imagery source metadata and classification accuracy sheet.",
+  baselineFieldPlots: "Probable evidence: plot register, GPS points, and field measurement sheets.",
+  baselineSOC: "Probable evidence: lab soil test reports and sampling chain-of-custody records.",
+  baselineUncertainty: "Probable evidence: uncertainty calculation workbook and confidence interval output.",
+  baselineQAQC: "Probable evidence: QA/QC SOP, verifier checklist, and data review logs.",
+  baselineNarrative: "Probable evidence: consolidated baseline memo citing all datasets and assumptions.",
+  speciesList: "Probable evidence: species plan, seedling procurement records, and silviculture prescription.",
+  plantingModel: "Probable evidence: planting design document and implementation schedule.",
+  ownership: "Probable evidence: land title/tenure records and legal opinion note.",
+  disputes: "Probable evidence: dispute register, legal affidavits, and resolution status.",
+  fpic: "Probable evidence: signed FPIC forms, consultation minutes, and attendance sheets.",
+  soil: "Probable evidence: soil survey report and soil test lab outputs.",
+  climate: "Probable evidence: historical weather data and climate suitability analysis.",
+  leakageAssessment: "Probable evidence: leakage risk assessment report and affected-community profile.",
+  leakageMitigation: "Probable evidence: mitigation action plan with responsible party and budget.",
+  fireRisk: "Probable evidence: fire history maps, local incident logs, and prevention plan.",
+  grazingRisk: "Probable evidence: grazing pressure assessment and enforcement mechanism note.",
+  pestRisk: "Probable evidence: pest incidence records and integrated pest management protocol.",
+  exAnte: "Probable evidence: ex-ante quantification model and signed calculation workbook.",
+  assumptions: "Probable evidence: assumption register with source citations and version control.",
+  financialAdditionality: "Probable evidence: IRR/NPV scenario comparison with and without carbon revenue.",
+  regulatoryAdditionality: "Probable evidence: regulatory analysis memo and common-practice benchmark.",
+  costs: "Probable evidence: CAPEX/OPEX budget sheet and supplier quotations.",
+  revenue: "Probable evidence: revenue model with carbon price assumptions and sensitivity ranges.",
 };
 
 function initWorkflow() {
@@ -674,22 +758,65 @@ function populateMethodologyOptions() {
   pendingMethodology = "";
 }
 
-function updateRegistryOptionalSection() {
-  if (!registryOptionalContent) return;
+function getStepOptionalPrompts(stepNumber, registry, methodology) {
+  const prompts = [...(STEP_COMMON_OPTIONAL[stepNumber] || [])];
+  if (!registry) return prompts;
+  const byRegistry = STEP_REGISTRY_OPTIONAL[registry] || {};
+  const regDefault = (byRegistry.default && byRegistry.default[stepNumber]) || [];
+  prompts.push(...regDefault);
+  if (methodology && byRegistry[methodology] && byRegistry[methodology][stepNumber]) {
+    prompts.push(...byRegistry[methodology][stepNumber]);
+  }
+  return prompts;
+}
+
+function initStepOptionalGuidance() {
+  sections.forEach((section, idx) => {
+    const stepNumber = idx + 1;
+    if (section.querySelector(".step-optional-box")) return;
+    const wrap = document.createElement("div");
+    wrap.className = "step-optional-box";
+    wrap.innerHTML = `
+      <div class="step-optional-title">Optional: Registry + Methodology Add-ons</div>
+      <div class="small step-optional-content" data-step-opt="${stepNumber}">Select registry and methodology in Step 1 to view optional prompts.</div>
+      <label for="optionalStep${stepNumber}Notes">Optional notes for this step</label>
+      <textarea id="optionalStep${stepNumber}Notes" name="optionalStep${stepNumber}Notes" placeholder="Add optional registry/methodology-specific notes for Step ${stepNumber}."></textarea>
+    `;
+    section.appendChild(wrap);
+  });
+}
+
+function updateAllStepOptionalGuidance() {
   const registry = (registrySelect && registrySelect.value) || "";
   const methodology = (methodologySelect && methodologySelect.value) || "";
-  if (!registry) {
-    registryOptionalContent.innerHTML = "Select registry and methodology in Step 1 to view optional prompts.";
-    return;
-  }
+  const contentEls = Array.from(document.querySelectorAll(".step-optional-content"));
+  contentEls.forEach((el) => {
+    const stepNumber = Number(el.getAttribute("data-step-opt"));
+    const prompts = getStepOptionalPrompts(stepNumber, registry, methodology);
+    if (!registry) {
+      el.textContent = "Select registry and methodology in Step 1 to view optional prompts.";
+      return;
+    }
+    if (!prompts.length) {
+      el.textContent = "No additional optional prompts for this step and selected combination.";
+      return;
+    }
+    el.innerHTML = `<ul style="margin:0; padding-left:18px;">${prompts.map((p) => `<li>${p}</li>`).join("")}</ul>`;
+  });
+}
 
-  const byRegistry = REGISTRY_OPTIONAL_PROMPTS[registry] || {};
-  const prompts = (methodology && byRegistry[methodology]) || byRegistry.default || [];
-  if (!prompts.length) {
-    registryOptionalContent.innerHTML = "No additional optional prompts for the selected combination.";
-    return;
-  }
-  registryOptionalContent.innerHTML = `<ul style="margin:0; padding-left:18px;">${prompts.map((p) => `<li>${p}</li>`).join("")}</ul>`;
+function initEvidenceHints() {
+  const fields = Array.from(document.querySelectorAll("input[type='text'], input[type='file'], select, textarea"));
+  fields.forEach((el) => {
+    if (el.id && el.id.startsWith("optionalStep")) return;
+    const key = el.name || el.id || "";
+    if (!key) return;
+    if (el.nextElementSibling && el.nextElementSibling.classList && el.nextElementSibling.classList.contains("evidence-note")) return;
+    const note = document.createElement("div");
+    note.className = "evidence-note";
+    note.textContent = EVIDENCE_HINTS[key] || "Probable evidence: supporting document, source data, or stakeholder record.";
+    el.insertAdjacentElement("afterend", note);
+  });
 }
 
 function setStep(step) {
@@ -947,6 +1074,9 @@ function calculateScore() {
 
 evaluateBtn.addEventListener("click", calculateScore);
 
+initStepOptionalGuidance();
+initEvidenceHints();
+
 Array.from(document.querySelectorAll("input, select, textarea")).forEach((el) => {
   el.addEventListener("input", saveDraft);
   el.addEventListener("change", saveDraft);
@@ -954,21 +1084,21 @@ Array.from(document.querySelectorAll("input, select, textarea")).forEach((el) =>
 
 loadDraft();
 populateMethodologyOptions();
-updateRegistryOptionalSection();
+updateAllStepOptionalGuidance();
 initWorkflow();
 initMap();
 
 if (registrySelect) {
   registrySelect.addEventListener("change", () => {
     populateMethodologyOptions();
-    updateRegistryOptionalSection();
+    updateAllStepOptionalGuidance();
     saveDraft();
   });
 }
 
 if (methodologySelect) {
   methodologySelect.addEventListener("change", () => {
-    updateRegistryOptionalSection();
+    updateAllStepOptionalGuidance();
     saveDraft();
   });
 }
