@@ -100,6 +100,20 @@
               <button id="editFacilityMarkerBtn" class="btn btn-secondary btn-sm" type="button">Edit Facility Locations</button>
             </div>
             <div id="facilityMap" class="facility-map" aria-label="Project facility map"></div>
+            <div id="mapHoverDistrict" class="small">Hover inside selected state boundary to view district.</div>
+            <div class="grid" style="margin-top:8px;">
+              <div>
+                <label for="facilityCoordLat">Facility Latitude</label>
+                <input id="facilityCoordLat" type="number" step="any" placeholder="e.g. 29.3919" />
+              </div>
+              <div>
+                <label for="facilityCoordLng">Facility Longitude</label>
+                <input id="facilityCoordLng" type="number" step="any" placeholder="e.g. 79.4542" />
+              </div>
+            </div>
+            <div class="btn-row">
+              <button id="addFacilityByCoordBtn" class="btn btn-secondary btn-sm" type="button">Add Facility by Coordinates</button>
+            </div>
             <div id="facilityLocationSummary" class="small">Marker not set.</div>
             <div id="facilityPlanQCSummary" class="small">QA/QC: Plan not completed.</div>
             <div id="facilityMarkerDates" class="small">Add marker(s) in edit mode, then set operation start date below.</div>

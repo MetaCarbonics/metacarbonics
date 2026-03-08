@@ -41,6 +41,10 @@ const countryEligibilityMsg = document.getElementById("countryEligibilityMsg");
 const summary = document.getElementById("summary");
 const facilityMapEl = document.getElementById("facilityMap");
 const editFacilityMarkerBtn = document.getElementById("editFacilityMarkerBtn");
+const mapHoverDistrict = document.getElementById("mapHoverDistrict");
+const facilityCoordLat = document.getElementById("facilityCoordLat");
+const facilityCoordLng = document.getElementById("facilityCoordLng");
+const addFacilityByCoordBtn = document.getElementById("addFacilityByCoordBtn");
 const facilityLocationSummary = document.getElementById("facilityLocationSummary");
 const facilityPlanQCSummary = document.getElementById("facilityPlanQCSummary");
 const facilityMarkerDates = document.getElementById("facilityMarkerDates");
@@ -183,6 +187,9 @@ let previewBoundaryLayer = null;
 let stateBoundaryLayer = null;
 let stateBoundaryFeatures = [];
 let districtBoundaryFeatures = [];
+let hoverDistrictCache = new Map();
+let hoverDistrictInFlight = false;
+let hoverDistrictLastMs = 0;
 let finalRegistryCredits = null;
 let editingFacilityIndex = -1;
 
@@ -669,10 +676,13 @@ function renderFacilityMarkers(recenter = false) {
 function setFacilityMarker(lat, lng, recenter = true) {
   const la = Number(lat);
   const ln = Number(lng);
-  if (!Number.isFinite(la) || !Number.isFinite(ln)) return;
+  if (!Number.isFinite(la) || !Number.isFinite(ln)) return false;
   const targetPlan = findTargetPlanForPoint(la, ln);
   const placementError = getPlacementError(la, ln, targetPlan);
-  if (placementError) return;
+  if (placementError) {
+    alert(placementError);
+    return false;
+  }
   const markerId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   facilityPoints.push({
     id: markerId,
@@ -699,6 +709,7 @@ function setFacilityMarker(lat, lng, recenter = true) {
   renderFacilityMarkers(recenter);
   updateFacilityLocationSummary();
   renderFacilityMarkerDates();
+  return true;
 }
 
 function updateMapEditMode(enabled) {
@@ -808,13 +819,36 @@ async function resolveFacilityLocationFromPoint(lat, lng) {
   }
 }
 
+async function fetchDistrictNameForPoint(lat, lng) {
+  const key = `${Number(lat).toFixed(3)},${Number(lng).toFixed(3)}`;
+  if (hoverDistrictCache.has(key)) return hoverDistrictCache.get(key);
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=12&addressdetails=1`;
+  const res = await fetch(url);
+  const row = await res.json();
+  const addr = row?.address || {};
+  const districtName = String(
+    addr.county ||
+      addr.city_district ||
+      addr.state_district ||
+      addr.city ||
+      addr.town ||
+      addr.municipality ||
+      addr.village ||
+      ""
+  );
+  hoverDistrictCache.set(key, districtName || "N/A");
+  return hoverDistrictCache.get(key);
+}
+
 async function refreshStateBoundaryLayer() {
   if (!facilityMap || !window.L) return;
+  hoverDistrictCache = new Map();
   const stateNames = getBoundaryStateNames();
   stateBoundaryFeatures = [];
   districtBoundaryFeatures = [];
   if (!stateNames.length) {
     if (stateBoundaryLayer) stateBoundaryLayer.clearLayers();
+    if (mapHoverDistrict) mapHoverDistrict.textContent = "Hover inside selected state boundary to view district.";
     return;
   }
   const country = selectedText(countrySelect);
@@ -879,6 +913,37 @@ function initFacilityMap() {
     setFacilityMarker(Number(e.latlng.lat), Number(e.latlng.lng), false);
     renderSummary();
     saveUserToLocalStorage();
+  });
+
+  facilityMap.on("mousemove", async (e) => {
+    if (!mapHoverDistrict) return;
+    if (!stateBoundaryFeatures.length) {
+      mapHoverDistrict.textContent = "Hover inside selected state boundary to view district.";
+      return;
+    }
+    const lat = Number(e.latlng.lat);
+    const lng = Number(e.latlng.lng);
+    const insideState = stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f));
+    if (!insideState) {
+      mapHoverDistrict.textContent = "Pointer is outside selected state boundary.";
+      return;
+    }
+    const now = Date.now();
+    if (hoverDistrictInFlight || now - hoverDistrictLastMs < 450) return;
+    hoverDistrictLastMs = now;
+    hoverDistrictInFlight = true;
+    try {
+      const dName = await fetchDistrictNameForPoint(lat, lng);
+      mapHoverDistrict.textContent = `District: ${dName || "N/A"}`;
+    } catch {
+      mapHoverDistrict.textContent = "District: unavailable";
+    } finally {
+      hoverDistrictInFlight = false;
+    }
+  });
+
+  facilityMap.on("mouseout", () => {
+    if (mapHoverDistrict) mapHoverDistrict.textContent = "Hover inside selected state boundary to view district.";
   });
 
   if (facilityPoints.length) renderFacilityMarkers(true);
@@ -2876,6 +2941,21 @@ editFacilityMarkerBtn.addEventListener("click", () => {
   renderSummary();
   saveUserToLocalStorage();
 });
+
+if (addFacilityByCoordBtn) {
+  addFacilityByCoordBtn.addEventListener("click", () => {
+    const lat = Number(facilityCoordLat?.value);
+    const lng = Number(facilityCoordLng?.value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      alert("Enter valid latitude and longitude.");
+      return;
+    }
+    const ok = setFacilityMarker(lat, lng, true);
+    if (!ok) return;
+    renderSummary();
+    saveUserToLocalStorage();
+  });
+}
 
 toFeedstockBtn.addEventListener("click", () => {
   if (!registrySelect.value) {
