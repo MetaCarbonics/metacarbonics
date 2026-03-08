@@ -2458,6 +2458,14 @@ async function downloadPreviewPdf() {
     });
   });
 
+  ensureSpace(30);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("STEP 7: TENTATIVE & FINAL CREDITS (TABLES)", marginX, y);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  y += 12;
+
   if (finalRegistryCredits?.breakdown) {
     if (y > 680) {
       doc.addPage();
@@ -2505,13 +2513,6 @@ async function downloadPreviewPdf() {
   const parameterValues = Array.isArray(finalRegistryCredits?.parameter_defaults_summary)
     ? finalRegistryCredits.parameter_defaults_summary
     : [];
-  ensureSpace(30);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("STEP 7: TENTATIVE & FINAL CREDITS (TABLES)", marginX, y);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  y += 12;
 
   drawTable(
     "Step 7 Total Summary",
