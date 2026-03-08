@@ -1584,17 +1584,31 @@ function renderPyrolysisSummary() {
     pyroCriticalInfoAdditional.textContent = "No facility added yet.";
     return;
   }
-  let completed = 0;
-  const energySet = new Set();
-  facilityPoints.forEach((f) => {
+  const selectedFacilityId = pyroFacilitySelect?.value || facilityPoints[0]?.id || "";
+  const selectedLabel = getFacilityLabelById(selectedFacilityId);
+  const selectedEntry = getPyroEntryForFacility(selectedFacilityId, false) || defaultPyroEntry();
+
+  const status = (v) => (String(v || "").trim() ? "provided" : "pending");
+  const selectedSummary = [
+    `${selectedLabel}`,
+    `Q13: ${status(selectedEntry.q13_pollution_controls)}`,
+    `Q14: ${status(selectedEntry.q14_waste_heat_utilization)}`,
+    `Q15: ${status(selectedEntry.q15_pyrolytic_gas_recovery)}`,
+    `Q16: ${status(selectedEntry.q16_continuous_temperature_reporting)}`,
+    `Q17: ${status(selectedEntry.q17_avg_yearly_temp)}`,
+    `Q18: ${Array.isArray(selectedEntry.q18_facility_certifications) && selectedEntry.q18_facility_certifications.length ? "provided" : "pending"}`,
+    `Q19: ${status(selectedEntry.q19_energy_used_mwh_a)}`,
+    `Q20: ${status(selectedEntry.q20_energy_source)}`,
+  ].join(" | ");
+
+  const completed = facilityPoints.reduce((count, f) => {
     const e = pyroEntriesByFacility[f.id];
-    if (!e) return;
+    if (!e) return count;
     const req = [e.q13_pollution_controls, e.q14_waste_heat_utilization, e.q15_pyrolytic_gas_recovery, e.q16_continuous_temperature_reporting, e.q17_avg_yearly_temp, e.q19_energy_used_mwh_a, e.q20_energy_source];
-    if (req.every((v) => String(v || "").trim())) completed += 1;
-    if (e.q20_energy_source) energySet.add(String(e.q20_energy_source));
-  });
-  const energy = energySet.size ? Array.from(energySet).join(", ") : "N/A";
-  const txt = `Facility-wise pyrolysis completed: ${completed}/${totalFacilities} | Energy source(s): ${energy}`;
+    return req.every((v) => String(v || "").trim()) ? count + 1 : count;
+  }, 0);
+
+  const txt = `${selectedSummary} | Facility completion: ${completed}/${totalFacilities}`;
   pyroCriticalInfoFinancial.textContent = txt;
   pyroCriticalInfoAdditional.textContent = txt;
 }

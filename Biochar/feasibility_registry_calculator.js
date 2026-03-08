@@ -45,6 +45,8 @@ const feedstockContributionTableWrap = document.getElementById("feedstockContrib
 const feedstockChartsWrap = document.getElementById("feedstockChartsWrap");
 const feedstockSharePieChartEl = document.getElementById("feedstockSharePieChart");
 const feedstockContributionChartEl = document.getElementById("feedstockContributionChart");
+const facilityAnalysisTableWrap = document.getElementById("facilityAnalysisTableWrap");
+const facilityAnalysisChartEl = document.getElementById("facilityAnalysisChart");
 const parameterDefaultsSummaryEl = document.getElementById("parameterDefaultsSummary");
 const openGuideLink = document.getElementById("openGuideLink");
 const closeGuideBtn = document.getElementById("closeGuideBtn");
@@ -57,9 +59,11 @@ let breakdownChart = null;
 let sensitivityChart = null;
 let feedstockSharePieChart = null;
 let feedstockContributionChart = null;
+let facilityAnalysisChart = null;
 let perFeedstockCharts = [];
 let payload = null;
 let feedstockEntries = [];
+let facilityPoints = [];
 let projectRegion = "Global";
 let lastFeedstockContributions = [];
 let lastParameterDefaults = [];
@@ -523,6 +527,12 @@ function applyPayloadValues() {
   } catch {
     feedstockEntries = [];
   }
+  try {
+    const parsedFacilities = JSON.parse(d.facility_points_json || "[]");
+    facilityPoints = Array.isArray(parsedFacilities) ? parsedFacilities : [];
+  } catch {
+    facilityPoints = [];
+  }
 
   if (d.q5_annual_biochar_t) inputAnnualBiochar.value = d.q5_annual_biochar_t;
   if (d.q6_biochar_carbon_content_pct) inputCarbonContent.value = d.q6_biochar_carbon_content_pct;
@@ -574,8 +584,19 @@ function calculateCredits(overrides = {}) {
 
 function computeFeedstockContributions(baseResult) {
   const entries = Array.isArray(feedstockEntries) ? feedstockEntries.filter((e) => Number(e.quantity_tpy || 0) > 0) : [];
-  const totalQty = entries.reduce((sum, e) => sum + Number(e.quantity_tpy || 0), 0);
-  if (!entries.length || totalQty <= 0) return [];
+  if (!entries.length) return [];
+
+  const groupedByFeedstock = new Map();
+  entries.forEach((e) => {
+    const key = String(e.feedstock || "Unknown").trim() || "Unknown";
+    const qty = Number(e.quantity_tpy || 0);
+    const prev = groupedByFeedstock.get(key) || { feedstock: key, quantity_tpy: 0 };
+    prev.quantity_tpy += qty;
+    groupedByFeedstock.set(key, prev);
+  });
+  const groupedEntries = Array.from(groupedByFeedstock.values());
+  const totalQty = groupedEntries.reduce((sum, e) => sum + Number(e.quantity_tpy || 0), 0);
+  if (!groupedEntries.length || totalQty <= 0) return [];
 
   const annualBiochar = num(inputAnnualBiochar);
   const stableCarbon = num(inputStableCarbon);
@@ -583,7 +604,7 @@ function computeFeedstockContributions(baseResult) {
   const additionalityAdj = num(inputAdditionalityAdj);
   const baseFinal = Number(baseResult?.final || 0);
 
-  const grossRows = entries.map((e) => {
+  const grossRows = groupedEntries.map((e) => {
     const qty = Number(e.quantity_tpy || 0);
     const share = qty / totalQty;
     const annualBiocharShare = annualBiochar * share;
@@ -622,6 +643,81 @@ function computeFeedstockContributions(baseResult) {
       contribution_pct: Number((weight * 100).toFixed(2)),
     };
   });
+}
+
+function getFacilityLabelById(id) {
+  const idx = facilityPoints.findIndex((f) => String(f?.id || "") === String(id || ""));
+  if (idx >= 0) return `Facility ${idx + 1}`;
+  return String(id || "Unassigned");
+}
+
+function computeFacilityWiseAnalysis(baseResult) {
+  const entries = Array.isArray(feedstockEntries) ? feedstockEntries.filter((e) => Number(e.quantity_tpy || 0) > 0) : [];
+  if (!entries.length) return [];
+
+  const totalQty = entries.reduce((sum, e) => sum + Number(e.quantity_tpy || 0), 0);
+  if (totalQty <= 0) return [];
+
+  const byFacility = new Map();
+  entries.forEach((e) => {
+    const key = String(e.facility_id || "unassigned");
+    const current = byFacility.get(key) || { facility_id: key, quantity_tpy: 0, feedstock_count: 0 };
+    current.quantity_tpy += Number(e.quantity_tpy || 0);
+    current.feedstock_count += 1;
+    byFacility.set(key, current);
+  });
+
+  const rows = Array.from(byFacility.values()).map((r) => {
+    const share = r.quantity_tpy / totalQty;
+    return {
+      facility_id: r.facility_id,
+      facility_label: getFacilityLabelById(r.facility_id),
+      quantity_tpy: Number(r.quantity_tpy.toFixed(3)),
+      feedstock_count: r.feedstock_count,
+      share_pct: Number((share * 100).toFixed(2)),
+      annual_credits_tco2e: Number((Number(baseResult?.final || 0) * share).toFixed(2)),
+    };
+  });
+
+  rows.sort((a, b) => b.quantity_tpy - a.quantity_tpy);
+  return rows;
+}
+
+function renderFacilityWiseAnalysis(baseResult) {
+  const rows = computeFacilityWiseAnalysis(baseResult);
+
+  if (facilityAnalysisTableWrap) {
+    if (!rows.length) {
+      facilityAnalysisTableWrap.innerHTML = "";
+    } else {
+      const tableRows = rows
+        .map(
+          (r) =>
+            `<tr><td>${r.facility_label}</td><td>${r.quantity_tpy}</td><td>${r.feedstock_count}</td><td>${r.share_pct}%</td><td>${r.annual_credits_tco2e}</td></tr>`
+        )
+        .join("");
+      facilityAnalysisTableWrap.innerHTML = `<table class="feedstock-table"><thead><tr><th>Facility</th><th>Biomass (t/yr)</th><th>Feedstock rows</th><th>Biomass share</th><th>Annual credits</th></tr></thead><tbody>${tableRows}</tbody></table>`;
+    }
+  }
+
+  if (window.Chart) {
+    if (facilityAnalysisChart) {
+      facilityAnalysisChart.destroy();
+      facilityAnalysisChart = null;
+    }
+    if (facilityAnalysisChartEl && rows.length) {
+      const labels = rows.map((r) => r.facility_label);
+      const vals = rows.map((r) => Number(r.annual_credits_tco2e || 0));
+      const colors = rows.map((_, idx) => `hsl(${(idx * 57) % 360} 65% 45%)`);
+      facilityAnalysisChart = new window.Chart(facilityAnalysisChartEl, {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Annual credits by facility (tCO2e/year)", data: vals, backgroundColor: colors }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+      });
+    }
+  }
+
+  return rows;
 }
 
 function renderFeedstockContributionViews(baseResult) {
@@ -953,6 +1049,7 @@ function renderAll() {
   renderTenYearTable(res.final);
   renderBreakdownChart(res);
   lastFeedstockContributions = renderFeedstockContributionViews(res);
+  renderFacilityWiseAnalysis(res);
   renderParameterDefaultsSummary();
   renderSensitivityChart();
 }
