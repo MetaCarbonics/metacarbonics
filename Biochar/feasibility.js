@@ -25,6 +25,7 @@ const REGISTRY_COLUMN_BY_ID = {
 };
 
 const userIdInput = document.getElementById("userIdInput");
+const projectNameInput = document.getElementById("projectNameInput");
 const countrySelect = document.getElementById("countrySelect");
 const stateSelect = document.getElementById("stateSelect");
 const citySelect = document.getElementById("citySelect");
@@ -1869,6 +1870,7 @@ function getRegistryMethodologyMeta(registryId) {
 }
 
 function inferProjectName(data) {
+  if (String(data?.project_name || "").trim()) return String(data.project_name).trim();
   const city = data.city_name || "Unnamed";
   const country = data.country_name || "Project";
   return `MetaCarbonics Biochar - ${city}, ${country}`;
@@ -1894,6 +1896,7 @@ function buildContractPreviewLines() {
   }
   lines.push("");
   lines.push("STEP 1: PROJECT PROFILE");
+  lines.push(`Project Name: ${fmt(data.project_name)}`);
   lines.push(`Country: ${fmt(data.country_name)}`);
   if (data.multi_state_mode === "yes") {
     try {
@@ -2837,6 +2840,7 @@ function getFormData() {
   const primaryPyro = getPrimaryPyroEntry();
   return {
     user_id: (userIdInput?.value || "").trim(),
+    project_name: (projectNameInput?.value || "").trim(),
     country_code: countrySelect.value,
     country_name: selectedText(countrySelect),
     state_code: stateSelect.value,
@@ -2899,6 +2903,7 @@ function renderSummary() {
   renderAllFeedstockTables();
   const data = getFormData();
   const parts = [];
+  if (data.project_name) parts.push(`Project: ${data.project_name}`);
   if (data.country_name) parts.push(`Country: ${data.country_name}`);
   if (data.registry_name) parts.push(`Registry: ${data.registry_name}`);
   if (facilityPoints.length) parts.push(`Facilities: ${facilityPoints.length}`);
@@ -2951,6 +2956,7 @@ function loadUserFromLocalStorage() {
     }
 
     citySelect.value = data.city_name || "";
+    if (projectNameInput) projectNameInput.value = data.project_name || "";
     if (singleFacilityCount) {
       singleFacilityCount.value = String(Math.max(1, Number(data.single_facility_count || 1)));
     }
@@ -3359,6 +3365,12 @@ registrySelect.addEventListener("change", () => {
 if (userIdInput) {
   userIdInput.addEventListener("change", () => {
     loadUserFromLocalStorage();
+    renderSummary();
+    saveUserToLocalStorage();
+  });
+}
+if (projectNameInput) {
+  projectNameInput.addEventListener("change", () => {
     renderSummary();
     saveUserToLocalStorage();
   });
