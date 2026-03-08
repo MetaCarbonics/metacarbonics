@@ -462,6 +462,15 @@ function renderMultiStateLocationRows(focusIdx = -1) {
     const wrap = document.createElement("div");
     wrap.className = "questionnaire-card";
     wrap.style.margin = "8px 0";
+    const hidePrimaryControls = multiStateLocations.length === 1 && facilityPoints.length > 0 && idx === 0;
+    if (hidePrimaryControls) {
+      const districtsLabel = Array.isArray(row.districts) && row.districts.length ? row.districts.join(", ") : "Not selected";
+      wrap.innerHTML = `
+        <div class="small"><strong>State details saved.</strong> State: ${fmt(row.state_name || "Not selected")} | District(s): ${fmt(districtsLabel)} | Facilities: ${fmt(Math.max(1, Number(row.facility_count || 1)))}</div>
+      `;
+      multiStateLocationList.appendChild(wrap);
+      return;
+    }
     if (idx !== activeMultiStateIndex) {
       const districtsLabel = Array.isArray(row.districts) && row.districts.length ? row.districts.join(", ") : "Not selected";
       wrap.innerHTML = `
