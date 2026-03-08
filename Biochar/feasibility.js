@@ -29,6 +29,7 @@ const countrySelect = document.getElementById("countrySelect");
 const stateSelect = document.getElementById("stateSelect");
 const citySelect = document.getElementById("citySelect");
 const singleFacilityCount = document.getElementById("singleFacilityCount");
+const singleStateWrap = document.getElementById("singleStateWrap");
 const multiStateModeSelect = document.getElementById("multiStateMode");
 const multiStateCheckbox = document.getElementById("multiStateCheckbox");
 const multiStateWrap = document.getElementById("multiStateWrap");
@@ -371,6 +372,7 @@ function setMultiStateEnabled(enabled) {
   if (multiStateModeSelect) multiStateModeSelect.value = enabled ? "yes" : "no";
   if (multiStateCheckbox) multiStateCheckbox.checked = Boolean(enabled);
   if (multiStateWrap) multiStateWrap.classList.toggle("hidden", !enabled);
+  if (singleStateWrap) singleStateWrap.classList.toggle("hidden", enabled);
 }
 
 function getBoundaryStateNames() {
