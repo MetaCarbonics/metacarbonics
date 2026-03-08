@@ -510,7 +510,13 @@
             </tbody>
           </table>
         </div>
+        <div class="btn-row">
+          <button id="toPreviewPageBtn" class="btn next-btn" type="button">Next: Preview</button>
+        </div>
+      </section>
 
+      <section id="previewSection" class="card hidden">
+        <h2>Preview</h2>
         <div class="title-row">
           <h3>Project Preview</h3>
           <div class="btn-row">
@@ -531,11 +537,21 @@
           </table>
         </div>
         <pre id="projectPreview" class="preview-box">No data yet.</pre>
+        <div class="btn-row btn-row-split">
+          <button id="backToStep7Btn" class="btn btn-secondary" type="button">Back to Step 7</button>
+          <button id="toSignContractBtn" class="btn next-btn" type="button">Next: Sign Contract</button>
+        </div>
+      </section>
 
+      <section id="signContractSection" class="card hidden">
+        <h2>Sign Contract</h2>
         <label for="contractSignedCheckbox">
           <input id="contractSignedCheckbox" type="checkbox" />
           Project contract signed (move to new phase)
         </label>
+        <div class="btn-row">
+          <button id="backToPreviewBtn" class="btn btn-secondary" type="button">Back to Preview</button>
+        </div>
       </section>
 
       <div class="btn-row">

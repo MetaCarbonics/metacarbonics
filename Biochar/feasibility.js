@@ -153,6 +153,7 @@ const editBiocharFromAdditionalBtn = document.getElementById("editBiocharFromAdd
 const editPyroFromAdditionalBtn = document.getElementById("editPyroFromAdditionalBtn");
 const editFinancialFromAdditionalBtn = document.getElementById("editFinancialFromAdditionalBtn");
 const toTentativePageBtn = document.getElementById("toTentativePageBtn");
+const toPreviewPageBtn = document.getElementById("toPreviewPageBtn");
 const additionalInfoList = document.getElementById("additionalInfoList");
 const addAdditionalInfoBtn = document.getElementById("addAdditionalInfoBtn");
 
@@ -166,11 +167,16 @@ const step7ContributionBody = document.getElementById("step7ContributionBody");
 const step7DefaultsBody = document.getElementById("step7DefaultsBody");
 const step7MonitoringBody = document.getElementById("step7MonitoringBody");
 const step7FacilityMatrixBody = document.getElementById("step7FacilityMatrixBody");
+const previewSection = document.getElementById("previewSection");
 const refreshPreviewBtn = document.getElementById("refreshPreviewBtn");
 const downloadPreviewPdfBtn = document.getElementById("downloadPreviewPdfBtn");
 const projectPreview = document.getElementById("projectPreview");
 const previewFacilityMapEl = document.getElementById("previewFacilityMap");
 const previewFacilityTableBody = document.getElementById("previewFacilityTableBody");
+const backToStep7Btn = document.getElementById("backToStep7Btn");
+const toSignContractBtn = document.getElementById("toSignContractBtn");
+const signContractSection = document.getElementById("signContractSection");
+const backToPreviewBtn = document.getElementById("backToPreviewBtn");
 const contractSignedCheckbox = document.getElementById("contractSignedCheckbox");
 
 const backToStep1Btn = document.getElementById("backToStep1Btn");
@@ -1288,7 +1294,8 @@ function getRegistryCalculatorPage(registryId) {
 function getCurrentSectionFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const section = params.get("section") || "step1";
-  return ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional", "tentative"].includes(section)
+  return ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional", "tentative", "preview", "sign"]
+    .includes(section)
     ? section
     : "step1";
 }
@@ -2623,6 +2630,8 @@ function sectionToStep(sectionName) {
     financial: 5,
     additional: 6,
     tentative: 7,
+    preview: 7,
+    sign: 7,
   }[sectionName] || 1;
 }
 
@@ -2645,6 +2654,8 @@ function showSectionsFor(sectionName) {
   const showFinancial = sectionName === "financial";
   const showAdditional = sectionName === "additional";
   const showTentative = sectionName === "tentative";
+  const showPreview = sectionName === "preview";
+  const showSign = sectionName === "sign";
 
   const keepStep1Visible = showStep1 || (showFeedstock && showStep1Editor);
   step1Card.classList.toggle("hidden", !keepStep1Visible);
@@ -2654,15 +2665,17 @@ function showSectionsFor(sectionName) {
   financialSection.classList.toggle("hidden", !showFinancial);
   additionalSection.classList.toggle("hidden", !showAdditional);
   tentativeSection.classList.toggle("hidden", !showTentative);
+  previewSection.classList.toggle("hidden", !showPreview);
+  signContractSection.classList.toggle("hidden", !showSign);
 
-  if (showPyro || showFinancial || showAdditional || showTentative) renderBiocharCriticalInfo();
+  if (showPyro || showFinancial || showAdditional || showTentative || showPreview || showSign) renderBiocharCriticalInfo();
   if (showPyro) {
     renderPyroFacilityOptions();
     loadPyroFormFromSelectedFacility();
   }
-  if (showFinancial || showAdditional || showTentative) renderPyrolysisSummary();
-  if (showAdditional || showTentative) renderFinancialSummary();
-  if (showTentative) {
+  if (showFinancial || showAdditional || showTentative || showPreview || showSign) renderPyrolysisSummary();
+  if (showAdditional || showTentative || showPreview || showSign) renderFinancialSummary();
+  if (showTentative || showPreview || showSign) {
     if (!previewFacilityMap) initPreviewFacilityMap();
     renderTentativeCredits();
     renderProjectPreview();
@@ -2695,13 +2708,15 @@ function navigateToSection(sectionName) {
 function navigateBackByHistory() {
   const params = new URLSearchParams(window.location.search);
   const prev = params.get("prev");
-  if (prev && ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional", "tentative"].includes(prev)) {
+  if (prev && ["step1", "feedstock", "biochar", "pyrolysis", "financial", "additional", "tentative", "preview", "sign"].includes(prev)) {
     navigateToSection(prev);
     return;
   }
 
   const current = getCurrentSectionFromUrl();
   const fallback = {
+    sign: "preview",
+    preview: "tentative",
     tentative: "additional",
     additional: "financial",
     financial: "pyrolysis",
@@ -3157,7 +3172,7 @@ function applySectionFromUrl() {
     return;
   }
 
-  if ((section === "biochar" || section === "pyrolysis" || section === "financial" || section === "additional" || section === "tentative") && !feedstockEntries.length) {
+  if ((section === "biochar" || section === "pyrolysis" || section === "financial" || section === "additional" || section === "tentative" || section === "preview" || section === "sign") && !feedstockEntries.length) {
     showSectionsFor("feedstock");
     return;
   }
@@ -3463,6 +3478,18 @@ toAdditionalPageBtn.addEventListener("click", () => {
 toTentativePageBtn.addEventListener("click", () => {
   navigateToSection("tentative");
 });
+if (toPreviewPageBtn) {
+  toPreviewPageBtn.addEventListener("click", () => navigateToSection("preview"));
+}
+if (backToStep7Btn) {
+  backToStep7Btn.addEventListener("click", () => navigateToSection("tentative"));
+}
+if (toSignContractBtn) {
+  toSignContractBtn.addEventListener("click", () => navigateToSection("sign"));
+}
+if (backToPreviewBtn) {
+  backToPreviewBtn.addEventListener("click", () => navigateToSection("preview"));
+}
 openRegistryCalculatorBtn.addEventListener("click", openRegistryCalculator);
 
 backToStep1Btn.addEventListener("click", navigateBackByHistory);
