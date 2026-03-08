@@ -100,6 +100,8 @@ const biocharSection = document.getElementById("biocharSection");
 const previousSummaryInBiochar = document.getElementById("previousSummaryInBiochar");
 const editStep1FromBiocharBtn = document.getElementById("editStep1FromBiocharBtn");
 const editFeedstockFromBiocharBtn = document.getElementById("editFeedstockFromBiocharBtn");
+const biocharFacilitySelect = document.getElementById("biocharFacilitySelect");
+const biocharFacilityInfo = document.getElementById("biocharFacilityInfo");
 const plantCapacity = document.getElementById("plantCapacity");
 const biocharCarbonContent = document.getElementById("biocharCarbonContent");
 const biocharHcorg = document.getElementById("biocharHcorg");
@@ -108,6 +110,7 @@ const biocharEndUse = document.getElementById("biocharEndUse");
 const biocharEndUseShare = document.getElementById("biocharEndUseShare");
 const biocharEndUserRelation = document.getElementById("biocharEndUserRelation");
 const biocharTransportDistance = document.getElementById("biocharTransportDistance");
+const saveBiocharFacilityBtn = document.getElementById("saveBiocharFacilityBtn");
 const toPyrolysisPageBtn = document.getElementById("toPyrolysisPageBtn");
 
 const pyrolysisSection = document.getElementById("pyrolysisSection");
@@ -188,6 +191,7 @@ let states = [];
 let cities = [];
 let feedstockMatrix = [];
 let feedstockEntries = [];
+let biocharEntriesByFacility = {};
 let pyroEntriesByFacility = {};
 let additionalInfoEntries = [];
 let showStep1Editor = false;
@@ -272,6 +276,126 @@ function getFacilityLabelById(facilityId) {
 
 function listFacilities() {
   return facilityPoints.map((f, idx) => ({ id: f.id, label: `Facility ${idx + 1}` }));
+}
+
+function defaultBiocharEntry() {
+  return {
+    q5_annual_biochar_t: "",
+    q6_biochar_carbon_content_pct: "",
+    q7_biochar_h_corg_ratio: "",
+    q8_biochar_certifications: [],
+    q9_end_use_application: "",
+    q10_end_use_share_pct: "",
+    q11_end_user_relation_doc: "",
+    q12_biochar_transport_km: "",
+  };
+}
+
+function getBiocharEntryForFacility(facilityId, createIfMissing = false) {
+  if (!facilityId) return null;
+  const existing = biocharEntriesByFacility[facilityId];
+  if (existing) return existing;
+  if (!createIfMissing) return null;
+  biocharEntriesByFacility[facilityId] = defaultBiocharEntry();
+  return biocharEntriesByFacility[facilityId];
+}
+
+function computeFacilityBiomass(facilityId) {
+  return feedstockEntries
+    .filter((e) => String(e.facility_id || "") === String(facilityId || ""))
+    .reduce((sum, e) => sum + Number(e.quantity_tpy || 0), 0);
+}
+
+function renderBiocharFacilityOptions() {
+  if (!biocharFacilitySelect) return;
+  const current = biocharFacilitySelect.value;
+  biocharFacilitySelect.innerHTML = "";
+  if (!facilityPoints.length) {
+    biocharFacilitySelect.appendChild(option("Select facility first", ""));
+    biocharFacilitySelect.disabled = true;
+    return;
+  }
+  biocharFacilitySelect.appendChild(option("Select facility", ""));
+  listFacilities().forEach((f) => biocharFacilitySelect.appendChild(option(f.label, f.id)));
+  biocharFacilitySelect.disabled = false;
+  if (current && facilityPoints.some((f) => f.id === current)) biocharFacilitySelect.value = current;
+  else if (!current) biocharFacilitySelect.value = facilityPoints[0].id;
+}
+
+function loadBiocharFormFromSelectedFacility() {
+  if (!biocharFacilitySelect) return;
+  const facilityId = biocharFacilitySelect.value;
+  if (!facilityId) {
+    plantCapacity.value = "";
+    biocharCarbonContent.value = "";
+    biocharHcorg.value = "";
+    setMultiValues(biocharCertification, []);
+    biocharEndUse.value = "";
+    biocharEndUseShare.value = "";
+    biocharEndUserRelation.value = "";
+    biocharTransportDistance.value = "";
+    if (biocharFacilityInfo) biocharFacilityInfo.textContent = "Select a facility to enter biochar details.";
+    return;
+  }
+  const entry = getBiocharEntryForFacility(facilityId, true);
+  const biomass = computeFacilityBiomass(facilityId);
+  plantCapacity.value = entry.q5_annual_biochar_t || (biomass > 0 ? String(Number(biomass.toFixed(3))) : "");
+  biocharCarbonContent.value = entry.q6_biochar_carbon_content_pct || "";
+  biocharHcorg.value = entry.q7_biochar_h_corg_ratio || "";
+  setMultiValues(biocharCertification, Array.isArray(entry.q8_biochar_certifications) ? entry.q8_biochar_certifications : []);
+  biocharEndUse.value = entry.q9_end_use_application || "";
+  biocharEndUseShare.value = entry.q10_end_use_share_pct || "";
+  biocharEndUserRelation.value = entry.q11_end_user_relation_doc || "";
+  biocharTransportDistance.value = entry.q12_biochar_transport_km || "";
+  if (biocharFacilityInfo) {
+    biocharFacilityInfo.textContent = `Editing biochar data for ${getFacilityLabelById(facilityId)}.`;
+  }
+}
+
+function saveBiocharFormToSelectedFacility() {
+  if (!biocharFacilitySelect?.value) return;
+  const entry = getBiocharEntryForFacility(biocharFacilitySelect.value, true);
+  entry.q5_annual_biochar_t = plantCapacity.value;
+  entry.q6_biochar_carbon_content_pct = biocharCarbonContent.value;
+  entry.q7_biochar_h_corg_ratio = biocharHcorg.value;
+  entry.q8_biochar_certifications = getMultiValues(biocharCertification);
+  entry.q9_end_use_application = biocharEndUse.value;
+  entry.q10_end_use_share_pct = biocharEndUseShare.value;
+  entry.q11_end_user_relation_doc = biocharEndUserRelation.value;
+  entry.q12_biochar_transport_km = biocharTransportDistance.value;
+}
+
+function saveBiocharFacilityInfo() {
+  if (!biocharFacilitySelect?.value) {
+    alert("Select a facility first.");
+    return;
+  }
+  saveBiocharFormToSelectedFacility();
+  renderBiocharCriticalInfo();
+  renderSummary();
+  saveUserToLocalStorage();
+  if (biocharFacilityInfo) biocharFacilityInfo.textContent = `Saved biochar data for ${getFacilityLabelById(biocharFacilitySelect.value)}.`;
+}
+
+function reconcileBiocharWithFacilities() {
+  const valid = new Set(facilityPoints.map((f) => f.id));
+  biocharEntriesByFacility = Object.fromEntries(
+    Object.entries(biocharEntriesByFacility || {}).filter(([fid]) => valid.has(fid))
+  );
+  if (biocharFacilitySelect?.value && !valid.has(biocharFacilitySelect.value)) {
+    biocharFacilitySelect.value = "";
+  }
+}
+
+function getPrimaryBiocharEntry() {
+  const ids = facilityPoints.map((f) => f.id).filter(Boolean);
+  if (!ids.length) return defaultBiocharEntry();
+  const fromSelected = biocharFacilitySelect?.value ? biocharEntriesByFacility[biocharFacilitySelect.value] : null;
+  if (fromSelected) return fromSelected;
+  for (const id of ids) {
+    if (biocharEntriesByFacility[id]) return biocharEntriesByFacility[id];
+  }
+  return defaultBiocharEntry();
 }
 
 function defaultPyroEntry() {
@@ -1329,8 +1453,16 @@ function computeFacilityMatrices() {
 }
 
 function updatePlantCapacityFromBiomass() {
+  if (biocharFacilitySelect?.value) {
+    const facilityBiomass = computeFacilityBiomass(biocharFacilitySelect.value);
+    const currentEntry = getBiocharEntryForFacility(biocharFacilitySelect.value, true);
+    if (!currentEntry.q5_annual_biochar_t) {
+      plantCapacity.value = facilityBiomass > 0 ? String(Number(facilityBiomass.toFixed(3))) : "";
+    }
+    return;
+  }
   const total = computeTotalBiomass();
-  plantCapacity.value = total > 0 ? String(total) : "";
+  if (!plantCapacity.value) plantCapacity.value = total > 0 ? String(Number(total.toFixed(3))) : "";
 }
 
 function renderFeedstockQc() {
@@ -1627,11 +1759,32 @@ function validateFeedstockEntriesBeforeBiochar() {
 }
 
 function renderBiocharCriticalInfo() {
-  const certs = getMultiValues(biocharCertification).join(", ") || "N/A";
-  const content = biocharCarbonContent.value || "N/A";
-  const hcorg = biocharHcorg.value || "N/A";
-  const annual = plantCapacity.value || "0";
-  const text = `Annual biochar (t): ${annual} | Carbon content (%): ${content} | H/Corg: ${hcorg} | Certifications: ${certs}`;
+  const totalFacilities = facilityPoints.length;
+  if (!totalFacilities) {
+    biocharCriticalInfo.textContent = "No facility added yet.";
+    biocharCriticalInfoFinancial.textContent = "No facility added yet.";
+    biocharCriticalInfoAdditional.textContent = "No facility added yet.";
+    return;
+  }
+  const selectedFacilityId = biocharFacilitySelect?.value || facilityPoints[0]?.id || "";
+  const selectedLabel = getFacilityLabelById(selectedFacilityId);
+  const selectedEntry = getBiocharEntryForFacility(selectedFacilityId, false) || defaultBiocharEntry();
+  const status = (v) => (String(v || "").trim() ? "provided" : "pending");
+  const completed = facilityPoints.reduce((count, f) => {
+    const e = biocharEntriesByFacility[f.id];
+    if (!e) return count;
+    const req = [
+      e.q5_annual_biochar_t,
+      e.q6_biochar_carbon_content_pct,
+      e.q7_biochar_h_corg_ratio,
+      e.q9_end_use_application,
+      e.q10_end_use_share_pct,
+      e.q11_end_user_relation_doc,
+      e.q12_biochar_transport_km,
+    ];
+    return req.every((v) => String(v || "").trim()) ? count + 1 : count;
+  }, 0);
+  const text = `${selectedLabel} | Q5: ${status(selectedEntry.q5_annual_biochar_t)} | Q6: ${status(selectedEntry.q6_biochar_carbon_content_pct)} | Q7: ${status(selectedEntry.q7_biochar_h_corg_ratio)} | Q8: ${Array.isArray(selectedEntry.q8_biochar_certifications) && selectedEntry.q8_biochar_certifications.length ? "provided" : "pending"} | Q9: ${status(selectedEntry.q9_end_use_application)} | Q10: ${status(selectedEntry.q10_end_use_share_pct)} | Q11: ${status(selectedEntry.q11_end_user_relation_doc)} | Q12: ${status(selectedEntry.q12_biochar_transport_km)} | Facility completion: ${completed}/${totalFacilities}`;
   biocharCriticalInfo.textContent = text;
   biocharCriticalInfoFinancial.textContent = text;
   biocharCriticalInfoAdditional.textContent = text;
@@ -1680,10 +1833,22 @@ function renderFinancialSummary() {
 }
 
 function computeTentativeCredits() {
+  const permanence = Number(tentativePermanenceFactor.value || 0);
+  if (!Number.isFinite(permanence)) return 0;
+  const entries = Object.values(biocharEntriesByFacility || {});
+  if (entries.length) {
+    const total = entries.reduce((sum, e) => {
+      const annual = Number(e?.q5_annual_biochar_t || 0);
+      const carbon = Number(e?.q6_biochar_carbon_content_pct || 0) / 100;
+      if (!Number.isFinite(annual) || !Number.isFinite(carbon)) return sum;
+      const item = annual * carbon * 3.667 * permanence;
+      return sum + (item > 0 ? item : 0);
+    }, 0);
+    return total > 0 ? total : 0;
+  }
   const annualBiochar = Number(plantCapacity.value || 0);
   const carbonContent = Number(biocharCarbonContent.value || 0) / 100;
-  const permanence = Number(tentativePermanenceFactor.value || 0);
-  if (!Number.isFinite(annualBiochar) || !Number.isFinite(carbonContent) || !Number.isFinite(permanence)) return 0;
+  if (!Number.isFinite(annualBiochar) || !Number.isFinite(carbonContent)) return 0;
   const raw = annualBiochar * carbonContent * 3.667 * permanence;
   return raw > 0 ? raw : 0;
 }
@@ -2667,6 +2832,7 @@ function updateContractLockState() {
   addFeedstockBtn.disabled = locked;
   addAdditionalInfoBtn.disabled = locked;
   openRegistryCalculatorBtn.disabled = locked;
+  if (saveBiocharFacilityBtn) saveBiocharFacilityBtn.disabled = locked;
   if (savePyroFacilityBtn) savePyroFacilityBtn.disabled = locked;
   additionalInfoList.querySelectorAll("button[data-delete-additional-idx]").forEach((btn) => {
     btn.disabled = locked;
@@ -2721,6 +2887,10 @@ function showSectionsFor(sectionName) {
   signContractSection.classList.toggle("hidden", !showSign);
 
   if (showPyro || showFinancial || showAdditional || showTentative || showPreview || showSign) renderBiocharCriticalInfo();
+  if (showBiochar) {
+    renderBiocharFacilityOptions();
+    loadBiocharFormFromSelectedFacility();
+  }
   if (showPyro) {
     renderPyroFacilityOptions();
     loadPyroFormFromSelectedFacility();
@@ -2854,6 +3024,11 @@ function updateFeedstockAvailability() {
 }
 
 function getFormData() {
+  const primaryBiochar = getPrimaryBiocharEntry();
+  const totalAnnualBiochar = Object.values(biocharEntriesByFacility || {}).reduce((sum, e) => {
+    const v = Number(e?.q5_annual_biochar_t || 0);
+    return sum + (Number.isFinite(v) ? v : 0);
+  }, 0);
   const primaryPyro = getPrimaryPyroEntry();
   return {
     user_id: (userIdInput?.value || "").trim(),
@@ -2877,14 +3052,15 @@ function getFormData() {
     feedstock_entries_json: JSON.stringify(feedstockEntries),
     biomass_total_tpy: String(computeTotalBiomass()),
 
-    q5_annual_biochar_t: plantCapacity.value,
-    q6_biochar_carbon_content_pct: biocharCarbonContent.value,
-    q7_biochar_h_corg_ratio: biocharHcorg.value,
-    q8_biochar_certifications: getMultiValues(biocharCertification).join("; "),
-    q9_end_use_application: biocharEndUse.value,
-    q10_end_use_share_pct: biocharEndUseShare.value,
-    q11_end_user_relation_doc: biocharEndUserRelation.value,
-    q12_biochar_transport_km: biocharTransportDistance.value,
+    q5_annual_biochar_t: totalAnnualBiochar > 0 ? String(Number(totalAnnualBiochar.toFixed(3))) : (primaryBiochar.q5_annual_biochar_t || ""),
+    q6_biochar_carbon_content_pct: primaryBiochar.q6_biochar_carbon_content_pct || "",
+    q7_biochar_h_corg_ratio: primaryBiochar.q7_biochar_h_corg_ratio || "",
+    q8_biochar_certifications: Array.isArray(primaryBiochar.q8_biochar_certifications) ? primaryBiochar.q8_biochar_certifications.join("; ") : "",
+    q9_end_use_application: primaryBiochar.q9_end_use_application || "",
+    q10_end_use_share_pct: primaryBiochar.q10_end_use_share_pct || "",
+    q11_end_user_relation_doc: primaryBiochar.q11_end_user_relation_doc || "",
+    q12_biochar_transport_km: primaryBiochar.q12_biochar_transport_km || "",
+    biochar_entries_json: JSON.stringify(biocharEntriesByFacility || {}),
 
     q13_pollution_controls: primaryPyro.q13_pollution_controls || "",
     q14_waste_heat_utilization: primaryPyro.q14_waste_heat_utilization || "",
@@ -2910,10 +3086,25 @@ function getFormData() {
 function renderSummary() {
   reconcileFacilitiesWithPlan();
   reconcileFeedstockWithFacilities();
+  reconcileBiocharWithFacilities();
   reconcilePyroWithFacilities();
   if (facilityMap) renderFacilityMarkers(false);
   renderFeedstockFacilityOptions();
+  renderBiocharFacilityOptions();
   renderPyroFacilityOptions();
+  const biocharEditingEls = [
+    plantCapacity,
+    biocharCarbonContent,
+    biocharHcorg,
+    biocharCertification,
+    biocharEndUse,
+    biocharEndUseShare,
+    biocharEndUserRelation,
+    biocharTransportDistance,
+  ];
+  if (biocharFacilitySelect && biocharFacilitySelect.value && !biocharEditingEls.includes(document.activeElement)) {
+    loadBiocharFormFromSelectedFacility();
+  }
   if (pyroFacilitySelect && pyroFacilitySelect.value && document.activeElement !== pyroQ13) {
     loadPyroFormFromSelectedFacility();
   }
@@ -3039,6 +3230,26 @@ function loadUserFromLocalStorage() {
     }
 
     try {
+      const parsedBio = JSON.parse(data.biochar_entries_json || "{}");
+      biocharEntriesByFacility = parsedBio && typeof parsedBio === "object" ? parsedBio : {};
+    } catch {
+      biocharEntriesByFacility = {};
+    }
+    if (!Object.keys(biocharEntriesByFacility).length && facilityPoints.length) {
+      const fid = facilityPoints[0].id;
+      biocharEntriesByFacility[fid] = {
+        q5_annual_biochar_t: data.q5_annual_biochar_t || "",
+        q6_biochar_carbon_content_pct: data.q6_biochar_carbon_content_pct || "",
+        q7_biochar_h_corg_ratio: data.q7_biochar_h_corg_ratio || "",
+        q8_biochar_certifications: String(data.q8_biochar_certifications || "").split(/;|,/).map((v) => v.trim()).filter(Boolean),
+        q9_end_use_application: data.q9_end_use_application || "",
+        q10_end_use_share_pct: data.q10_end_use_share_pct || "",
+        q11_end_user_relation_doc: data.q11_end_user_relation_doc || "",
+        q12_biochar_transport_km: data.q12_biochar_transport_km || "",
+      };
+    }
+
+    try {
       const parsed = JSON.parse(data.pyro_entries_json || "{}");
       pyroEntriesByFacility = parsed && typeof parsed === "object" ? parsed : {};
     } catch {
@@ -3061,17 +3272,8 @@ function loadUserFromLocalStorage() {
     renderAllFeedstockTables();
     hideFeedstockForm();
 
-    plantCapacity.value = data.q5_annual_biochar_t || "";
-    biocharCarbonContent.value = data.q6_biochar_carbon_content_pct || "";
-    biocharHcorg.value = data.q7_biochar_h_corg_ratio || "";
-    setMultiValues(
-      biocharCertification,
-      String(data.q8_biochar_certifications || "").split(/;|,/).map((v) => v.trim()).filter(Boolean)
-    );
-    biocharEndUse.value = data.q9_end_use_application || "";
-    biocharEndUseShare.value = data.q10_end_use_share_pct || "";
-    biocharEndUserRelation.value = data.q11_end_user_relation_doc || "";
-    biocharTransportDistance.value = data.q12_biochar_transport_km || "";
+    renderBiocharFacilityOptions();
+    loadBiocharFormFromSelectedFacility();
 
     renderPyroFacilityOptions();
     loadPyroFormFromSelectedFacility();
@@ -3475,6 +3677,16 @@ if (pyroFacilitySelect) {
     saveUserToLocalStorage();
   });
 }
+if (biocharFacilitySelect) {
+  biocharFacilitySelect.addEventListener("change", () => {
+    loadBiocharFormFromSelectedFacility();
+    renderBiocharCriticalInfo();
+    saveUserToLocalStorage();
+  });
+}
+if (saveBiocharFacilityBtn) {
+  saveBiocharFacilityBtn.addEventListener("click", saveBiocharFacilityInfo);
+}
 if (savePyroFacilityBtn) {
   savePyroFacilityBtn.addEventListener("click", savePyroFacilityInfo);
 }
@@ -3579,6 +3791,7 @@ refreshPreviewBtn.addEventListener("click", renderProjectPreview);
 downloadPreviewPdfBtn.addEventListener("click", downloadPreviewPdf);
 
 [
+  plantCapacity,
   biocharCarbonContent,
   biocharHcorg,
   biocharCertification,
@@ -3590,6 +3803,7 @@ downloadPreviewPdfBtn.addEventListener("click", downloadPreviewPdf);
   financeQ22,
 ].forEach((el) => {
   el.addEventListener("change", () => {
+    saveBiocharFormToSelectedFacility();
     renderBiocharCriticalInfo();
     renderSummary();
     saveUserToLocalStorage();

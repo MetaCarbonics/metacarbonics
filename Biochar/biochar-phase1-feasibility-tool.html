@@ -250,8 +250,14 @@
           </tbody>
         </table>
 
+        <label for="biocharFacilitySelect">Select Facility</label>
+        <select id="biocharFacilitySelect">
+          <option value="">Select facility first</option>
+        </select>
+        <div id="biocharFacilityInfo" class="small">Biochar details are captured per facility.</div>
+
         <label for="plantCapacity">5. How much biochar will be produced annually on the dry weight basis (t)?</label>
-        <input id="plantCapacity" type="number" min="0" readonly />
+        <input id="plantCapacity" type="number" min="0" step="any" />
 
         <label for="biocharCarbonContent">6. Envisioned Carbon content of the biochar (%)?</label>
         <input id="biocharCarbonContent" type="number" min="0" max="100" step="any" />
@@ -280,6 +286,7 @@
         <input id="biocharTransportDistance" type="number" min="0" step="any" />
 
         <div class="btn-row">
+          <button id="saveBiocharFacilityBtn" class="btn btn-secondary" type="button">Save Facility Info</button>
           <button id="toPyrolysisPageBtn" class="btn next-btn" type="button">Next: Pyrolysis Section Page</button>
         </div>
       </section>
