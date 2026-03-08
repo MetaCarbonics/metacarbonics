@@ -188,9 +188,12 @@ let previewFacilityMarkersLayer = null;
 let previewBoundaryLayer = null;
 let stateBoundaryLayer = null;
 let districtBoundaryLayer = null;
+let hoverDistrictBoundaryLayer = null;
 let stateBoundaryFeatures = [];
 let districtBoundaryFeatures = [];
 let hoverDistrictCache = new Map();
+let hoverDistrictFeatureCache = new Map();
+let hoverDistrictBoundaryKey = "";
 let hoverDistrictInFlight = false;
 let hoverDistrictLastMs = 0;
 let finalRegistryCredits = null;
@@ -854,6 +857,30 @@ async function fetchDistrictNameForPoint(lat, lng) {
   return hoverDistrictCache.get(key);
 }
 
+async function fetchDistrictInfoForPoint(lat, lng) {
+  const key = `${Number(lat).toFixed(3)},${Number(lng).toFixed(3)}`;
+  if (hoverDistrictCache.has(key)) {
+    return { district_name: hoverDistrictCache.get(key), state_name: "" };
+  }
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=12&addressdetails=1`;
+  const res = await fetch(url);
+  const row = await res.json();
+  const addr = row?.address || {};
+  const districtName = String(
+    addr.county ||
+      addr.city_district ||
+      addr.state_district ||
+      addr.city ||
+      addr.town ||
+      addr.municipality ||
+      addr.village ||
+      ""
+  );
+  const stateName = String(addr.state || "");
+  hoverDistrictCache.set(key, districtName || "N/A");
+  return { district_name: districtName || "N/A", state_name: stateName };
+}
+
 async function updateFacilityAddressPreview(lat, lng) {
   if (!facilityAddressPreview) return;
   facilityAddressPreview.textContent = "Resolving address...";
@@ -871,12 +898,15 @@ async function updateFacilityAddressPreview(lat, lng) {
 async function refreshStateBoundaryLayer() {
   if (!facilityMap || !window.L) return;
   hoverDistrictCache = new Map();
+  hoverDistrictFeatureCache = new Map();
+  hoverDistrictBoundaryKey = "";
   const stateNames = getBoundaryStateNames();
   stateBoundaryFeatures = [];
   districtBoundaryFeatures = [];
   if (!stateNames.length) {
     if (stateBoundaryLayer) stateBoundaryLayer.clearLayers();
     if (districtBoundaryLayer) districtBoundaryLayer.clearLayers();
+    if (hoverDistrictBoundaryLayer) hoverDistrictBoundaryLayer.clearLayers();
     if (mapHoverDistrict) mapHoverDistrict.textContent = "Hover inside selected state boundary to view district.";
     return;
   }
@@ -899,8 +929,14 @@ async function refreshStateBoundaryLayer() {
       style: { color: "#22c55e", weight: 1.6, opacity: 0.95, fillOpacity: 0.02 },
     }).addTo(facilityMap);
   }
+  if (!hoverDistrictBoundaryLayer) {
+    hoverDistrictBoundaryLayer = window.L.geoJSON([], {
+      style: { color: "#38bdf8", weight: 2.2, opacity: 1, fillOpacity: 0.06 },
+    }).addTo(facilityMap);
+  }
   stateBoundaryLayer.clearLayers();
   districtBoundaryLayer.clearLayers();
+  hoverDistrictBoundaryLayer.clearLayers();
   if (stateBoundaryFeatures.length) {
     stateBoundaryLayer.addData({ type: "FeatureCollection", features: stateBoundaryFeatures });
     if (mapEditMode) {
@@ -983,6 +1019,8 @@ function initFacilityMap() {
     const insideState = stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f));
     if (!insideState) {
       mapHoverDistrict.textContent = "Pointer is outside selected state boundary.";
+      if (hoverDistrictBoundaryLayer) hoverDistrictBoundaryLayer.clearLayers();
+      hoverDistrictBoundaryKey = "";
       return;
     }
     const now = Date.now();
@@ -990,8 +1028,25 @@ function initFacilityMap() {
     hoverDistrictLastMs = now;
     hoverDistrictInFlight = true;
     try {
-      const dName = await fetchDistrictNameForPoint(lat, lng);
-      mapHoverDistrict.textContent = `District: ${dName || "N/A"}`;
+      const info = await fetchDistrictInfoForPoint(lat, lng);
+      const dName = info.district_name || "N/A";
+      mapHoverDistrict.textContent = `District: ${dName}`;
+      if (dName && dName !== "N/A") {
+        const stateFromPoint = stateBoundaryFeatures.find((f) => pointInFeature(lat, lng, f))?.properties?.name || info.state_name || "";
+        const key = `${String(stateFromPoint).toLowerCase()}::${String(dName).toLowerCase()}`;
+        if (key && key !== hoverDistrictBoundaryKey) {
+          hoverDistrictBoundaryKey = key;
+          if (hoverDistrictBoundaryLayer) hoverDistrictBoundaryLayer.clearLayers();
+          let feature = hoverDistrictFeatureCache.get(key);
+          if (!feature) {
+            feature = await fetchDistrictBoundaryFeature(dName, String(stateFromPoint || ""), selectedText(countrySelect));
+            if (feature) hoverDistrictFeatureCache.set(key, feature);
+          }
+          if (feature && hoverDistrictBoundaryLayer) {
+            hoverDistrictBoundaryLayer.addData(feature);
+          }
+        }
+      }
     } catch {
       mapHoverDistrict.textContent = "District: unavailable";
     } finally {
@@ -1001,6 +1056,8 @@ function initFacilityMap() {
 
   facilityMap.on("mouseout", () => {
     if (mapHoverDistrict) mapHoverDistrict.textContent = "Hover inside selected state boundary to view district.";
+    if (hoverDistrictBoundaryLayer) hoverDistrictBoundaryLayer.clearLayers();
+    hoverDistrictBoundaryKey = "";
   });
 
   if (facilityPoints.length) renderFacilityMarkers(true);
