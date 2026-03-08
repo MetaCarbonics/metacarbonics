@@ -177,39 +177,41 @@
         <div class="btn-row" style="margin-top: 10px; margin-bottom: 8px;">
           <button id="addFeedstockBtn" class="btn" type="button">Add More Facility/Feedstock Details</button>
         </div>
-        <label for="feedstockFacilitySelect">Select Facility</label>
-        <select id="feedstockFacilitySelect">
-          <option value="">Select facility first</option>
-        </select>
+        <div id="feedstockEntryPanel" class="hidden">
+          <label for="feedstockFacilitySelect">Select Facility</label>
+          <select id="feedstockFacilitySelect">
+            <option value="">Select facility first</option>
+          </select>
 
-        <label for="feedstockType">Feedstock Type (based on selected registry)</label>
-        <select id="feedstockType" disabled>
-          <option value="">Select a registry first</option>
-        </select>
+          <label for="feedstockType">Feedstock Type (based on selected registry)</label>
+          <select id="feedstockType" disabled>
+            <option value="">Select a registry first</option>
+          </select>
 
-        <div id="activeFeedstockCard" class="questionnaire-card hidden">
-          <h4 id="activeFeedstockTitle">Feedstock Questionnaire</h4>
+          <div id="activeFeedstockCard" class="questionnaire-card hidden">
+            <h4 id="activeFeedstockTitle">Feedstock Questionnaire</h4>
 
-          <label for="q1SourceSupply">1. Where is the biomass sourced from and how is it supplied.</label>
-          <textarea id="q1SourceSupply" rows="3"></textarea>
+            <label for="q1SourceSupply">1. Where is the biomass sourced from and how is it supplied.</label>
+            <textarea id="q1SourceSupply" rows="3"></textarea>
 
-          <label for="q2SupplierRelation">2. Who are the biomass supplier and the producer, what is your contractual relation.</label>
-          <textarea id="q2SupplierRelation" rows="3"></textarea>
+            <label for="q2SupplierRelation">2. Who are the biomass supplier and the producer, what is your contractual relation.</label>
+            <textarea id="q2SupplierRelation" rows="3"></textarea>
 
-          <label for="q3CurrentUse">3. How is the waste biomass currently used in the absence of the biochar production.</label>
-          <textarea id="q3CurrentUse" rows="3"></textarea>
+            <label for="q3CurrentUse">3. How is the waste biomass currently used in the absence of the biochar production.</label>
+            <textarea id="q3CurrentUse" rows="3"></textarea>
 
-          <label for="q4TransportKm">4. What is the approximate average transportation distance from the biomass source to the biochar production facility (in km)?</label>
-          <input id="q4TransportKm" type="number" min="0" step="any" />
+            <label for="q4TransportKm">4. What is the approximate average transportation distance from the biomass source to the biochar production facility (in km)?</label>
+            <input id="q4TransportKm" type="number" min="0" step="any" />
 
-          <label for="feedstockQty">Feedstock Quantity (t/year)</label>
-          <input id="feedstockQty" type="number" min="0" step="any" />
+            <label for="feedstockQty">Feedstock Quantity (t/year)</label>
+            <input id="feedstockQty" type="number" min="0" step="any" />
 
-          <label for="feedstockNotes">Notes</label>
-          <textarea id="feedstockNotes" rows="3"></textarea>
+            <label for="feedstockNotes">Notes</label>
+            <textarea id="feedstockNotes" rows="3"></textarea>
 
-          <div class="btn-row">
-            <button id="saveFeedstockInfoBtn" class="btn" type="button">Save Info</button>
+            <div class="btn-row">
+              <button id="saveFeedstockInfoBtn" class="btn" type="button">Save Info</button>
+            </div>
           </div>
         </div>
 

@@ -71,6 +71,7 @@ const editStep1FromFeedstockBtn = document.getElementById("editStep1FromFeedstoc
 const editFeedstockFromFeedstockBtn = document.getElementById("editFeedstockFromFeedstockBtn");
 const feedstockQcSummary = document.getElementById("feedstockQcSummary");
 const feedstockFeedback = document.getElementById("feedstockFeedback");
+const feedstockEntryPanel = document.getElementById("feedstockEntryPanel");
 
 const feedstockType = document.getElementById("feedstockType");
 const feedstockFacilitySelect = document.getElementById("feedstockFacilitySelect");
@@ -1298,7 +1299,12 @@ function hideFeedstockForm() {
   feedstockNotes.value = "";
 }
 
+function showFeedstockEntryPanel() {
+  if (feedstockEntryPanel) feedstockEntryPanel.classList.remove("hidden");
+}
+
 function showFeedstockForm(entry, modeLabel) {
+  showFeedstockEntryPanel();
   activeFeedstockCard.classList.remove("hidden");
   activeFeedstockTitle.textContent = `${modeLabel}: ${entry.feedstock}`;
   q1SourceSupply.value = entry.q1_source_supply || "";
@@ -1311,6 +1317,7 @@ function showFeedstockForm(entry, modeLabel) {
 }
 
 function openFeedstockFormBySelection() {
+  showFeedstockEntryPanel();
   if (!feedstockFacilitySelect?.value) {
     feedstockFeedback.textContent = "Select facility first.";
     return;
@@ -1392,6 +1399,7 @@ function saveFeedstockInfo() {
 
 function openFeedstockFormForEdit(index) {
   if (!Number.isInteger(index) || index < 0 || index >= feedstockEntries.length) return;
+  showFeedstockEntryPanel();
   const entry = feedstockEntries[index];
   if (feedstockFacilitySelect) feedstockFacilitySelect.value = entry.facility_id || "";
   feedstockType.value = entry.feedstock;
@@ -3190,8 +3198,21 @@ if (feedstockFacilitySelect) {
     renderAllFeedstockTables();
   });
 }
-addFeedstockBtn.addEventListener("click", openFeedstockFormBySelection);
+addFeedstockBtn.addEventListener("click", () => {
+  showFeedstockEntryPanel();
+  if (feedstockFacilitySelect?.value && feedstockType?.value) {
+    openFeedstockFormBySelection();
+    return;
+  }
+  hideFeedstockForm();
+  if (!feedstockFacilitySelect?.value) {
+    feedstockFeedback.textContent = "Select Facility, then choose Feedstock Type.";
+  } else {
+    feedstockFeedback.textContent = "Choose Feedstock Type to open questionnaire.";
+  }
+});
 editFeedstockFromFeedstockBtn.addEventListener("click", () => {
+  showFeedstockEntryPanel();
   feedstockType.focus();
   feedstockSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
