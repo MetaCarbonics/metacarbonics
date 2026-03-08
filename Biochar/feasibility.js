@@ -2313,6 +2313,86 @@ async function downloadPreviewPdf() {
       y += lineHeight;
     });
   }
+
+  if (showProfileMap || profilePointsForPdf.length) {
+    ensureSpace(40);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Further Details: Facility Locations & Map", marginX, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    y += 12;
+
+    if (showProfileMap) {
+      const mapW = maxWidth;
+      const mapH = 180;
+      ensureSpace(mapH + 20);
+      const mapY = y;
+      const bounds = computePdfMapExtent(profilePointsForPdf, stateBoundaryFeatures);
+      let drawn = false;
+      if (bounds) {
+        try {
+          const sat = await fetchSatelliteMapDataUrl(bounds);
+          doc.addImage(sat.dataUrl, "PNG", marginX, mapY, mapW, mapH, undefined, "FAST");
+          const toX = (lng) => marginX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng || 1e-9)) * mapW;
+          const toY = (lat) => mapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat || 1e-9)) * mapH;
+          const drawRing = (ring) => {
+            if (!Array.isArray(ring) || ring.length < 2) return;
+            for (let i = 1; i < ring.length; i += 1) {
+              const a = ring[i - 1];
+              const b = ring[i];
+              doc.line(toX(Number(a[0])), toY(Number(a[1])), toX(Number(b[0])), toY(Number(b[1])));
+            }
+          };
+          doc.setDrawColor(234, 179, 8);
+          doc.setLineWidth(0.8);
+          stateBoundaryFeatures.forEach((f) => {
+            const g = f?.geometry;
+            if (!g) return;
+            if (g.type === "Polygon") (g.coordinates || []).forEach(drawRing);
+            if (g.type === "MultiPolygon") (g.coordinates || []).forEach((poly) => (poly || []).forEach(drawRing));
+          });
+          doc.setDrawColor(220, 38, 38);
+          doc.setFillColor(220, 38, 38);
+          profilePointsForPdf.forEach((pt) => {
+            doc.circle(toX(Number(pt.lng)), toY(Number(pt.lat)), 3.2, "F");
+          });
+          drawn = true;
+        } catch {
+          drawn = false;
+        }
+      }
+      if (!drawn) {
+        doc.setDrawColor(148, 163, 184);
+        doc.rect(marginX, mapY, mapW, mapH);
+        doc.text("Satellite image unavailable.", marginX + 8, mapY + 14);
+      }
+      y = mapY + mapH + 8;
+    }
+
+    if (profilePointsForPdf.length) {
+      drawTable(
+        "Facility Locations",
+        ["Facility", "State", "City", "Lat", "Lng", "Operation Start Date"],
+        profilePointsForPdf.map((pt, idx) => ({
+          cells: [
+            `Facility ${idx + 1}`,
+            fmt(pt.state_name),
+            fmt(pt.city_name),
+            Number(pt.lat).toFixed(6),
+            Number(pt.lng).toFixed(6),
+            fmt(pt.start_date),
+          ],
+        })),
+        [55, 85, 85, 75, 75, 140]
+      );
+      const p0 = profilePointsForPdf[0];
+      const mapLink = `https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`;
+      doc.text("Map Link:", marginX, y);
+      drawLink("Open Map", mapLink, marginX + 45, y);
+      y += lineHeight;
+    }
+  }
   y += 6;
   doc.setDrawColor(203, 213, 225);
   doc.line(marginX, y, marginX + maxWidth, y);
@@ -2455,86 +2535,6 @@ async function downloadPreviewPdf() {
       })),
       [170, 95, 250]
     );
-  }
-
-  if (showProfileMap || profilePointsForPdf.length) {
-    ensureSpace(40);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Further Details: Facility Locations & Map", marginX, y);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    y += 12;
-
-    if (showProfileMap) {
-      const mapW = maxWidth;
-      const mapH = 180;
-      ensureSpace(mapH + 20);
-      const mapY = y;
-      const bounds = computePdfMapExtent(profilePointsForPdf, stateBoundaryFeatures);
-      let drawn = false;
-      if (bounds) {
-        try {
-          const sat = await fetchSatelliteMapDataUrl(bounds);
-          doc.addImage(sat.dataUrl, "PNG", marginX, mapY, mapW, mapH, undefined, "FAST");
-          const toX = (lng) => marginX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng || 1e-9)) * mapW;
-          const toY = (lat) => mapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat || 1e-9)) * mapH;
-          const drawRing = (ring) => {
-            if (!Array.isArray(ring) || ring.length < 2) return;
-            for (let i = 1; i < ring.length; i += 1) {
-              const a = ring[i - 1];
-              const b = ring[i];
-              doc.line(toX(Number(a[0])), toY(Number(a[1])), toX(Number(b[0])), toY(Number(b[1])));
-            }
-          };
-          doc.setDrawColor(234, 179, 8);
-          doc.setLineWidth(0.8);
-          stateBoundaryFeatures.forEach((f) => {
-            const g = f?.geometry;
-            if (!g) return;
-            if (g.type === "Polygon") (g.coordinates || []).forEach(drawRing);
-            if (g.type === "MultiPolygon") (g.coordinates || []).forEach((poly) => (poly || []).forEach(drawRing));
-          });
-          doc.setDrawColor(220, 38, 38);
-          doc.setFillColor(220, 38, 38);
-          profilePointsForPdf.forEach((pt) => {
-            doc.circle(toX(Number(pt.lng)), toY(Number(pt.lat)), 3.2, "F");
-          });
-          drawn = true;
-        } catch {
-          drawn = false;
-        }
-      }
-      if (!drawn) {
-        doc.setDrawColor(148, 163, 184);
-        doc.rect(marginX, mapY, mapW, mapH);
-        doc.text("Satellite image unavailable.", marginX + 8, mapY + 14);
-      }
-      y = mapY + mapH + 8;
-    }
-
-    if (profilePointsForPdf.length) {
-      drawTable(
-        "Facility Locations",
-        ["Facility", "State", "City", "Lat", "Lng", "Operation Start Date"],
-        profilePointsForPdf.map((pt, idx) => ({
-          cells: [
-            `Facility ${idx + 1}`,
-            fmt(pt.state_name),
-            fmt(pt.city_name),
-            Number(pt.lat).toFixed(6),
-            Number(pt.lng).toFixed(6),
-            fmt(pt.start_date),
-          ],
-        })),
-        [55, 85, 85, 75, 75, 140]
-      );
-      const p0 = profilePointsForPdf[0];
-      const mapLink = `https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`;
-      doc.text("Map Link:", marginX, y);
-      drawLink("Open Map", mapLink, marginX + 45, y);
-      y += lineHeight;
-    }
   }
 
   const facilityMatricesPdf = computeFacilityMatrices();
