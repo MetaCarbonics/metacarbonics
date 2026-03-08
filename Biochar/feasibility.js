@@ -201,6 +201,7 @@ let hoverDistrictFeatureCache = new Map();
 let hoverDistrictBoundaryKey = "";
 let hoverDistrictInFlight = false;
 let hoverDistrictLastMs = 0;
+let stateBoundaryLoading = false;
 let finalRegistryCredits = null;
 let editingFacilityIndex = -1;
 
@@ -389,6 +390,17 @@ function getSelectedStateCodes() {
   return getMultiValues(multiStateSelect);
 }
 
+function enforceFacilityCountVsSelectedStates() {
+  if (!singleFacilityCount) return;
+  if (!isMultiStateEnabled()) return;
+  const selectedStates = getSelectedStateCodes().length;
+  if (!selectedStates) return;
+  const current = Math.max(1, Number(singleFacilityCount.value || 1));
+  if (current < selectedStates) {
+    singleFacilityCount.value = String(selectedStates);
+  }
+}
+
 function getBoundaryStateNames() {
   if (!isMultiStateEnabled()) return [selectedText(stateSelect)].filter(Boolean);
   const codes = getMultiValues(multiStateSelect);
@@ -527,7 +539,7 @@ function pointInFeature(lat, lng, feature) {
 function getPlacementError(lat, lng, plan = null) {
   const plans = getFacilityPlanRows();
   if (!plans.length) return "Select state(s) and facility count before adding facilities.";
-  if (!stateBoundaryFeatures.length) return "State boundary is still loading. Try again in a moment.";
+  if (stateBoundaryLoading || !stateBoundaryFeatures.length) return "State boundary is still loading. Try again in a moment.";
   const insideState = stateBoundaryFeatures.some((f) => pointInFeature(lat, lng, f));
   if (!insideState) return "Facility is outside selected state boundary.";
   if (plan) {
@@ -659,7 +671,11 @@ function renderFacilityMarkers(recenter = false) {
       const pos = marker.getLatLng();
       const placementError = getPlacementError(pos.lat, pos.lng);
       if (placementError) {
-        alert(placementError);
+        if (placementError.includes("loading")) {
+          if (facilityPlanQCSummary) facilityPlanQCSummary.textContent = "QA/QC: State boundary loading. Try again in a moment.";
+        } else {
+          alert(placementError);
+        }
         marker.setLatLng([p.lat, p.lng]);
         return;
       }
@@ -706,6 +722,10 @@ function setFacilityMarker(lat, lng, recenter = true) {
   const targetPlan = findTargetPlanForPoint(la, ln);
   const placementError = getPlacementError(la, ln, targetPlan);
   if (placementError) {
+    if (placementError.includes("loading")) {
+      if (facilityPlanQCSummary) facilityPlanQCSummary.textContent = "QA/QC: State boundary loading. Try adding marker in a moment.";
+      return false;
+    }
     alert(placementError);
     return false;
   }
@@ -908,6 +928,7 @@ async function updateFacilityAddressPreview(lat, lng) {
 
 async function refreshStateBoundaryLayer() {
   if (!facilityMap || !window.L) return;
+  stateBoundaryLoading = true;
   hoverDistrictCache = new Map();
   hoverDistrictFeatureCache = new Map();
   hoverDistrictBoundaryKey = "";
@@ -919,6 +940,7 @@ async function refreshStateBoundaryLayer() {
     if (districtBoundaryLayer) districtBoundaryLayer.clearLayers();
     if (hoverDistrictBoundaryLayer) hoverDistrictBoundaryLayer.clearLayers();
     if (mapHoverDistrict) mapHoverDistrict.textContent = "Hover inside selected state boundary to view district.";
+    stateBoundaryLoading = false;
     return;
   }
   const country = selectedText(countrySelect);
@@ -975,6 +997,7 @@ async function refreshStateBoundaryLayer() {
     const b = stateBoundaryLayer.getBounds();
     if (b.isValid()) facilityMap.fitBounds(b.pad(0.1));
   }
+  stateBoundaryLoading = false;
   renderPreviewFacilityBlock();
 }
 
@@ -1011,7 +1034,11 @@ function initFacilityMap() {
     }
     const placementError = getPlacementError(e.latlng.lat, e.latlng.lng, targetPlan);
     if (placementError) {
-      alert(placementError);
+      if (placementError.includes("loading")) {
+        if (facilityPlanQCSummary) facilityPlanQCSummary.textContent = "QA/QC: State boundary loading. Try again in a moment.";
+      } else {
+        alert(placementError);
+      }
       return;
     }
     setFacilityMarker(Number(e.latlng.lat), Number(e.latlng.lng), false);
@@ -2715,6 +2742,7 @@ function loadUserFromLocalStorage() {
     }
     activeMultiStateIndex = 0;
     syncMultiStateSelectFromLocations();
+    enforceFacilityCountVsSelectedStates();
     renderMultiStateLocationRows();
     try {
       const pts = JSON.parse(data.facility_points_json || "[]");
@@ -2986,6 +3014,7 @@ citySelect.addEventListener("change", () => {
 
 if (singleFacilityCount) {
   singleFacilityCount.addEventListener("change", () => {
+    enforceFacilityCountVsSelectedStates();
     renderSummary();
     saveUserToLocalStorage();
   });
@@ -3012,6 +3041,7 @@ function onMultiStateModeChange(enabled) {
     state_code: code,
     state_name: getStateNameFromCode(countrySelect.value, code),
   }));
+  enforceFacilityCountVsSelectedStates();
   renderMultiStateLocationRows();
   refreshStateBoundaryLayer();
   renderSummary();
@@ -3047,6 +3077,7 @@ multiStateSelect.addEventListener("change", () => {
     state_code: code,
     state_name: getStateNameFromCode(countrySelect.value, code),
   }));
+  enforceFacilityCountVsSelectedStates();
   refreshStateBoundaryLayer();
   renderMultiStateLocationRows();
   renderSummary();
