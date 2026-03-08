@@ -1386,6 +1386,37 @@ function renderFeedstockTable(tbodyEl, withActions = false) {
     return;
   }
 
+  // Step 2 view: group rows by facility for clearer facility-wise review.
+  if (tbodyEl === feedstockTableBodyFeedstock) {
+    const facilities = listFacilities();
+    facilities.forEach((f) => {
+      const facilityRows = rows.filter((r) => r.facility_id === f.id);
+      if (!facilityRows.length) return;
+
+      const head = document.createElement("tr");
+      head.innerHTML = `<td colspan="${withActions ? 5 : 4}"><strong>${f.label}</strong></td>`;
+      tbodyEl.appendChild(head);
+
+      let subtotal = 0;
+      facilityRows.forEach((entry) => {
+        const idx = feedstockEntries.findIndex((e) => e === entry);
+        const qty = Number(entry.quantity_tpy || 0);
+        if (Number.isFinite(qty)) subtotal += qty;
+        const tr = document.createElement("tr");
+        const action = withActions
+          ? `<td><div class="btn-row"><button class="btn btn-secondary btn-sm" type="button" data-edit-feedstock-index="${idx}">Edit</button><button class="btn btn-danger btn-sm" type="button" data-delete-feedstock-index="${idx}">Delete</button></div></td>`
+          : "";
+        tr.innerHTML = `<td>${f.label}</td><td>${entry.feedstock}</td><td>${entry.quantity_tpy || ""}</td><td>${entry.q4_transport_km || ""}</td>${action}`;
+        tbodyEl.appendChild(tr);
+      });
+
+      const sub = document.createElement("tr");
+      sub.innerHTML = `<td colspan="${withActions ? 5 : 4}"><strong>${f.label} subtotal biomass: ${subtotal.toFixed(2)} t/year</strong></td>`;
+      tbodyEl.appendChild(sub);
+    });
+    return;
+  }
+
   rows.forEach((entry) => {
     const idx = feedstockEntries.findIndex((e) => e === entry);
     const tr = document.createElement("tr");
