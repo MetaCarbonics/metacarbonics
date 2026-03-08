@@ -47,6 +47,7 @@ const facilityCoordLat = document.getElementById("facilityCoordLat");
 const facilityCoordLng = document.getElementById("facilityCoordLng");
 const addFacilityByCoordBtn = document.getElementById("addFacilityByCoordBtn");
 const facilityLocationSummary = document.getElementById("facilityLocationSummary");
+const facilityAddressPreview = document.getElementById("facilityAddressPreview");
 const facilityPlanQCSummary = document.getElementById("facilityPlanQCSummary");
 const facilityMarkerDates = document.getElementById("facilityMarkerDates");
 const progressFill = document.getElementById("progressFill");
@@ -186,6 +187,7 @@ let previewFacilityMap = null;
 let previewFacilityMarkersLayer = null;
 let previewBoundaryLayer = null;
 let stateBoundaryLayer = null;
+let districtBoundaryLayer = null;
 let stateBoundaryFeatures = [];
 let districtBoundaryFeatures = [];
 let hoverDistrictCache = new Map();
@@ -375,6 +377,10 @@ function setMultiStateEnabled(enabled) {
   if (singleStateWrap) singleStateWrap.classList.toggle("hidden", enabled);
 }
 
+function getSelectedStateCodes() {
+  return getMultiValues(multiStateSelect);
+}
+
 function getBoundaryStateNames() {
   if (!isMultiStateEnabled()) return [selectedText(stateSelect)].filter(Boolean);
   const codes = getMultiValues(multiStateSelect);
@@ -454,6 +460,9 @@ function updateFacilityLocationSummary() {
     })
     .join(" | ");
   facilityLocationSummary.textContent = `Facilities: ${facilityPoints.length}${expected ? ` / ${expected}` : ""}. ${list}${facilityPoints.length > 4 ? " ..." : ""}`;
+  if (!facilityPoints.length && facilityAddressPreview) {
+    facilityAddressPreview.textContent = "Address preview will appear after marker placement.";
+  }
 }
 
 function syncPrimaryFacilityPoint() {
@@ -653,6 +662,7 @@ function renderFacilityMarkers(recenter = false) {
       };
       syncPrimaryFacilityPoint();
       updateFacilityLocationSummary();
+      updateFacilityAddressPreview(Number(pos.lat), Number(pos.lng));
       renderSummary();
       saveUserToLocalStorage();
     });
@@ -707,6 +717,7 @@ function setFacilityMarker(lat, lng, recenter = true) {
     renderSummary();
     saveUserToLocalStorage();
   }).catch(() => {});
+  updateFacilityAddressPreview(la, ln);
   syncPrimaryFacilityPoint();
   renderFacilityMarkers(recenter);
   updateFacilityLocationSummary();
@@ -719,6 +730,7 @@ function updateMapEditMode(enabled) {
   editFacilityMarkerBtn.textContent = mapEditMode ? "Save Locations" : "Edit Facility Locations";
   editFacilityMarkerBtn.classList.toggle("btn-danger", mapEditMode);
   renderFacilityMarkers(false);
+  refreshStateBoundaryLayer();
 }
 
 async function fetchStateBoundaryFeature(stateName, countryName) {
@@ -842,6 +854,20 @@ async function fetchDistrictNameForPoint(lat, lng) {
   return hoverDistrictCache.get(key);
 }
 
+async function updateFacilityAddressPreview(lat, lng) {
+  if (!facilityAddressPreview) return;
+  facilityAddressPreview.textContent = "Resolving address...";
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=18&addressdetails=1`;
+    const res = await fetch(url);
+    const row = await res.json();
+    const label = String(row?.display_name || "").trim();
+    facilityAddressPreview.textContent = label ? `Address: ${label}` : "Address: unavailable";
+  } catch {
+    facilityAddressPreview.textContent = "Address: unavailable";
+  }
+}
+
 async function refreshStateBoundaryLayer() {
   if (!facilityMap || !window.L) return;
   hoverDistrictCache = new Map();
@@ -850,6 +876,7 @@ async function refreshStateBoundaryLayer() {
   districtBoundaryFeatures = [];
   if (!stateNames.length) {
     if (stateBoundaryLayer) stateBoundaryLayer.clearLayers();
+    if (districtBoundaryLayer) districtBoundaryLayer.clearLayers();
     if (mapHoverDistrict) mapHoverDistrict.textContent = "Hover inside selected state boundary to view district.";
     return;
   }
@@ -867,9 +894,37 @@ async function refreshStateBoundaryLayer() {
       style: { color: "#eab308", weight: 2, opacity: 0.9, fillOpacity: 0.05 },
     }).addTo(facilityMap);
   }
+  if (!districtBoundaryLayer) {
+    districtBoundaryLayer = window.L.geoJSON([], {
+      style: { color: "#22c55e", weight: 1.6, opacity: 0.95, fillOpacity: 0.02 },
+    }).addTo(facilityMap);
+  }
   stateBoundaryLayer.clearLayers();
+  districtBoundaryLayer.clearLayers();
   if (stateBoundaryFeatures.length) {
     stateBoundaryLayer.addData({ type: "FeatureCollection", features: stateBoundaryFeatures });
+    if (mapEditMode) {
+      const country = selectedText(countrySelect);
+      const targets = [];
+      facilityPoints.forEach((f) => {
+        if (f.city_name && f.state_name) targets.push({ city_name: f.city_name, state_name: f.state_name });
+      });
+      const seen = new Set();
+      for (const t of targets) {
+        const key = `${String(t.state_name).toLowerCase()}::${String(t.city_name).toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        try {
+          const f = await fetchDistrictBoundaryFeature(t.city_name, t.state_name, country);
+          if (f) districtBoundaryFeatures.push(f);
+        } catch {
+          // ignore
+        }
+      }
+      if (districtBoundaryFeatures.length) {
+        districtBoundaryLayer.addData({ type: "FeatureCollection", features: districtBoundaryFeatures });
+      }
+    }
     const b = stateBoundaryLayer.getBounds();
     if (b.isValid()) facilityMap.fitBounds(b.pad(0.1));
   }
@@ -2870,12 +2925,22 @@ if (singleFacilityCount) {
 
 function onMultiStateModeChange(enabled) {
   setMultiStateEnabled(enabled);
-  if (!enabled) {
-    multiStateLocations = [];
-    activeMultiStateIndex = 0;
-    setMultiValues(multiStateSelect, []);
+  if (enabled) {
+    const selectedCodes = getSelectedStateCodes();
+    if (!selectedCodes.length) {
+      const fallbackCodes = [];
+      if (stateSelect?.value) fallbackCodes.push(stateSelect.value);
+      facilityPoints.forEach((f) => {
+        if (f.state_code) fallbackCodes.push(f.state_code);
+      });
+      const unique = [...new Set(fallbackCodes.filter(Boolean))];
+      if (unique.length) setMultiValues(multiStateSelect, unique);
+    }
   }
-  syncMultiStateSelectFromLocations();
+  multiStateLocations = getSelectedStateCodes().map((code) => ({
+    state_code: code,
+    state_name: getStateNameFromCode(countrySelect.value, code),
+  }));
   renderMultiStateLocationRows();
   refreshStateBoundaryLayer();
   renderSummary();
