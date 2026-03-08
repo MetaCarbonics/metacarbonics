@@ -202,6 +202,9 @@ let hoverDistrictBoundaryKey = "";
 let hoverDistrictInFlight = false;
 let hoverDistrictLastMs = 0;
 let stateBoundaryLoading = false;
+let stateBoundaryCache = new Map();
+let districtBoundaryCache = new Map();
+let refreshBoundaryRequestId = 0;
 let finalRegistryCredits = null;
 let editingFacilityIndex = -1;
 
@@ -768,6 +771,8 @@ function updateMapEditMode(enabled) {
 }
 
 async function fetchStateBoundaryFeature(stateName, countryName) {
+  const cacheKey = `${String(countryName || "").toLowerCase()}::${String(stateName || "").toLowerCase()}`;
+  if (stateBoundaryCache.has(cacheKey)) return stateBoundaryCache.get(cacheKey);
   const query = encodeURIComponent([stateName, countryName].filter(Boolean).join(", "));
   const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&addressdetails=1&limit=10&q=${query}`;
   const res = await fetch(url);
@@ -792,11 +797,15 @@ async function fetchStateBoundaryFeature(stateName, countryName) {
   };
   const first = pool.sort((a, b) => scoreRow(b) - scoreRow(a))[0] || null;
   if (!first?.geojson) return null;
-  return { type: "Feature", properties: { name: stateName }, geometry: first.geojson };
+  const out = { type: "Feature", properties: { name: stateName }, geometry: first.geojson };
+  stateBoundaryCache.set(cacheKey, out);
+  return out;
 }
 
 async function fetchDistrictBoundaryFeature(cityName, stateName, countryName) {
   if (!cityName) return null;
+  const cacheKey = `${String(countryName || "").toLowerCase()}::${String(stateName || "").toLowerCase()}::${String(cityName || "").toLowerCase()}`;
+  if (districtBoundaryCache.has(cacheKey)) return districtBoundaryCache.get(cacheKey);
   const query = encodeURIComponent([`${cityName} district`, stateName, countryName].filter(Boolean).join(", "));
   const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&addressdetails=1&limit=10&q=${query}`;
   const res = await fetch(url);
@@ -833,7 +842,9 @@ async function fetchDistrictBoundaryFeature(cityName, stateName, countryName) {
   const best = pool.sort((a, b) => scoreRow(b) - scoreRow(a))[0] || null;
   const first = best || (Array.isArray(rows) ? rows[0] : null);
   if (!first?.geojson) return null;
-  return { type: "Feature", properties: { name: cityName, state: stateName }, geometry: first.geojson };
+  const out = { type: "Feature", properties: { name: cityName, state: stateName }, geometry: first.geojson };
+  districtBoundaryCache.set(cacheKey, out);
+  return out;
 }
 
 async function resolveFacilityLocationFromPoint(lat, lng) {
@@ -928,6 +939,7 @@ async function updateFacilityAddressPreview(lat, lng) {
 
 async function refreshStateBoundaryLayer() {
   if (!facilityMap || !window.L) return;
+  const reqId = ++refreshBoundaryRequestId;
   stateBoundaryLoading = true;
   hoverDistrictCache = new Map();
   hoverDistrictFeatureCache = new Map();
@@ -944,14 +956,12 @@ async function refreshStateBoundaryLayer() {
     return;
   }
   const country = selectedText(countrySelect);
-  for (const s of stateNames) {
-    try {
-      const feature = await fetchStateBoundaryFeature(s, country);
-      if (feature) stateBoundaryFeatures.push(feature);
-    } catch {
-      // ignore boundary fetch failures for individual states
-    }
-  }
+  const stateFetches = stateNames.map((s) =>
+    fetchStateBoundaryFeature(s, country).catch(() => null)
+  );
+  const fetchedStates = await Promise.all(stateFetches);
+  if (reqId !== refreshBoundaryRequestId) return;
+  stateBoundaryFeatures = fetchedStates.filter(Boolean);
   if (!stateBoundaryLayer) {
     stateBoundaryLayer = window.L.geoJSON([], {
       style: { color: "#eab308", weight: 2, opacity: 0.9, fillOpacity: 0.05 },
@@ -979,17 +989,18 @@ async function refreshStateBoundaryLayer() {
         if (f.city_name && f.state_name) targets.push({ city_name: f.city_name, state_name: f.state_name });
       });
       const seen = new Set();
-      for (const t of targets) {
+      const uniqTargets = targets.filter((t) => {
         const key = `${String(t.state_name).toLowerCase()}::${String(t.city_name).toLowerCase()}`;
-        if (seen.has(key)) continue;
+        if (seen.has(key)) return false;
         seen.add(key);
-        try {
-          const f = await fetchDistrictBoundaryFeature(t.city_name, t.state_name, country);
-          if (f) districtBoundaryFeatures.push(f);
-        } catch {
-          // ignore
-        }
-      }
+        return true;
+      });
+      const districtFetches = uniqTargets.map((t) =>
+        fetchDistrictBoundaryFeature(t.city_name, t.state_name, country).catch(() => null)
+      );
+      const fetchedDistricts = await Promise.all(districtFetches);
+      if (reqId !== refreshBoundaryRequestId) return;
+      districtBoundaryFeatures = fetchedDistricts.filter(Boolean);
       if (districtBoundaryFeatures.length) {
         districtBoundaryLayer.addData({ type: "FeatureCollection", features: districtBoundaryFeatures });
       }
