@@ -1244,10 +1244,7 @@ function renderFeedstockQc() {
 
 function renderFeedstockTable(tbodyEl, withActions = false) {
   tbodyEl.innerHTML = "";
-  const selectedFacility = feedstockFacilitySelect?.value || "";
-  const rows = withActions && selectedFacility
-    ? feedstockEntries.filter((e) => e.facility_id === selectedFacility)
-    : feedstockEntries;
+  const rows = feedstockEntries;
   if (!rows.length) {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td colspan="${withActions ? 5 : 4}">No feedstock added yet.</td>`;
