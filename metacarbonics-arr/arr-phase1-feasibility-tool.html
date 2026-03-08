@@ -286,6 +286,25 @@ textarea {
       <h3>1. User Info and basic inputs</h3>
       <div class="grid-2">
         <div>
+          <label for="registrySelect">Registry</label>
+          <select id="registrySelect" name="registrySelect">
+            <option value="">Select registry</option>
+            <option value="verra">Verra</option>
+            <option value="gold_standard">Gold Standard</option>
+            <option value="acr">American Carbon Registry (ACR)</option>
+            <option value="car">Climate Action Reserve (CAR)</option>
+            <option value="isometric">Isometric</option>
+          </select>
+        </div>
+        <div>
+          <label for="methodologySelect">Methodology</label>
+          <select id="methodologySelect" name="methodologySelect">
+            <option value="">Select methodology</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
           <label for="projectPartner">Project Partner Name</label>
           <input id="projectPartner" name="projectPartner" type="text" placeholder="Enter project partner name" />
         </div>
@@ -320,12 +339,98 @@ textarea {
 
     <section class="section-step" data-step="2">
       <h3>2. Baseline assessment</h3>
-      <label>Baseline land-use data available?
-        <select name="baselineData"><option value="2">Complete</option><option value="1">Partial</option><option value="0">No</option></select>
-      </label>
-      <label>Baseline carbon stock assessment completed?
-        <select name="baselineCarbon"><option value="2">Yes</option><option value="1">Draft</option><option value="0">No</option></select>
-      </label>
+      <div class="small" style="margin-bottom:8px;">Mandatory baseline questionnaire (applies to all registries)</div>
+      <div class="grid-2">
+        <label>Baseline land-use data availability
+          <select name="baselineData">
+            <option value="2">Complete (10+ years)</option>
+            <option value="1">Partial</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+        <label>Historical land-use change analysis completed
+          <select name="baselineLandUseChange">
+            <option value="2">Yes</option>
+            <option value="1">In progress</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid-2">
+        <label>Baseline carbon stock assessment completed
+          <select name="baselineCarbon">
+            <option value="2">Yes</option>
+            <option value="1">Draft</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+        <label>Baseline stratification map prepared
+          <select name="baselineStratification">
+            <option value="2">Yes</option>
+            <option value="1">Partial</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid-2">
+        <label>Baseline scenario definition quality
+          <select name="baselineScenarioQuality">
+            <option value="2">Strong and documented</option>
+            <option value="1">Preliminary</option>
+            <option value="0">Not defined</option>
+          </select>
+        </label>
+        <label>Remote sensing / GIS evidence available
+          <select name="baselineRemoteSensing">
+            <option value="2">High confidence</option>
+            <option value="1">Limited</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid-2">
+        <label>Field plot inventory completed
+          <select name="baselineFieldPlots">
+            <option value="2">Yes</option>
+            <option value="1">Sampled partially</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+        <label>SOC (soil organic carbon) baseline status
+          <select name="baselineSOC">
+            <option value="2">Measured</option>
+            <option value="1">Proxy/defaults only</option>
+            <option value="0">Not assessed</option>
+          </select>
+        </label>
+      </div>
+      <div class="grid-2">
+        <label>Baseline uncertainty quantified
+          <select name="baselineUncertainty">
+            <option value="2">Yes</option>
+            <option value="1">Partial</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+        <label>Data QA/QC protocol in place
+          <select name="baselineQAQC">
+            <option value="2">Yes</option>
+            <option value="1">Draft</option>
+            <option value="0">No</option>
+          </select>
+        </label>
+      </div>
+      <label for="baselineNarrative">Baseline narrative and justification</label>
+      <textarea id="baselineNarrative" name="baselineNarrative" placeholder="Describe baseline assumptions, data sources, baseline scenario logic, and identified uncertainties."></textarea>
+
+      <div id="registryOptionalWrap" style="margin-top:12px;">
+        <div class="small" style="margin-bottom:8px;">Optional add-ons based on selected registry and methodology</div>
+        <div id="registryOptionalContent" class="card" style="padding:12px; background:#f8fafc; border:1px solid #cbd5e1;">
+          Select registry and methodology in Step 1 to view optional prompts.
+        </div>
+        <label for="registryOptionalNotes" style="margin-top:10px;">Optional notes</label>
+        <textarea id="registryOptionalNotes" name="registryOptionalNotes" placeholder="Capture any additional baseline evidence or methodology-specific notes."></textarea>
+      </div>
     </section>
 
     <section class="section-step" data-step="3">
@@ -457,12 +562,81 @@ const sections = Array.from(document.querySelectorAll(".section-step"));
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const evaluateBtn = document.getElementById("evaluateBtn");
+const registrySelect = document.getElementById("registrySelect");
+const methodologySelect = document.getElementById("methodologySelect");
+const registryOptionalContent = document.getElementById("registryOptionalContent");
 
 let map = null;
 let boundaryPoints = [];
 let markerLayer = null;
 let lineLayer = null;
 let polygonLayer = null;
+let pendingMethodology = "";
+
+const REGISTRY_METHODOLOGIES = {
+  verra: [
+    { value: "vm0047", label: "VM0047 Afforestation, Reforestation and Revegetation" },
+    { value: "vmd0053", label: "VMD0053 ARR of Degraded Lands" },
+  ],
+  gold_standard: [
+    { value: "gs-arr", label: "GS ARR Requirements and Tools" },
+    { value: "gs-afolu", label: "GS AFOLU Activity Requirements" },
+  ],
+  acr: [
+    { value: "acr-arr", label: "ACR ARR Methodology (latest)" },
+    { value: "acr-ifm", label: "ACR Forestry Quantification Guidance" },
+  ],
+  car: [
+    { value: "car-forest", label: "CAR Forest Project Protocol" },
+    { value: "car-urban", label: "CAR Urban Forest / Tree Planting Guidance" },
+  ],
+  isometric: [
+    { value: "iso-nature", label: "Isometric Nature-based Removal Framework" },
+  ],
+};
+
+const REGISTRY_OPTIONAL_PROMPTS = {
+  verra: {
+    default: [
+      "Optional: Provide dynamic baseline land-use transition evidence.",
+      "Optional: Upload ARR eligibility screening notes and leakage belt approach.",
+      "Optional: Record uncertainty deduction approach for ex-ante credits.",
+    ],
+    vm0047: [
+      "VM0047 optional: Provide baseline fuelwood extraction assumptions and evidence.",
+      "VM0047 optional: Add guidance for stratified sampling design and confidence intervals.",
+      "VM0047 optional: Capture N2O/CH4 non-CO2 significance screening references.",
+    ],
+  },
+  gold_standard: {
+    default: [
+      "GS optional: Add SDG co-benefit baseline indicators and monitoring plan notes.",
+      "GS optional: Include stakeholder consultation baseline concerns register.",
+    ],
+    "gs-arr": [
+      "GS ARR optional: Add baseline biomass growth assumptions and conservative factors.",
+      "GS ARR optional: Note rationale for baseline continuation scenario.",
+    ],
+  },
+  acr: {
+    default: [
+      "ACR optional: Add baseline inventory design memo and stratification logic.",
+      "ACR optional: Record how baseline disturbances are represented.",
+    ],
+  },
+  car: {
+    default: [
+      "CAR optional: Provide baseline stocking assumptions and protocol-fit justification.",
+      "CAR optional: Add non-permanence risk pre-screen comments.",
+    ],
+  },
+  isometric: {
+    default: [
+      "Isometric optional: Document measurement boundaries and data assurance approach.",
+      "Isometric optional: Note digital MRV readiness and evidence provenance.",
+    ],
+  },
+};
 
 function initWorkflow() {
   progressSteps.innerHTML = "";
@@ -475,6 +649,47 @@ function initWorkflow() {
     progressSteps.appendChild(b);
   });
   setStep(1);
+}
+
+function populateMethodologyOptions() {
+  if (!methodologySelect) return;
+  const registry = (registrySelect && registrySelect.value) || "";
+  const methods = REGISTRY_METHODOLOGIES[registry] || [];
+  const previous = methodologySelect.value || pendingMethodology;
+
+  methodologySelect.innerHTML = "";
+  const base = document.createElement("option");
+  base.value = "";
+  base.textContent = "Select methodology";
+  methodologySelect.appendChild(base);
+
+  methods.forEach((m) => {
+    const opt = document.createElement("option");
+    opt.value = m.value;
+    opt.textContent = m.label;
+    methodologySelect.appendChild(opt);
+  });
+
+  if (methods.some((m) => m.value === previous)) methodologySelect.value = previous;
+  pendingMethodology = "";
+}
+
+function updateRegistryOptionalSection() {
+  if (!registryOptionalContent) return;
+  const registry = (registrySelect && registrySelect.value) || "";
+  const methodology = (methodologySelect && methodologySelect.value) || "";
+  if (!registry) {
+    registryOptionalContent.innerHTML = "Select registry and methodology in Step 1 to view optional prompts.";
+    return;
+  }
+
+  const byRegistry = REGISTRY_OPTIONAL_PROMPTS[registry] || {};
+  const prompts = (methodology && byRegistry[methodology]) || byRegistry.default || [];
+  if (!prompts.length) {
+    registryOptionalContent.innerHTML = "No additional optional prompts for the selected combination.";
+    return;
+  }
+  registryOptionalContent.innerHTML = `<ul style="margin:0; padding-left:18px;">${prompts.map((p) => `<li>${p}</li>`).join("")}</ul>`;
 }
 
 function setStep(step) {
@@ -515,7 +730,10 @@ function loadDraft() {
     const form = document.getElementById("feasibilityForm");
     Array.from(form.elements).forEach((el) => {
       if (!el.name) return;
-      if (data[el.name] !== undefined) el.value = data[el.name];
+      if (data[el.name] !== undefined) {
+        if (el.name === "methodologySelect") pendingMethodology = data[el.name];
+        else el.value = data[el.name];
+      }
     });
     if (Array.isArray(data.boundaryPoints)) {
       boundaryPoints = data.boundaryPoints
@@ -735,8 +953,25 @@ Array.from(document.querySelectorAll("input, select, textarea")).forEach((el) =>
 });
 
 loadDraft();
+populateMethodologyOptions();
+updateRegistryOptionalSection();
 initWorkflow();
 initMap();
+
+if (registrySelect) {
+  registrySelect.addEventListener("change", () => {
+    populateMethodologyOptions();
+    updateRegistryOptionalSection();
+    saveDraft();
+  });
+}
+
+if (methodologySelect) {
+  methodologySelect.addEventListener("change", () => {
+    updateRegistryOptionalSection();
+    saveDraft();
+  });
+}
 </script>
 </body>
 </html>
