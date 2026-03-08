@@ -123,6 +123,8 @@ const pyroQ17 = document.getElementById("pyroQ17");
 const pyroQ18 = document.getElementById("pyroQ18");
 const pyroQ19 = document.getElementById("pyroQ19");
 const pyroQ20 = document.getElementById("pyroQ20");
+const pyroFacilitySelect = document.getElementById("pyroFacilitySelect");
+const pyroFacilityInfo = document.getElementById("pyroFacilityInfo");
 const financeQ21 = document.getElementById("financeQ21");
 const financeQ22 = document.getElementById("financeQ22");
 
@@ -178,6 +180,7 @@ let states = [];
 let cities = [];
 let feedstockMatrix = [];
 let feedstockEntries = [];
+let pyroEntriesByFacility = {};
 let additionalInfoEntries = [];
 let showStep1Editor = false;
 let facilityLat = null;
@@ -260,6 +263,105 @@ function getFacilityLabelById(facilityId) {
 
 function listFacilities() {
   return facilityPoints.map((f, idx) => ({ id: f.id, label: `Facility ${idx + 1}` }));
+}
+
+function defaultPyroEntry() {
+  return {
+    q13_pollution_controls: "",
+    q14_waste_heat_utilization: "",
+    q15_pyrolytic_gas_recovery: "",
+    q16_continuous_temperature_reporting: "",
+    q17_avg_yearly_temp: "",
+    q18_facility_certifications: [],
+    q19_energy_used_mwh_a: "",
+    q20_energy_source: "",
+  };
+}
+
+function getPyroEntryForFacility(facilityId, createIfMissing = false) {
+  if (!facilityId) return null;
+  const existing = pyroEntriesByFacility[facilityId];
+  if (existing) return existing;
+  if (!createIfMissing) return null;
+  pyroEntriesByFacility[facilityId] = defaultPyroEntry();
+  return pyroEntriesByFacility[facilityId];
+}
+
+function renderPyroFacilityOptions() {
+  if (!pyroFacilitySelect) return;
+  const current = pyroFacilitySelect.value;
+  pyroFacilitySelect.innerHTML = "";
+  if (!facilityPoints.length) {
+    pyroFacilitySelect.appendChild(option("Select facility first", ""));
+    pyroFacilitySelect.disabled = true;
+    return;
+  }
+  pyroFacilitySelect.appendChild(option("Select facility", ""));
+  listFacilities().forEach((f) => pyroFacilitySelect.appendChild(option(f.label, f.id)));
+  pyroFacilitySelect.disabled = false;
+  if (current && facilityPoints.some((f) => f.id === current)) pyroFacilitySelect.value = current;
+  else if (!current) pyroFacilitySelect.value = facilityPoints[0].id;
+}
+
+function loadPyroFormFromSelectedFacility() {
+  if (!pyroFacilitySelect) return;
+  const facilityId = pyroFacilitySelect.value;
+  if (!facilityId) {
+    pyroQ13.value = "";
+    pyroQ14.value = "";
+    pyroQ15.value = "";
+    pyroQ16.value = "";
+    pyroQ17.value = "";
+    setMultiValues(pyroQ18, []);
+    pyroQ19.value = "";
+    pyroQ20.value = "";
+    if (pyroFacilityInfo) pyroFacilityInfo.textContent = "Select a facility to enter pyrolysis details.";
+    return;
+  }
+  const entry = getPyroEntryForFacility(facilityId, true);
+  pyroQ13.value = entry.q13_pollution_controls || "";
+  pyroQ14.value = entry.q14_waste_heat_utilization || "";
+  pyroQ15.value = entry.q15_pyrolytic_gas_recovery || "";
+  pyroQ16.value = entry.q16_continuous_temperature_reporting || "";
+  pyroQ17.value = entry.q17_avg_yearly_temp || "";
+  setMultiValues(pyroQ18, Array.isArray(entry.q18_facility_certifications) ? entry.q18_facility_certifications : []);
+  pyroQ19.value = entry.q19_energy_used_mwh_a || "";
+  pyroQ20.value = entry.q20_energy_source || "";
+  if (pyroFacilityInfo) {
+    const label = getFacilityLabelById(facilityId);
+    pyroFacilityInfo.textContent = `Editing pyrolysis data for ${label}.`;
+  }
+}
+
+function savePyroFormToSelectedFacility() {
+  if (!pyroFacilitySelect?.value) return;
+  const entry = getPyroEntryForFacility(pyroFacilitySelect.value, true);
+  entry.q13_pollution_controls = pyroQ13.value;
+  entry.q14_waste_heat_utilization = pyroQ14.value;
+  entry.q15_pyrolytic_gas_recovery = pyroQ15.value;
+  entry.q16_continuous_temperature_reporting = pyroQ16.value;
+  entry.q17_avg_yearly_temp = pyroQ17.value;
+  entry.q18_facility_certifications = getMultiValues(pyroQ18);
+  entry.q19_energy_used_mwh_a = pyroQ19.value;
+  entry.q20_energy_source = pyroQ20.value;
+}
+
+function reconcilePyroWithFacilities() {
+  const valid = new Set(facilityPoints.map((f) => f.id));
+  pyroEntriesByFacility = Object.fromEntries(
+    Object.entries(pyroEntriesByFacility || {}).filter(([fid]) => valid.has(fid))
+  );
+}
+
+function getPrimaryPyroEntry() {
+  const ids = facilityPoints.map((f) => f.id).filter(Boolean);
+  if (!ids.length) return defaultPyroEntry();
+  const fromSelected = pyroFacilitySelect?.value ? pyroEntriesByFacility[pyroFacilitySelect.value] : null;
+  if (fromSelected) return fromSelected;
+  for (const id of ids) {
+    if (pyroEntriesByFacility[id]) return pyroEntriesByFacility[id];
+  }
+  return defaultPyroEntry();
 }
 
 function renderFeedstockFacilityOptions() {
@@ -1476,12 +1578,25 @@ function renderBiocharCriticalInfo() {
 }
 
 function renderPyrolysisSummary() {
-  const p13 = pyroQ13.value ? "Q13: provided" : "Q13: pending";
-  const p14 = pyroQ14.value ? "Q14: provided" : "Q14: pending";
-  const p15 = pyroQ15.value ? "Q15: provided" : "Q15: pending";
-  const energy = pyroQ20.value || "N/A";
-  pyroCriticalInfoFinancial.textContent = `${p13} | ${p14} | ${p15} | Energy source: ${energy}`;
-  pyroCriticalInfoAdditional.textContent = `${p13} | ${p14} | ${p15} | Energy source: ${energy}`;
+  const totalFacilities = facilityPoints.length;
+  if (!totalFacilities) {
+    pyroCriticalInfoFinancial.textContent = "No facility added yet.";
+    pyroCriticalInfoAdditional.textContent = "No facility added yet.";
+    return;
+  }
+  let completed = 0;
+  const energySet = new Set();
+  facilityPoints.forEach((f) => {
+    const e = pyroEntriesByFacility[f.id];
+    if (!e) return;
+    const req = [e.q13_pollution_controls, e.q14_waste_heat_utilization, e.q15_pyrolytic_gas_recovery, e.q16_continuous_temperature_reporting, e.q17_avg_yearly_temp, e.q19_energy_used_mwh_a, e.q20_energy_source];
+    if (req.every((v) => String(v || "").trim())) completed += 1;
+    if (e.q20_energy_source) energySet.add(String(e.q20_energy_source));
+  });
+  const energy = energySet.size ? Array.from(energySet).join(", ") : "N/A";
+  const txt = `Facility-wise pyrolysis completed: ${completed}/${totalFacilities} | Energy source(s): ${energy}`;
+  pyroCriticalInfoFinancial.textContent = txt;
+  pyroCriticalInfoAdditional.textContent = txt;
 }
 
 function renderFinancialSummary() {
@@ -1763,14 +1878,22 @@ function buildContractPreviewLines() {
   lines.push("");
 
   lines.push("STEP 4: PYROLYSIS");
-  lines.push(`Q13 Pollution controls: ${fmt(data.q13_pollution_controls)}`);
-  lines.push(`Q14 Waste heat utilization: ${fmt(data.q14_waste_heat_utilization)}`);
-  lines.push(`Q15 Gas recovery/compliance: ${fmt(data.q15_pyrolytic_gas_recovery)}`);
-  lines.push(`Q16 Continuous temperature reporting: ${fmt(data.q16_continuous_temperature_reporting)}`);
-  lines.push(`Q17 Avg yearly production temperature: ${fmt(data.q17_avg_yearly_temp)}`);
-  lines.push(`Q18 Facility certifications: ${fmt(data.q18_facility_certifications)}`);
-  lines.push(`Q19 Energy used MWh/a: ${fmt(data.q19_energy_used_mwh_a)}`);
-  lines.push(`Q20 Energy source: ${fmt(data.q20_energy_source)}`);
+  if (!facilityPoints.length) {
+    lines.push("No facility added yet.");
+  } else {
+    facilityPoints.forEach((f) => {
+      const e = pyroEntriesByFacility[f.id] || defaultPyroEntry();
+      lines.push(`${getFacilityLabelById(f.id)}:`);
+      lines.push(`  Q13 Pollution controls: ${fmt(e.q13_pollution_controls)}`);
+      lines.push(`  Q14 Waste heat utilization: ${fmt(e.q14_waste_heat_utilization)}`);
+      lines.push(`  Q15 Gas recovery/compliance: ${fmt(e.q15_pyrolytic_gas_recovery)}`);
+      lines.push(`  Q16 Continuous temperature reporting: ${fmt(e.q16_continuous_temperature_reporting)}`);
+      lines.push(`  Q17 Avg yearly production temperature: ${fmt(e.q17_avg_yearly_temp)}`);
+      lines.push(`  Q18 Facility certifications: ${fmt(Array.isArray(e.q18_facility_certifications) ? e.q18_facility_certifications.join(", ") : "")}`);
+      lines.push(`  Q19 Energy used MWh/a: ${fmt(e.q19_energy_used_mwh_a)}`);
+      lines.push(`  Q20 Energy source: ${fmt(e.q20_energy_source)}`);
+    });
+  }
   lines.push("");
 
   lines.push("STEP 5: FINANCIAL");
@@ -2498,6 +2621,10 @@ function showSectionsFor(sectionName) {
   tentativeSection.classList.toggle("hidden", !showTentative);
 
   if (showPyro || showFinancial || showAdditional || showTentative) renderBiocharCriticalInfo();
+  if (showPyro) {
+    renderPyroFacilityOptions();
+    loadPyroFormFromSelectedFacility();
+  }
   if (showFinancial || showAdditional || showTentative) renderPyrolysisSummary();
   if (showAdditional || showTentative) renderFinancialSummary();
   if (showTentative) {
@@ -2624,6 +2751,7 @@ function updateFeedstockAvailability() {
 }
 
 function getFormData() {
+  const primaryPyro = getPrimaryPyroEntry();
   return {
     user_id: (userIdInput?.value || "").trim(),
     country_code: countrySelect.value,
@@ -2654,14 +2782,15 @@ function getFormData() {
     q11_end_user_relation_doc: biocharEndUserRelation.value,
     q12_biochar_transport_km: biocharTransportDistance.value,
 
-    q13_pollution_controls: pyroQ13.value,
-    q14_waste_heat_utilization: pyroQ14.value,
-    q15_pyrolytic_gas_recovery: pyroQ15.value,
-    q16_continuous_temperature_reporting: pyroQ16.value,
-    q17_avg_yearly_temp: pyroQ17.value,
-    q18_facility_certifications: getMultiValues(pyroQ18).join("; "),
-    q19_energy_used_mwh_a: pyroQ19.value,
-    q20_energy_source: pyroQ20.value,
+    q13_pollution_controls: primaryPyro.q13_pollution_controls || "",
+    q14_waste_heat_utilization: primaryPyro.q14_waste_heat_utilization || "",
+    q15_pyrolytic_gas_recovery: primaryPyro.q15_pyrolytic_gas_recovery || "",
+    q16_continuous_temperature_reporting: primaryPyro.q16_continuous_temperature_reporting || "",
+    q17_avg_yearly_temp: primaryPyro.q17_avg_yearly_temp || "",
+    q18_facility_certifications: Array.isArray(primaryPyro.q18_facility_certifications) ? primaryPyro.q18_facility_certifications.join("; ") : "",
+    q19_energy_used_mwh_a: primaryPyro.q19_energy_used_mwh_a || "",
+    q20_energy_source: primaryPyro.q20_energy_source || "",
+    pyro_entries_json: JSON.stringify(pyroEntriesByFacility || {}),
     q21_no_credit_revenue_scenario: financeQ21.value,
     q22_financial_model_evidence: financeQ22.value,
     q23_tentative_permanence_factor: tentativePermanenceFactor.value,
@@ -2677,8 +2806,13 @@ function getFormData() {
 function renderSummary() {
   reconcileFacilitiesWithPlan();
   reconcileFeedstockWithFacilities();
+  reconcilePyroWithFacilities();
   if (facilityMap) renderFacilityMarkers(false);
   renderFeedstockFacilityOptions();
+  renderPyroFacilityOptions();
+  if (pyroFacilitySelect && pyroFacilitySelect.value && document.activeElement !== pyroQ13) {
+    loadPyroFormFromSelectedFacility();
+  }
   renderAllFeedstockTables();
   const data = getFormData();
   const parts = [];
@@ -2798,6 +2932,26 @@ function loadUserFromLocalStorage() {
       feedstockEntries = [];
     }
 
+    try {
+      const parsed = JSON.parse(data.pyro_entries_json || "{}");
+      pyroEntriesByFacility = parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      pyroEntriesByFacility = {};
+    }
+    if (!Object.keys(pyroEntriesByFacility).length && facilityPoints.length) {
+      const fid = facilityPoints[0].id;
+      pyroEntriesByFacility[fid] = {
+        q13_pollution_controls: data.q13_pollution_controls || "",
+        q14_waste_heat_utilization: data.q14_waste_heat_utilization || "",
+        q15_pyrolytic_gas_recovery: data.q15_pyrolytic_gas_recovery || "",
+        q16_continuous_temperature_reporting: data.q16_continuous_temperature_reporting || "",
+        q17_avg_yearly_temp: data.q17_avg_yearly_temp || "",
+        q18_facility_certifications: String(data.q18_facility_certifications || "").split(/;|,/).map((v) => v.trim()).filter(Boolean),
+        q19_energy_used_mwh_a: data.q19_energy_used_mwh_a || "",
+        q20_energy_source: data.q20_energy_source || "",
+      };
+    }
+
     renderAllFeedstockTables();
     hideFeedstockForm();
 
@@ -2813,17 +2967,8 @@ function loadUserFromLocalStorage() {
     biocharEndUserRelation.value = data.q11_end_user_relation_doc || "";
     biocharTransportDistance.value = data.q12_biochar_transport_km || "";
 
-    pyroQ13.value = data.q13_pollution_controls || "";
-    pyroQ14.value = data.q14_waste_heat_utilization || "";
-    pyroQ15.value = data.q15_pyrolytic_gas_recovery || "";
-    pyroQ16.value = data.q16_continuous_temperature_reporting || "";
-    pyroQ17.value = data.q17_avg_yearly_temp || "";
-    setMultiValues(
-      pyroQ18,
-      String(data.q18_facility_certifications || "").split(/;|,/).map((v) => v.trim()).filter(Boolean)
-    );
-    pyroQ19.value = data.q19_energy_used_mwh_a || "";
-    pyroQ20.value = data.q20_energy_source || "";
+    renderPyroFacilityOptions();
+    loadPyroFormFromSelectedFacility();
     financeQ21.value = data.q21_no_credit_revenue_scenario || "";
     financeQ22.value = data.q22_financial_model_evidence || "";
     tentativePermanenceFactor.value = data.q23_tentative_permanence_factor || "0.80";
@@ -3211,6 +3356,13 @@ addFeedstockBtn.addEventListener("click", () => {
     feedstockFeedback.textContent = "Choose Feedstock Type to open questionnaire.";
   }
 });
+if (pyroFacilitySelect) {
+  pyroFacilitySelect.addEventListener("change", () => {
+    loadPyroFormFromSelectedFacility();
+    renderPyrolysisSummary();
+    saveUserToLocalStorage();
+  });
+}
 editFeedstockFromFeedstockBtn.addEventListener("click", () => {
   showFeedstockEntryPanel();
   feedstockType.focus();
@@ -3307,6 +3459,17 @@ downloadPreviewPdfBtn.addEventListener("click", downloadPreviewPdf);
   biocharEndUseShare,
   biocharEndUserRelation,
   biocharTransportDistance,
+  financeQ21,
+  financeQ22,
+].forEach((el) => {
+  el.addEventListener("change", () => {
+    renderBiocharCriticalInfo();
+    renderSummary();
+    saveUserToLocalStorage();
+  });
+});
+
+[
   pyroQ13,
   pyroQ14,
   pyroQ15,
@@ -3315,11 +3478,10 @@ downloadPreviewPdfBtn.addEventListener("click", downloadPreviewPdf);
   pyroQ18,
   pyroQ19,
   pyroQ20,
-  financeQ21,
-  financeQ22,
 ].forEach((el) => {
   el.addEventListener("change", () => {
-    renderBiocharCriticalInfo();
+    savePyroFormToSelectedFacility();
+    renderPyrolysisSummary();
     renderSummary();
     saveUserToLocalStorage();
   });
