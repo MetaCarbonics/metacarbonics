@@ -211,6 +211,7 @@ let districtBoundaryCache = new Map();
 let refreshBoundaryRequestId = 0;
 let finalRegistryCredits = null;
 let editingFacilityIndex = -1;
+let isInitializing = true;
 
 const FINAL_CREDITS_STORAGE_KEY = "biochar-feasibility-final-credits";
 const TRANSFER_STORAGE_PREFIX = "biochar-feasibility-transfer:";
@@ -1852,15 +1853,7 @@ function buildContractPreviewLines() {
   lines.push(`City: ${fmt(data.city_name)}`);
   lines.push(`Registry: ${fmt(data.registry_name)}`);
   lines.push(`Facility count: ${facilityPoints.length}`);
-  facilityPoints.forEach((p, i) =>
-    lines.push(
-      `  Facility ${i + 1}: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)} | State: ${fmt(p.state_name)} | City: ${fmt(p.city_name)} | Start date: ${fmt(p.start_date)}`
-    )
-  );
-  if (facilityPoints.length) {
-    const p0 = facilityPoints[0];
-    lines.push(`Map Link: https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`);
-  }
+  lines.push("Facility locations are shown in the Step 1 Facility Locations table.");
   lines.push("");
 
   lines.push("STEP 2: FEEDSTOCK QUESTIONNAIRE");
@@ -2357,13 +2350,13 @@ async function downloadPreviewPdf() {
           fmt(pt.start_date),
         ],
       })),
-      [55, 100, 100, 80, 80, 100]
+      [55, 85, 85, 75, 75, 140]
     );
     const p0 = profilePointsForPdf[0];
     const mapLink = `https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`;
     const mapLinkY = y;
     doc.text("Map Link:", marginX, mapLinkY);
-    drawLink(mapLink, mapLink, marginX + 45, mapLinkY);
+    drawLink("Open Map", mapLink, marginX + 45, mapLinkY);
     y += lineHeight;
   }
   y += 6;
@@ -2720,6 +2713,7 @@ function openRegistryCalculator() {
     tentative_credits_tco2e: computeTentativeCredits().toFixed(2),
     form_data: getFormData(),
   };
+  saveUserToLocalStorage();
   sessionStorage.setItem(`${TRANSFER_STORAGE_PREFIX}${transferToken}`, JSON.stringify(payload));
   window.location.href = `./${page}?token=${encodeURIComponent(transferToken)}`;
 }
@@ -3198,7 +3192,7 @@ if (singleFacilityCount) {
   });
 }
 
-function onMultiStateModeChange(enabled) {
+function onMultiStateModeChange(enabled, persist = true) {
   setMultiStateEnabled(enabled);
   if (enabled) {
     const selectedCodes = getSelectedStateCodes();
@@ -3223,7 +3217,7 @@ function onMultiStateModeChange(enabled) {
   renderMultiStateLocationRows();
   refreshStateBoundaryLayer();
   renderSummary();
-  saveUserToLocalStorage();
+  if (persist && !isInitializing) saveUserToLocalStorage();
 }
 
 if (multiStateModeSelect) {
@@ -3519,8 +3513,9 @@ Promise.all([loadGeoData(), loadFeedstockMatrix()]).then(() => {
   initFacilityMap();
   initPreviewFacilityMap();
   renderAdditionalInfo();
-  onMultiStateModeChange(multiStateModeSelect ? multiStateModeSelect.value === "yes" : false);
+  onMultiStateModeChange(multiStateModeSelect ? multiStateModeSelect.value === "yes" : false, false);
   loadUserFromLocalStorage();
+  isInitializing = false;
   renderAllFeedstockTables();
   renderBiocharCriticalInfo();
   updateFeedstockAvailability();

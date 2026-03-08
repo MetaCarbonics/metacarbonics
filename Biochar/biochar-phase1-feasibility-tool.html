@@ -133,7 +133,7 @@
         </div>
 
         <div class="btn-row">
-          <button id="toFeedstockBtn" class="btn" type="button">Next: Feedstock Section</button>
+          <button id="toFeedstockBtn" class="btn next-btn" type="button">Next: Feedstock Section</button>
         </div>
       </section>
 
@@ -174,8 +174,9 @@
         <div id="feedstockQcSummary" class="small">QA/QC: No feedstock entries yet.</div>
         <div id="feedstockFeedback" class="small"></div>
 
-        <div class="btn-row" style="margin-top: 10px; margin-bottom: 8px;">
+        <div class="btn-row btn-row-split" style="margin-top: 10px; margin-bottom: 8px;">
           <button id="addFeedstockBtn" class="btn" type="button">Add More Facility/Feedstock Details</button>
+          <button id="toBiocharPageBtn" class="btn next-btn" type="button">Next: Biochar Section Page</button>
         </div>
         <div id="feedstockEntryPanel" class="hidden">
           <label for="feedstockFacilitySelect">Select Facility</label>
@@ -215,9 +216,6 @@
           </div>
         </div>
 
-        <div class="btn-row">
-          <button id="toBiocharPageBtn" class="btn" type="button">Next: Biochar Section Page</button>
-        </div>
       </section>
 
       <section id="biocharSection" class="card hidden">
@@ -281,7 +279,7 @@
         <input id="biocharTransportDistance" type="number" min="0" step="any" />
 
         <div class="btn-row">
-          <button id="toPyrolysisPageBtn" class="btn" type="button">Next: Pyrolysis Section Page</button>
+          <button id="toPyrolysisPageBtn" class="btn next-btn" type="button">Next: Pyrolysis Section Page</button>
         </div>
       </section>
 
@@ -315,10 +313,6 @@
             <tr><td colspan="4">No feedstock added yet.</td></tr>
           </tbody>
         </table>
-        <div class="btn-row">
-          <button id="toFinancialPageBtn" class="btn" type="button">Next: Financial</button>
-        </div>
-
         <div class="questionnaire-card">
           <div class="title-row">
             <h4>Biochar Critical Info</h4>
@@ -362,6 +356,10 @@
         <label for="pyroQ20">20. Energy source used</label>
         <textarea id="pyroQ20" rows="3"></textarea>
 
+        <div class="btn-row">
+          <button id="toFinancialPageBtn" class="btn next-btn" type="button">Next: Financial</button>
+        </div>
+
       </section>
 
       <section id="financialSection" class="card hidden">
@@ -401,7 +399,7 @@
         <textarea id="financeQ22" rows="3"></textarea>
 
         <div class="btn-row">
-          <button id="toAdditionalPageBtn" class="btn" type="button">Next: Additional</button>
+          <button id="toAdditionalPageBtn" class="btn next-btn" type="button">Next: Additional</button>
         </div>
       </section>
 
@@ -449,7 +447,7 @@
           <button id="addAdditionalInfoBtn" class="btn" type="button">Add New Information</button>
         </div>
         <div class="btn-row">
-          <button id="toTentativePageBtn" class="btn" type="button">Next: Tentative Credits</button>
+          <button id="toTentativePageBtn" class="btn next-btn" type="button">Next: Tentative Credits</button>
         </div>
       </section>
 

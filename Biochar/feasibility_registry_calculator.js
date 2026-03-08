@@ -940,24 +940,25 @@ function renderBreakdownChart(result) {
   if (!window.Chart) return;
   const ctx = document.getElementById("calcChart");
   const labels = ["Gross", "Process", "Transport", "Leakage", "Uncertainty", "Buffer", "Issuance", "Final"];
-  const contribRows = computeFeedstockContributions(result);
+  const feedstockRows = computeFeedstockContributions(result);
+  const facilityRows = computeFacilityWiseAnalysis(result);
   let datasets = [];
 
-  if (contribRows.length) {
-    datasets = contribRows.map((r, idx) => {
+  if (feedstockRows.length || facilityRows.length) {
+    const feedstockDatasets = feedstockRows.map((r, idx) => {
       const w = Number(r.contribution_pct || 0) / 100;
       const color = `hsl(${(idx * 67) % 360} 70% 45%)`;
       return {
-        label: r.feedstock,
+        label: `Feedstock: ${r.feedstock}`,
         stack: "runtime",
         data: [
           result.gross * w,
-          -result.processE * w,
-          -result.transportE * w,
-          -result.leakageE * w,
-          -result.uncertaintyLoss * w,
-          -result.bufferLoss * w,
-          -result.issuanceLoss * w,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
           result.final * w,
         ],
         backgroundColor: color,
@@ -965,6 +966,29 @@ function renderBreakdownChart(result) {
         borderWidth: 1,
       };
     });
+
+    const facilityDatasets = facilityRows.map((r, idx) => {
+      const w = Number(r.share_pct || 0) / 100;
+      const color = `hsl(${(idx * 57 + 15) % 360} 55% 48%)`;
+      return {
+        label: r.facility_label,
+        stack: "runtime",
+        data: [
+          0,
+          -result.processE * w,
+          -result.transportE * w,
+          -result.leakageE * w,
+          -result.uncertaintyLoss * w,
+          -result.bufferLoss * w,
+          -result.issuanceLoss * w,
+          0,
+        ],
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: 1,
+      };
+    });
+    datasets = [...feedstockDatasets, ...facilityDatasets];
   } else {
     datasets = [
       {
