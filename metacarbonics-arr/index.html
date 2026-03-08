@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ARR Workflow — MetaCarbonics</title>
+<link rel="stylesheet" href="styles.css"/>
+
+<!-- Font Awesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+
+/* ===== Scroll Progress Bar ===== */
+#progressBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: #3a7d44;
+  width: 0%;
+  z-index: 9999;
+  transition: width 0.2s ease;
+}
+
+/* ===== Section Background ===== */
+.section {
+  padding: 100px 20px;
+  background: linear-gradient(to bottom, #f8faf7, #eef3ec);
+  min-height: 120vh;
+}
+
+/* ===== Workflow Layout ===== */
+.workflow-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 25px;
+  margin-top: 70px;
+  perspective: 1000px;
+}
+
+/* ===== Clickable Card Link ===== */
+.workflow-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+/* ===== Step Card ===== */
+.workflow-step {
+  width: 230px;
+  background: #f4f6f3;
+  border-radius: 16px;
+  padding: 35px 20px;
+  text-align: center;
+  border: 1px solid #e0e5df;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+}
+
+.workflow-step:hover {
+  box-shadow: 0 20px 40px rgba(58,125,68,0.2);
+  background: #eaf1e7;
+}
+
+/* ===== Icon Circle ===== */
+.step-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #3a7d44;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  font-size: 22px;
+  margin-bottom: 15px;
+  transition: 0.3s ease;
+}
+
+.workflow-step:hover .step-icon {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(58,125,68,0.5);
+}
+
+/* ===== Animated Arrows ===== */
+.arrow {
+  width: 60px;
+  height: 2px;
+  background: #3a7d44;
+  position: relative;
+  overflow: hidden;
+}
+
+.arrow::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: -3px;
+  width: 20px;
+  height: 8px;
+  background: #3a7d44;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  animation: moveArrow 1.5s linear infinite;
+}
+
+@keyframes moveArrow {
+  0% { left: -20px; }
+  100% { left: 80px; }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .workflow-container {
+    flex-direction: column;
+  }
+  .arrow {
+    width: 2px;
+    height: 60px;
+  }
+  .arrow::before {
+    top: -20px;
+    left: -3px;
+    width: 8px;
+    height: 20px;
+    clip-path: polygon(0 0, 50% 100%, 100% 0);
+    animation: moveArrowVertical 1.5s linear infinite;
+  }
+  @keyframes moveArrowVertical {
+    0% { top: -20px; }
+    100% { top: 80px; }
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="progressBar"></div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <div class="brand">META<span class="brand-accent">CARBONICS</span></div>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="section">
+<div class="wrap">
+  <h1>Carbon ARR Project Workflow</h1>
+  <p class="muted">From land assessment to verified carbon credit issuance.</p>
+
+  <div class="workflow-container">
+
+  <!-- PHASE 1 -->
+  <a href="arr-phase1-feasibility-tool.html" class="workflow-link">
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-map"></i></div>
+      <h3>Feasibility</h3>
+      <p>Land & carbon baseline assessment</p>
+    </div>
+  </a>
+
+  <div class="arrow"></div>
+
+  <!-- PHASE 2 -->
+  <a href="arr-phase2-design-tool.html" class="workflow-link">
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-file-contract"></i></div>
+      <h3>Design & Registration</h3>
+      <p>PDD & validation</p>
+    </div>
+  </a>
+
+  <div class="arrow"></div>
+
+  <!-- PHASE 3 -->
+  <a href="arr-phase3-implementation-tool.html" class="workflow-link">
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-seedling"></i></div>
+      <h3>Implementation</h3>
+      <p>Planting & restoration</p>
+    </div>
+  </a>
+
+  <div class="arrow"></div>
+
+  <!-- PHASE 4 -->
+  <a href="arr-phase4-mrv-tool.html" class="workflow-link">
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-chart-line"></i></div>
+      <h3>Monitoring</h3>
+      <p>MRV & verification</p>
+    </div>
+  </a>
+
+  <div class="arrow"></div>
+
+  <!-- PHASE 5 -->
+  <a href="arr-phase5-commercialization-tool.html" class="workflow-link">
+    <div class="workflow-step">
+      <div class="step-icon"><i class="fas fa-certificate"></i></div>
+      <h3>Credit Issuance</h3>
+      <p>Verified carbon credits</p>
+    </div>
+  </a>
+
+</div>
+
+
+  </div>
+</div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div>
+</footer>
+
+<script>
+
+/* ===== Scroll Progress Bar ===== */
+window.onscroll = function() {
+  let winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+  let height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  let scrolled = (winScroll / height) * 100;
+  document.getElementById("progressBar").style.width = scrolled + "%";
+};
+
+/* ===== 3D Tilt Effect ===== */
+document.querySelectorAll('.workflow-step').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = -(y - centerY) / 15;
+    const rotateY = (x - centerX) / 15;
+    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+  });
+});
+
+</script>
+
+</body>
+</html>
