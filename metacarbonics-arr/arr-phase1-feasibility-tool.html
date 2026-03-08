@@ -190,6 +190,13 @@ textarea {
   border-radius: 10px;
   margin-top: 8px;
 }
+.map-box-step2 {
+  width: 100%;
+  height: 380px;
+  border: 1px solid #d2dfd2;
+  border-radius: 10px;
+  margin-top: 8px;
+}
 
 .small {
   color: var(--mc-muted);
@@ -457,6 +464,46 @@ textarea {
       </div>
       <label for="baselineNarrative">Baseline narrative and justification</label>
       <textarea id="baselineNarrative" name="baselineNarrative" placeholder="Describe baseline assumptions, data sources, baseline scenario logic, and identified uncertainties."></textarea>
+
+      <div style="margin-top:14px;">
+        <h4 style="margin:0 0 8px;">LULC Mapping and Stratification (from Step 1 boundary/KML)</h4>
+        <div class="grid-2">
+          <div>
+            <label for="lulcTypeSelect">LULC type for new stratum</label>
+            <select id="lulcTypeSelect">
+              <option value="">Select LULC type</option>
+              <option value="Forest">Forest</option>
+              <option value="Shrubland">Shrubland</option>
+              <option value="Grassland">Grassland</option>
+              <option value="Cropland">Cropland</option>
+              <option value="Wetland">Wetland</option>
+              <option value="Settlement/Built-up">Settlement/Built-up</option>
+              <option value="Bare/Degraded Land">Bare/Degraded Land</option>
+              <option value="Water Bodies">Water Bodies</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary" id="startStratumBtn">Start New Stratum</button>
+            <button type="button" class="btn btn-secondary" id="finishStratumBtn">Finish Stratum</button>
+            <button type="button" class="btn btn-secondary" id="clearStrataBtn">Clear All Strata</button>
+          </div>
+        </div>
+        <div class="small">Step: Select LULC type -> Start New Stratum -> click map points inside project boundary -> Finish Stratum.</div>
+        <div id="baselineStrataMap" class="map-box-step2"></div>
+        <div class="small" id="strataHint">Boundary from Step 1 is shown here. Stratification points outside boundary are blocked.</div>
+
+        <table class="table" style="margin-top:10px;">
+          <thead><tr><th>Stratum</th><th>LULC Type</th><th>Area (ha)</th><th>Share (%)</th><th>Action</th></tr></thead>
+          <tbody id="strataSummaryBody"><tr><td colspan="5">No strata added yet.</td></tr></tbody>
+        </table>
+
+        <table class="table" style="margin-top:10px;">
+          <thead><tr><th>LULC Type</th><th>Total Area (ha)</th><th>Share (%)</th></tr></thead>
+          <tbody id="strataTypeSummaryBody"><tr><td colspan="3">No type summary yet.</td></tr></tbody>
+        </table>
+        <input type="hidden" id="arrStrataData" name="arrStrataData" value="" />
+      </div>
     </section>
 
     <section class="section-step" data-step="3">
@@ -596,16 +643,31 @@ const customArrActivityInput = document.getElementById("customArrActivityInput")
 const addCustomArrActivityBtn = document.getElementById("addCustomArrActivityBtn");
 const customArrActivityList = document.getElementById("customArrActivityList");
 const arrCustomActivitiesInput = document.getElementById("arrCustomActivities");
+const lulcTypeSelect = document.getElementById("lulcTypeSelect");
+const startStratumBtn = document.getElementById("startStratumBtn");
+const finishStratumBtn = document.getElementById("finishStratumBtn");
+const clearStrataBtn = document.getElementById("clearStrataBtn");
+const strataSummaryBody = document.getElementById("strataSummaryBody");
+const strataTypeSummaryBody = document.getElementById("strataTypeSummaryBody");
+const arrStrataDataInput = document.getElementById("arrStrataData");
 
 let map = null;
 let boundaryPoints = [];
 let markerLayer = null;
 let lineLayer = null;
 let polygonLayer = null;
+let strataMap = null;
+let strataBoundaryLayer = null;
+let strataPolygonLayer = null;
+let strataActiveLayer = null;
 let pendingMethodology = "";
 let pendingActivities = [];
 let pendingCustomActivities = [];
 let customArrActivities = [];
+let strataRecords = [];
+let pendingStrataRecords = [];
+let activeStrataPoints = [];
+let isDrawingStratum = false;
 
 const REGISTRY_METHODOLOGIES = {
   verra: [
@@ -778,6 +840,8 @@ const EVIDENCE_HINTS = {
   arrActivities: "Probable evidence: activity boundary map, implementation plan, and species/activity design note.",
   customArrActivityInput: "Probable evidence: activity description note with justification under selected methodology.",
   arrCustomActivities: "Probable evidence: documented rationale for custom activity applicability.",
+  lulcTypeSelect: "Probable evidence: LULC interpretation key, map legend, and baseline land-use validation notes.",
+  arrStrataData: "Probable evidence: geospatial strata polygons, area sheet, and stratification QA/QC file.",
   projectPartner: "Probable evidence: partner MoU, incorporation certificate, or authorized signatory letter.",
   projectName: "Probable evidence: internal concept note or project ID from your pipeline tracker.",
   kmlUpload: "Probable evidence: signed GIS boundary file (KML/KMZ/Shapefile) with source and date.",
@@ -1055,12 +1119,19 @@ function setStep(step) {
 
   prevBtn.disabled = currentStep === 1;
   nextBtn.style.display = currentStep === maxStep ? "none" : "inline-block";
+  if (currentStep === 2 && strataMap) {
+    setTimeout(() => {
+      strataMap.invalidateSize();
+      syncBoundaryToStrataMap();
+    }, 100);
+  }
 }
 
 nextBtn.addEventListener("click", () => setStep(currentStep + 1));
 prevBtn.addEventListener("click", () => setStep(currentStep - 1));
 
 function saveDraft() {
+  syncStrataInput();
   const form = document.getElementById("feasibilityForm");
   const data = {};
   Array.from(form.elements).forEach((el) => {
@@ -1083,6 +1154,13 @@ function loadDraft() {
         if (el.name === "methodologySelect") pendingMethodology = data[el.name];
         else if (el.name === "arrActivities") pendingActivities = String(data[el.name]).split("|").map((s) => s.trim()).filter(Boolean);
         else if (el.name === "arrCustomActivities") pendingCustomActivities = String(data[el.name]).split("|").map((s) => s.trim()).filter(Boolean);
+        else if (el.name === "arrStrataData") {
+          try {
+            pendingStrataRecords = JSON.parse(data[el.name]);
+          } catch (_) {
+            pendingStrataRecords = [];
+          }
+        }
         else el.value = data[el.name];
       }
     });
@@ -1094,6 +1172,17 @@ function loadDraft() {
   } catch (_) {}
   customArrActivities = Array.from(new Set(pendingCustomActivities));
   pendingCustomActivities = [];
+  strataRecords = Array.isArray(pendingStrataRecords)
+    ? pendingStrataRecords
+        .filter((s) => s && Array.isArray(s.points) && s.points.length >= 3)
+        .map((s, i) => ({
+          id: s.id || `str_loaded_${i + 1}`,
+          type: s.type || "Other",
+          points: s.points.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) })).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)),
+          areaHa: Number(s.areaHa) || polygonAreaHa(s.points.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))),
+        }))
+    : [];
+  pendingStrataRecords = [];
 }
 
 function initMap() {
@@ -1148,6 +1237,7 @@ function redrawBoundary() {
 
   renderBoundaryTable();
   renderBoundaryStats();
+  syncBoundaryToStrataMap();
   saveDraft();
 }
 
@@ -1181,6 +1271,205 @@ function polygonAreaHa(points) {
     area2 += xy[i].x * xy[j].y - xy[j].x * xy[i].y;
   }
   return Math.abs(area2 / 2) / 10000;
+}
+
+function pointInPolygon(point, polygon) {
+  if (!polygon || polygon.length < 3) return false;
+  const x = point.lng;
+  const y = point.lat;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lng;
+    const yi = polygon[i].lat;
+    const xj = polygon[j].lng;
+    const yj = polygon[j].lat;
+    const intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function getLulcColor(type) {
+  const c = {
+    Forest: "#166534",
+    Shrubland: "#65a30d",
+    Grassland: "#84cc16",
+    Cropland: "#ca8a04",
+    Wetland: "#0891b2",
+    "Settlement/Built-up": "#b91c1c",
+    "Bare/Degraded Land": "#a16207",
+    "Water Bodies": "#1d4ed8",
+    Other: "#475569",
+  };
+  return c[type] || "#475569";
+}
+
+function syncStrataInput() {
+  if (!arrStrataDataInput) return;
+  arrStrataDataInput.value = JSON.stringify(strataRecords);
+}
+
+function renderStrataTables() {
+  if (!strataSummaryBody || !strataTypeSummaryBody) return;
+  const total = polygonAreaHa(boundaryPoints);
+  strataSummaryBody.innerHTML = "";
+  if (!strataRecords.length) {
+    strataSummaryBody.innerHTML = "<tr><td colspan='5'>No strata added yet.</td></tr>";
+  } else {
+    strataRecords.forEach((s, idx) => {
+      const pct = total > 0 ? (s.areaHa / total) * 100 : 0;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>S${idx + 1}</td><td>${s.type}</td><td>${s.areaHa.toFixed(2)}</td><td>${pct.toFixed(2)}</td><td><button type="button" class="btn btn-secondary" data-del-stratum="${s.id}" style="padding:4px 8px; font-size:12px;">Delete</button></td>`;
+      strataSummaryBody.appendChild(tr);
+    });
+  }
+
+  const byType = {};
+  strataRecords.forEach((s) => {
+    byType[s.type] = (byType[s.type] || 0) + s.areaHa;
+  });
+  strataTypeSummaryBody.innerHTML = "";
+  const types = Object.keys(byType);
+  if (!types.length) {
+    strataTypeSummaryBody.innerHTML = "<tr><td colspan='3'>No type summary yet.</td></tr>";
+  } else {
+    types.forEach((type) => {
+      const area = byType[type];
+      const pct = total > 0 ? (area / total) * 100 : 0;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${type}</td><td>${area.toFixed(2)}</td><td>${pct.toFixed(2)}</td>`;
+      strataTypeSummaryBody.appendChild(tr);
+    });
+  }
+}
+
+function renderStrataMap() {
+  if (!strataMap || !strataBoundaryLayer || !strataPolygonLayer || !strataActiveLayer) return;
+  strataBoundaryLayer.clearLayers();
+  strataPolygonLayer.clearLayers();
+  strataActiveLayer.clearLayers();
+
+  if (boundaryPoints.length >= 3) {
+    L.polygon(boundaryPoints.map((p) => [p.lat, p.lng]), {
+      color: "#065f46",
+      fillColor: "#86efac",
+      fillOpacity: 0.15,
+      weight: 2,
+      dashArray: "4,4",
+    }).addTo(strataBoundaryLayer);
+  }
+
+  strataRecords.forEach((s, idx) => {
+    L.polygon(s.points.map((p) => [p.lat, p.lng]), {
+      color: getLulcColor(s.type),
+      fillColor: getLulcColor(s.type),
+      fillOpacity: 0.35,
+      weight: 2,
+    })
+      .bindTooltip(`S${idx + 1}: ${s.type} (${s.areaHa.toFixed(2)} ha)`)
+      .addTo(strataPolygonLayer);
+  });
+
+  if (activeStrataPoints.length) {
+    activeStrataPoints.forEach((p) => {
+      L.circleMarker([p.lat, p.lng], { radius: 4, color: "#0f172a", fillColor: "#0f172a", fillOpacity: 0.8, weight: 1 }).addTo(strataActiveLayer);
+    });
+    if (activeStrataPoints.length >= 2) {
+      L.polyline(activeStrataPoints.map((p) => [p.lat, p.lng]), { color: "#0f172a", weight: 2, dashArray: "5,5" }).addTo(strataActiveLayer);
+    }
+  }
+}
+
+function startStratumDrawing() {
+  if (!boundaryPoints || boundaryPoints.length < 3) {
+    alert("Create/upload project boundary in Step 1 first.");
+    return;
+  }
+  if (!lulcTypeSelect || !lulcTypeSelect.value) {
+    alert("Select a LULC type before starting a stratum.");
+    return;
+  }
+  isDrawingStratum = true;
+  activeStrataPoints = [];
+  renderStrataMap();
+}
+
+function finishStratumDrawing() {
+  if (!isDrawingStratum) return;
+  if (activeStrataPoints.length < 3) {
+    alert("Add at least 3 points to finish stratum.");
+    return;
+  }
+  const type = lulcTypeSelect ? lulcTypeSelect.value : "";
+  if (!type) {
+    alert("Select LULC type.");
+    return;
+  }
+  const valid = activeStrataPoints.every((p) => pointInPolygon(p, boundaryPoints));
+  if (!valid) {
+    alert("Stratum points must remain inside the project boundary.");
+    return;
+  }
+  const areaHa = polygonAreaHa(activeStrataPoints);
+  strataRecords.push({
+    id: `str_${Date.now()}_${Math.round(Math.random() * 100000)}`,
+    type,
+    points: activeStrataPoints.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) })),
+    areaHa,
+  });
+  activeStrataPoints = [];
+  isDrawingStratum = false;
+  renderStrataMap();
+  renderStrataTables();
+  syncStrataInput();
+  saveDraft();
+}
+
+function clearAllStrata() {
+  strataRecords = [];
+  activeStrataPoints = [];
+  isDrawingStratum = false;
+  renderStrataMap();
+  renderStrataTables();
+  syncStrataInput();
+  saveDraft();
+}
+
+function initStrataMap() {
+  strataMap = L.map("baselineStrataMap").setView([22, 79], 5);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 18,
+    attribution: "Tiles © Esri",
+  }).addTo(strataMap);
+
+  strataBoundaryLayer = L.layerGroup().addTo(strataMap);
+  strataPolygonLayer = L.layerGroup().addTo(strataMap);
+  strataActiveLayer = L.layerGroup().addTo(strataMap);
+
+  strataMap.on("click", (e) => {
+    if (!isDrawingStratum) return;
+    const p = { lat: Number(e.latlng.lat), lng: Number(e.latlng.lng) };
+    if (!pointInPolygon(p, boundaryPoints)) {
+      alert("Point is outside project boundary.");
+      return;
+    }
+    activeStrataPoints.push(p);
+    renderStrataMap();
+  });
+
+  renderStrataMap();
+  renderStrataTables();
+}
+
+function syncBoundaryToStrataMap() {
+  if (!strataMap) return;
+  renderStrataMap();
+  renderStrataTables();
+  if (boundaryPoints.length >= 3) {
+    const b = L.latLngBounds(boundaryPoints.map((p) => [p.lat, p.lng]));
+    if (b.isValid()) strataMap.fitBounds(b.pad(0.1));
+  }
+  syncStrataInput();
 }
 
 function extractDistrictsFromKml(xmlDoc) {
@@ -1220,6 +1509,9 @@ function closeBoundary() {
 function clearBoundary() {
   boundaryPoints = [];
   localStorage.removeItem(STORAGE_KEY + "_districts");
+  strataRecords = [];
+  activeStrataPoints = [];
+  isDrawingStratum = false;
   redrawBoundary();
 }
 
@@ -1315,6 +1607,8 @@ renderArrActivities();
 updateAllStepOptionalGuidance();
 initWorkflow();
 initMap();
+initStrataMap();
+syncBoundaryToStrataMap();
 
 if (registrySelect) {
   registrySelect.addEventListener("change", () => {
@@ -1343,6 +1637,23 @@ if (customArrActivityInput) {
       e.preventDefault();
       addCustomActivity();
     }
+  });
+}
+
+if (startStratumBtn) startStratumBtn.addEventListener("click", startStratumDrawing);
+if (finishStratumBtn) finishStratumBtn.addEventListener("click", finishStratumDrawing);
+if (clearStrataBtn) clearStrataBtn.addEventListener("click", clearAllStrata);
+
+if (strataSummaryBody) {
+  strataSummaryBody.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-del-stratum]");
+    if (!btn) return;
+    const id = btn.getAttribute("data-del-stratum");
+    strataRecords = strataRecords.filter((s) => s.id !== id);
+    renderStrataMap();
+    renderStrataTables();
+    syncStrataInput();
+    saveDraft();
   });
 }
 </script>
