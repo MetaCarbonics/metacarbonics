@@ -336,6 +336,17 @@ textarea {
         <label>ARR Activities (multiple selection allowed)</label>
         <div id="arrActivityOptions" class="small">Select registry first to view activities.</div>
         <input type="hidden" id="arrActivities" name="arrActivities" value="" />
+        <div class="grid-2" style="margin-top:8px;">
+          <div>
+            <label for="customArrActivityInput">Add custom ARR activity (if not listed)</label>
+            <input id="customArrActivityInput" type="text" placeholder="Type custom activity and click Add Activity" />
+          </div>
+          <div style="display:flex; align-items:flex-end;">
+            <button type="button" id="addCustomArrActivityBtn" class="btn btn-secondary">Add Activity</button>
+          </div>
+        </div>
+        <div id="customArrActivityList" class="small" style="margin-top:8px;">No custom activities added.</div>
+        <input type="hidden" id="arrCustomActivities" name="arrCustomActivities" value="" />
       </div>
 
       <label for="kmlUpload" style="margin-top:14px;">Upload Project Boundary KML (optional)</label>
@@ -581,6 +592,10 @@ const registrySelect = document.getElementById("registrySelect");
 const methodologySelect = document.getElementById("methodologySelect");
 const arrActivityOptions = document.getElementById("arrActivityOptions");
 const arrActivitiesInput = document.getElementById("arrActivities");
+const customArrActivityInput = document.getElementById("customArrActivityInput");
+const addCustomArrActivityBtn = document.getElementById("addCustomArrActivityBtn");
+const customArrActivityList = document.getElementById("customArrActivityList");
+const arrCustomActivitiesInput = document.getElementById("arrCustomActivities");
 
 let map = null;
 let boundaryPoints = [];
@@ -589,6 +604,8 @@ let lineLayer = null;
 let polygonLayer = null;
 let pendingMethodology = "";
 let pendingActivities = [];
+let pendingCustomActivities = [];
+let customArrActivities = [];
 
 const REGISTRY_METHODOLOGIES = {
   verra: [
@@ -759,6 +776,8 @@ const EVIDENCE_HINTS = {
   registrySelect: "Probable evidence: registry eligibility check note and latest applicable methodology version.",
   methodologySelect: "Probable evidence: methodology applicability screening sheet for the selected project type.",
   arrActivities: "Probable evidence: activity boundary map, implementation plan, and species/activity design note.",
+  customArrActivityInput: "Probable evidence: activity description note with justification under selected methodology.",
+  arrCustomActivities: "Probable evidence: documented rationale for custom activity applicability.",
   projectPartner: "Probable evidence: partner MoU, incorporation certificate, or authorized signatory letter.",
   projectName: "Probable evidence: internal concept note or project ID from your pipeline tracker.",
   kmlUpload: "Probable evidence: signed GIS boundary file (KML/KMZ/Shapefile) with source and date.",
@@ -845,6 +864,73 @@ function syncActivitiesInput() {
   arrActivitiesInput.value = selected.join(" | ");
 }
 
+function syncCustomActivitiesInput() {
+  if (!arrCustomActivitiesInput) return;
+  arrCustomActivitiesInput.value = customArrActivities.join(" | ");
+}
+
+function renderCustomActivityList() {
+  if (!customArrActivityList) return;
+  if (!customArrActivities.length) {
+    customArrActivityList.textContent = "No custom activities added.";
+    syncCustomActivitiesInput();
+    return;
+  }
+  customArrActivityList.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.style.display = "flex";
+  wrap.style.flexWrap = "wrap";
+  wrap.style.gap = "8px";
+  customArrActivities.forEach((item, idx) => {
+    const chip = document.createElement("span");
+    chip.style.display = "inline-flex";
+    chip.style.alignItems = "center";
+    chip.style.gap = "6px";
+    chip.style.padding = "4px 8px";
+    chip.style.border = "1px solid #cbd5e1";
+    chip.style.borderRadius = "999px";
+    chip.style.background = "#f8fafc";
+    chip.style.color = "#0f172a";
+    chip.style.fontSize = "12px";
+    chip.innerHTML = `<span>${item}</span>`;
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.textContent = "x";
+    removeBtn.className = "btn btn-secondary";
+    removeBtn.style.padding = "2px 6px";
+    removeBtn.style.fontSize = "11px";
+    removeBtn.addEventListener("click", () => {
+      customArrActivities.splice(idx, 1);
+      renderCustomActivityList();
+      renderArrActivities();
+      saveDraft();
+    });
+    chip.appendChild(removeBtn);
+    wrap.appendChild(chip);
+  });
+  customArrActivityList.appendChild(wrap);
+  syncCustomActivitiesInput();
+}
+
+function addCustomActivity() {
+  const raw = customArrActivityInput ? customArrActivityInput.value : "";
+  const value = String(raw || "").trim();
+  if (!value) return;
+  const exists = customArrActivities.some((a) => a.toLowerCase() === value.toLowerCase());
+  if (exists) {
+    if (customArrActivityInput) customArrActivityInput.value = "";
+    return;
+  }
+  customArrActivities.push(value);
+  if (customArrActivityInput) customArrActivityInput.value = "";
+  renderCustomActivityList();
+  renderArrActivities();
+  const cb = Array.from(arrActivityOptions.querySelectorAll("input[type='checkbox']")).find((c) => c.value === value);
+  if (cb) cb.checked = true;
+  syncActivitiesInput();
+  saveDraft();
+}
+
 function renderArrActivities() {
   if (!arrActivityOptions || !arrActivitiesInput) return;
   const registry = (registrySelect && registrySelect.value) || "";
@@ -854,7 +940,7 @@ function renderArrActivities() {
     arrActivitiesInput.value = "";
     return;
   }
-  const activities = getAvailableActivities(registry, methodology);
+  const activities = Array.from(new Set([...getAvailableActivities(registry, methodology), ...customArrActivities]));
   const preselectedSet = new Set(
     (arrActivitiesInput.value ? arrActivitiesInput.value.split("|") : pendingActivities)
       .map((s) => String(s).trim())
@@ -996,6 +1082,7 @@ function loadDraft() {
       if (data[el.name] !== undefined) {
         if (el.name === "methodologySelect") pendingMethodology = data[el.name];
         else if (el.name === "arrActivities") pendingActivities = String(data[el.name]).split("|").map((s) => s.trim()).filter(Boolean);
+        else if (el.name === "arrCustomActivities") pendingCustomActivities = String(data[el.name]).split("|").map((s) => s.trim()).filter(Boolean);
         else el.value = data[el.name];
       }
     });
@@ -1005,6 +1092,8 @@ function loadDraft() {
         .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
     }
   } catch (_) {}
+  customArrActivities = Array.from(new Set(pendingCustomActivities));
+  pendingCustomActivities = [];
 }
 
 function initMap() {
@@ -1221,6 +1310,7 @@ Array.from(document.querySelectorAll("input, select, textarea")).forEach((el) =>
 
 loadDraft();
 populateMethodologyOptions();
+renderCustomActivityList();
 renderArrActivities();
 updateAllStepOptionalGuidance();
 initWorkflow();
@@ -1240,6 +1330,19 @@ if (methodologySelect) {
     renderArrActivities();
     updateAllStepOptionalGuidance();
     saveDraft();
+  });
+}
+
+if (addCustomArrActivityBtn) {
+  addCustomArrActivityBtn.addEventListener("click", addCustomActivity);
+}
+
+if (customArrActivityInput) {
+  customArrActivityInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addCustomActivity();
+    }
   });
 }
 </script>
