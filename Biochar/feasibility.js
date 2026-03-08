@@ -1501,7 +1501,8 @@ function renderStep7Tables() {
   ];
   step7SummaryBody.innerHTML = summaryRows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
 
-  const contributions = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
+  const rawContributions = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
+  const contributions = aggregateFeedstockContributionRows(rawContributions);
   if (!contributions.length) {
     step7ContributionBody.innerHTML = '<tr><td colspan="6">No contribution data yet.</td></tr>';
   } else {
@@ -1575,6 +1576,44 @@ function loadFinalRegistryCredits() {
 
 function fmt(value) {
   return value === null || value === undefined || value === "" ? "N/A" : String(value);
+}
+
+function aggregateFeedstockContributionRows(rows) {
+  if (!Array.isArray(rows) || !rows.length) return [];
+  const map = new Map();
+  rows.forEach((r) => {
+    const key = String(r?.feedstock || "Unknown");
+    const prev = map.get(key) || {
+      feedstock: key,
+      quantity_tpy: 0,
+      annual_credits_tco2e: 0,
+      source_labels: new Set(),
+      source_urls: new Set(),
+      carbon_default_pct: "",
+    };
+    prev.quantity_tpy += Number(r?.quantity_tpy || 0);
+    prev.annual_credits_tco2e += Number(r?.annual_credits_tco2e || 0);
+    if (!prev.carbon_default_pct && r?.carbon_default_pct !== undefined) prev.carbon_default_pct = r.carbon_default_pct;
+    if (r?.carbon_reference?.source_label) prev.source_labels.add(String(r.carbon_reference.source_label));
+    if (r?.carbon_reference?.source_url) prev.source_urls.add(String(r.carbon_reference.source_url));
+    map.set(key, prev);
+  });
+  const out = Array.from(map.values()).map((v) => ({
+    feedstock: v.feedstock,
+    quantity_tpy: Number(v.quantity_tpy || 0),
+    annual_credits_tco2e: Number(v.annual_credits_tco2e || 0),
+    contribution_pct: 0,
+    carbon_default_pct: v.carbon_default_pct,
+    carbon_reference: {
+      source_label: Array.from(v.source_labels).join(" | "),
+      source_url: Array.from(v.source_urls)[0] || "",
+    },
+  }));
+  const total = out.reduce((s, r) => s + Number(r.annual_credits_tco2e || 0), 0);
+  out.forEach((r) => {
+    r.contribution_pct = total > 0 ? Number(((r.annual_credits_tco2e / total) * 100).toFixed(2)) : 0;
+  });
+  return out.sort((a, b) => Number(b.annual_credits_tco2e || 0) - Number(a.annual_credits_tco2e || 0));
 }
 
 function getRegistryMethodologyMeta(registryId) {
@@ -2109,6 +2148,22 @@ async function downloadPreviewPdf() {
         doc.addImage(sat.dataUrl, "PNG", profileMapX, profileMapY, profileMapW, profileMapH, undefined, "FAST");
         const toX = (lng) => profileMapX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng || 1e-9)) * profileMapW;
         const toY = (lat) => profileMapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat || 1e-9)) * profileMapH;
+        const drawRing = (ring) => {
+          if (!Array.isArray(ring) || ring.length < 2) return;
+          for (let i = 1; i < ring.length; i += 1) {
+            const a = ring[i - 1];
+            const b = ring[i];
+            doc.line(toX(Number(a[0])), toY(Number(a[1])), toX(Number(b[0])), toY(Number(b[1])));
+          }
+        };
+        doc.setDrawColor(234, 179, 8);
+        doc.setLineWidth(0.8);
+        stateBoundaryFeatures.forEach((f) => {
+          const g = f?.geometry;
+          if (!g) return;
+          if (g.type === "Polygon") (g.coordinates || []).forEach(drawRing);
+          if (g.type === "MultiPolygon") (g.coordinates || []).forEach((poly) => (poly || []).forEach(drawRing));
+        });
         doc.setDrawColor(220, 38, 38);
         doc.setFillColor(220, 38, 38);
         profilePointsForPdf.forEach((pt) => {
@@ -2129,6 +2184,29 @@ async function downloadPreviewPdf() {
       doc.setFontSize(10);
     }
     y = Math.max(y, profileMapY + profileMapH + 8);
+  }
+  if (profilePointsForPdf.length) {
+    drawTable(
+      "Facility Locations",
+      ["Facility", "State", "City", "Lat", "Lng", "Operation Start Date"],
+      profilePointsForPdf.map((pt, idx) => ({
+        cells: [
+          `Facility ${idx + 1}`,
+          fmt(pt.state_name),
+          fmt(pt.city_name),
+          Number(pt.lat).toFixed(6),
+          Number(pt.lng).toFixed(6),
+          fmt(pt.start_date),
+        ],
+      })),
+      [55, 100, 100, 80, 80, 100]
+    );
+    const p0 = profilePointsForPdf[0];
+    const mapLink = `https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`;
+    const mapLinkY = y;
+    doc.text("Map Link:", marginX, mapLinkY);
+    drawLink(mapLink, mapLink, marginX + 45, mapLinkY);
+    y += lineHeight;
   }
   y += 6;
   doc.setDrawColor(203, 213, 225);
@@ -2163,144 +2241,6 @@ async function downloadPreviewPdf() {
       y += lineHeight;
     });
   });
-
-  const assumptions = Array.isArray(finalRegistryCredits?.assumptions_used) ? finalRegistryCredits.assumptions_used : [];
-  if (assumptions.length) {
-    ensureSpace(30);
-    y += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text("Methodology Guide Assumptions (for project development)", marginX, y);
-    doc.setFont("helvetica", "normal");
-    y += 14;
-    assumptions.forEach((a, idx) => {
-      const wrapped = doc.splitTextToSize(`${idx + 1}. ${a}`, maxWidth);
-      wrapped.forEach((w) => {
-        ensureSpace(20);
-        doc.text(w, marginX, y);
-        y += lineHeight;
-      });
-    });
-  }
-
-  if (facilityPoints.length || (data.facility_lat && data.facility_lng)) {
-    if (y > 740) {
-      doc.addPage();
-      y = 50;
-    }
-    y += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text("Georeferenced Facility Details", marginX, y);
-    doc.setFont("helvetica", "normal");
-    y += 14;
-    const pointsForPdf = facilityPoints.length
-      ? facilityPoints
-      : [{
-          lat: Number(data.facility_lat),
-          lng: Number(data.facility_lng),
-          start_date: data.facility_start_date || "",
-          state_name: data.state_name || "",
-          city_name: data.city_name || "",
-        }].filter(
-          (p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)
-        );
-    const p0 = pointsForPdf[0] || null;
-    const facilityStartDates = pointsForPdf.map((p, idx) => `Facility ${idx + 1} start: ${fmt(p.start_date)}`).join(" | ");
-    const geoLines = [
-      `Facility count: ${pointsForPdf.length}`,
-      facilityStartDates || "Facility start date(s): N/A",
-      p0 ? `Map link: https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}` : "Map link: N/A",
-      "Legend: Red points = facilities | Yellow lines = selected state boundaries",
-    ];
-    geoLines.forEach((gl) => {
-      const wrapped = doc.splitTextToSize(gl, maxWidth);
-      wrapped.forEach((w) => {
-        if (y > 800) {
-          doc.addPage();
-          y = 50;
-        }
-        doc.text(w, marginX, y);
-        y += lineHeight;
-      });
-    });
-    if (y > 730) {
-      doc.addPage();
-      y = 50;
-    }
-    y += 6;
-    const mapW = 330;
-    const mapH = 190;
-    const mapX = marginX + (maxWidth - mapW);
-    const mapY = y;
-    const bounds = computePdfMapExtent(pointsForPdf, stateBoundaryFeatures);
-    let renderedSatellite = false;
-    if (bounds) {
-      try {
-        const sat = await fetchSatelliteMapDataUrl(bounds);
-        doc.addImage(sat.dataUrl, "PNG", mapX, mapY, mapW, mapH, undefined, "FAST");
-        const toX = (lng) => mapX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng || 1e-9)) * mapW;
-        const toY = (lat) => mapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat || 1e-9)) * mapH;
-        const drawRing = (ring) => {
-          if (!Array.isArray(ring) || ring.length < 2) return;
-          for (let i = 1; i < ring.length; i += 1) {
-            const a = ring[i - 1];
-            const b = ring[i];
-            const x1 = toX(Number(a[0]));
-            const y1 = toY(Number(a[1]));
-            const x2 = toX(Number(b[0]));
-            const y2 = toY(Number(b[1]));
-            doc.line(x1, y1, x2, y2);
-          }
-        };
-        doc.setDrawColor(234, 179, 8);
-        doc.setLineWidth(1.1);
-        stateBoundaryFeatures.forEach((f) => {
-          const g = f?.geometry;
-          if (!g) return;
-          if (g.type === "Polygon") (g.coordinates || []).forEach(drawRing);
-          if (g.type === "MultiPolygon") (g.coordinates || []).forEach((poly) => (poly || []).forEach(drawRing));
-        });
-        pointsForPdf.forEach((pt) => {
-          const markerX = toX(Number(pt.lng));
-          const markerY = toY(Number(pt.lat));
-          doc.setDrawColor(255, 255, 255);
-          doc.setLineWidth(1.1);
-          doc.setFillColor(220, 38, 38);
-          doc.circle(markerX, markerY, 4.2, "FD");
-        });
-        renderedSatellite = true;
-      } catch {
-        renderedSatellite = false;
-      }
-    }
-    if (!renderedSatellite) {
-      doc.setDrawColor(148, 163, 184);
-      doc.rect(mapX, mapY, mapW, mapH);
-      doc.setFontSize(8);
-      doc.text("Satellite image unavailable in export. Use map link above.", mapX + 8, mapY + 14);
-      doc.setFillColor(220, 38, 38);
-      doc.circle(mapX + mapW * 0.5, mapY + mapH * 0.5, 4, "F");
-    }
-    doc.setFontSize(8);
-    doc.setTextColor(30, 41, 59);
-    doc.text("Legend: red point = facility location on satellite imagery", mapX, mapY + mapH + 12);
-    y = mapY + mapH + 18;
-    doc.setFontSize(9);
-    drawTable(
-      "Facility Locations",
-      ["Facility", "State", "City", "Lat", "Lng", "Operation Start Date"],
-      pointsForPdf.map((pt, idx) => ({
-        cells: [
-          `Facility ${idx + 1}`,
-          fmt(pt.state_name),
-          fmt(pt.city_name),
-          Number(pt.lat).toFixed(6),
-          Number(pt.lng).toFixed(6),
-          fmt(pt.start_date),
-        ],
-      })),
-      [55, 100, 100, 80, 80, 100]
-    );
-  }
 
   if (finalRegistryCredits?.breakdown) {
     if (y > 680) {
@@ -2343,7 +2283,8 @@ async function downloadPreviewPdf() {
     });
   }
 
-  const contributions = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
+  const rawContributions = Array.isArray(finalRegistryCredits?.feedstock_contributions) ? finalRegistryCredits.feedstock_contributions : [];
+  const contributions = aggregateFeedstockContributionRows(rawContributions);
   const monitoring = Array.isArray(finalRegistryCredits?.monitoring_parameters) ? finalRegistryCredits.monitoring_parameters : [];
   const parameterValues = Array.isArray(finalRegistryCredits?.parameter_defaults_summary)
     ? finalRegistryCredits.parameter_defaults_summary
@@ -2424,6 +2365,24 @@ async function downloadPreviewPdf() {
     );
   });
 
+  const assumptions = Array.isArray(finalRegistryCredits?.assumptions_used) ? finalRegistryCredits.assumptions_used : [];
+  if (assumptions.length) {
+    ensureSpace(30);
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text("Methodology Guide Assumptions (for project development)", marginX, y);
+    doc.setFont("helvetica", "normal");
+    y += 14;
+    assumptions.forEach((a, idx) => {
+      const wrapped = doc.splitTextToSize(`${idx + 1}. ${a}`, maxWidth);
+      wrapped.forEach((w) => {
+        ensureSpace(20);
+        doc.text(w, marginX, y);
+        y += lineHeight;
+      });
+    });
+  }
+
   doc.save("metacarbonics_phase1_contract_preview.pdf");
 }
 
@@ -2434,7 +2393,13 @@ function renderAdditionalInfo() {
   additionalInfoEntries.forEach((item, idx) => {
     const card = document.createElement("div");
     card.className = "questionnaire-card";
-    card.innerHTML = `<label>Additional Info ${idx + 1}</label><textarea data-idx="${idx}" rows="3">${item.text || ""}</textarea>`;
+    card.innerHTML = `
+      <div class="title-row">
+        <label>Additional Info ${idx + 1}</label>
+        <button type="button" class="btn btn-danger btn-sm" data-delete-additional-idx="${idx}">Delete</button>
+      </div>
+      <textarea data-idx="${idx}" rows="3">${item.text || ""}</textarea>
+    `;
     additionalInfoList.appendChild(card);
   });
 
@@ -2446,6 +2411,18 @@ function renderAdditionalInfo() {
       saveUserToLocalStorage();
     });
   });
+
+  additionalInfoList.querySelectorAll("button[data-delete-additional-idx]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.deleteAdditionalIdx);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= additionalInfoEntries.length) return;
+      additionalInfoEntries.splice(idx, 1);
+      if (!additionalInfoEntries.length) additionalInfoEntries.push({ text: "" });
+      renderAdditionalInfo();
+      renderSummary();
+      saveUserToLocalStorage();
+    });
+  });
 }
 
 function updateContractLockState() {
@@ -2453,6 +2430,9 @@ function updateContractLockState() {
   addFeedstockBtn.disabled = locked;
   addAdditionalInfoBtn.disabled = locked;
   openRegistryCalculatorBtn.disabled = locked;
+  additionalInfoList.querySelectorAll("button[data-delete-additional-idx]").forEach((btn) => {
+    btn.disabled = locked;
+  });
 }
 
 function sectionToStep(sectionName) {
