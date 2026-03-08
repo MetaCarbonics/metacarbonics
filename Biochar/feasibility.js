@@ -3589,10 +3589,12 @@ if (userIdInput) {
   });
 }
 if (projectNameInput) {
-  projectNameInput.addEventListener("change", () => {
+  const onProjectNameEdit = () => {
     renderSummary();
     saveUserToLocalStorage();
-  });
+  };
+  projectNameInput.addEventListener("input", onProjectNameEdit);
+  projectNameInput.addEventListener("change", onProjectNameEdit);
 }
 
 editFacilityMarkerBtn.addEventListener("click", () => {
