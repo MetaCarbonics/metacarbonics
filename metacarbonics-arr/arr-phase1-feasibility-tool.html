@@ -332,6 +332,11 @@ textarea {
           <input id="projectName" name="projectName" type="text" placeholder="Enter ARR project name" />
         </div>
       </div>
+      <div style="margin-top:12px;">
+        <label>ARR Activities (multiple selection allowed)</label>
+        <div id="arrActivityOptions" class="small">Select registry first to view activities.</div>
+        <input type="hidden" id="arrActivities" name="arrActivities" value="" />
+      </div>
 
       <label for="kmlUpload" style="margin-top:14px;">Upload Project Boundary KML (optional)</label>
       <input id="kmlUpload" type="file" accept=".kml,application/vnd.google-earth.kml+xml" />
@@ -574,6 +579,8 @@ const nextBtn = document.getElementById("nextBtn");
 const evaluateBtn = document.getElementById("evaluateBtn");
 const registrySelect = document.getElementById("registrySelect");
 const methodologySelect = document.getElementById("methodologySelect");
+const arrActivityOptions = document.getElementById("arrActivityOptions");
+const arrActivitiesInput = document.getElementById("arrActivities");
 
 let map = null;
 let boundaryPoints = [];
@@ -581,6 +588,7 @@ let markerLayer = null;
 let lineLayer = null;
 let polygonLayer = null;
 let pendingMethodology = "";
+let pendingActivities = [];
 
 const REGISTRY_METHODOLOGIES = {
   verra: [
@@ -602,6 +610,68 @@ const REGISTRY_METHODOLOGIES = {
   isometric: [
     { value: "iso-nature", label: "Isometric Nature-based Removal Framework" },
   ],
+};
+
+const ARR_ACTIVITIES_BY_REGISTRY = {
+  default: [
+    "Afforestation",
+    "Reforestation",
+    "Assisted Natural Regeneration (ANR)",
+    "Agroforestry",
+    "Silvopasture",
+    "Mangrove Restoration",
+    "Riparian Buffer Restoration",
+    "Urban Tree Planting",
+    "Shelterbelt / Windbreak Establishment",
+    "Enrichment Planting",
+  ],
+  verra: {
+    default: [
+      "Afforestation of degraded lands",
+      "Reforestation of previously forested lands",
+      "Assisted Natural Regeneration (ANR)",
+      "Agroforestry conversion from non-forest land use",
+      "Mangrove and coastal ARR restoration",
+      "Riparian corridor restoration",
+    ],
+    vm0047: [
+      "Grouped ARR with stratified planting blocks",
+      "ARR with mixed native species restoration",
+      "Community-led degraded forest landscape restoration",
+    ],
+  },
+  gold_standard: {
+    default: [
+      "Smallholder agroforestry",
+      "Community afforestation",
+      "Reforestation of degraded cropland",
+      "Watershed restoration planting",
+      "Urban/peri-urban tree planting",
+    ],
+  },
+  acr: {
+    default: [
+      "ARR on degraded non-forest lands",
+      "Native species reforestation",
+      "Riparian and habitat connectivity planting",
+      "Silvopasture establishment",
+    ],
+  },
+  car: {
+    default: [
+      "Forest restoration planting",
+      "Urban forest expansion",
+      "Post-disturbance reforestation",
+      "Conservation planting buffers",
+    ],
+  },
+  isometric: {
+    default: [
+      "Nature-based ARR with digital MRV support",
+      "Native biodiversity restoration planting",
+      "Agroforestry for carbon removals",
+    ],
+  },
 };
 
 const STEP_COMMON_OPTIONAL = {
@@ -688,6 +758,7 @@ const STEP_REGISTRY_OPTIONAL = {
 const EVIDENCE_HINTS = {
   registrySelect: "Probable evidence: registry eligibility check note and latest applicable methodology version.",
   methodologySelect: "Probable evidence: methodology applicability screening sheet for the selected project type.",
+  arrActivities: "Probable evidence: activity boundary map, implementation plan, and species/activity design note.",
   projectPartner: "Probable evidence: partner MoU, incorporation certificate, or authorized signatory letter.",
   projectName: "Probable evidence: internal concept note or project ID from your pipeline tracker.",
   kmlUpload: "Probable evidence: signed GIS boundary file (KML/KMZ/Shapefile) with source and date.",
@@ -758,6 +829,65 @@ function populateMethodologyOptions() {
   pendingMethodology = "";
 }
 
+function getAvailableActivities(registry, methodology) {
+  const fallback = ARR_ACTIVITIES_BY_REGISTRY.default || [];
+  if (!registry) return fallback;
+  const regData = ARR_ACTIVITIES_BY_REGISTRY[registry];
+  if (!regData) return fallback;
+  if (methodology && Array.isArray(regData[methodology])) return regData[methodology];
+  if (Array.isArray(regData.default)) return regData.default;
+  return fallback;
+}
+
+function syncActivitiesInput() {
+  if (!arrActivityOptions || !arrActivitiesInput) return;
+  const selected = Array.from(arrActivityOptions.querySelectorAll("input[type='checkbox']:checked")).map((c) => c.value);
+  arrActivitiesInput.value = selected.join(" | ");
+}
+
+function renderArrActivities() {
+  if (!arrActivityOptions || !arrActivitiesInput) return;
+  const registry = (registrySelect && registrySelect.value) || "";
+  const methodology = (methodologySelect && methodologySelect.value) || "";
+  if (!registry) {
+    arrActivityOptions.textContent = "Select registry first to view activities.";
+    arrActivitiesInput.value = "";
+    return;
+  }
+  const activities = getAvailableActivities(registry, methodology);
+  const preselectedSet = new Set(
+    (arrActivitiesInput.value ? arrActivitiesInput.value.split("|") : pendingActivities)
+      .map((s) => String(s).trim())
+      .filter(Boolean)
+  );
+
+  arrActivityOptions.innerHTML = "";
+  const grid = document.createElement("div");
+  grid.className = "grid-2";
+
+  activities.forEach((activity, idx) => {
+    const wrap = document.createElement("label");
+    wrap.style.display = "flex";
+    wrap.style.gap = "8px";
+    wrap.style.alignItems = "center";
+    wrap.style.fontWeight = "500";
+    wrap.style.margin = "6px 0";
+    const id = `arrAct_${idx}`;
+    wrap.innerHTML = `<input type="checkbox" id="${id}" value="${activity}" style="width:auto;" /> <span>${activity}</span>`;
+    const cb = wrap.querySelector("input");
+    if (preselectedSet.has(activity)) cb.checked = true;
+    cb.addEventListener("change", () => {
+      syncActivitiesInput();
+      saveDraft();
+    });
+    grid.appendChild(wrap);
+  });
+
+  arrActivityOptions.appendChild(grid);
+  syncActivitiesInput();
+  pendingActivities = [];
+}
+
 function getStepOptionalPrompts(stepNumber, registry, methodology) {
   const prompts = [...(STEP_COMMON_OPTIONAL[stepNumber] || [])];
   if (!registry) return prompts;
@@ -817,6 +947,12 @@ function initEvidenceHints() {
     note.textContent = EVIDENCE_HINTS[key] || "Probable evidence: supporting document, source data, or stakeholder record.";
     el.insertAdjacentElement("afterend", note);
   });
+  if (arrActivitiesInput && (!arrActivitiesInput.nextElementSibling || !arrActivitiesInput.nextElementSibling.classList || !arrActivitiesInput.nextElementSibling.classList.contains("evidence-note"))) {
+    const note = document.createElement("div");
+    note.className = "evidence-note";
+    note.textContent = EVIDENCE_HINTS.arrActivities;
+    arrActivitiesInput.insertAdjacentElement("afterend", note);
+  }
 }
 
 function setStep(step) {
@@ -859,6 +995,7 @@ function loadDraft() {
       if (!el.name) return;
       if (data[el.name] !== undefined) {
         if (el.name === "methodologySelect") pendingMethodology = data[el.name];
+        else if (el.name === "arrActivities") pendingActivities = String(data[el.name]).split("|").map((s) => s.trim()).filter(Boolean);
         else el.value = data[el.name];
       }
     });
@@ -1084,6 +1221,7 @@ Array.from(document.querySelectorAll("input, select, textarea")).forEach((el) =>
 
 loadDraft();
 populateMethodologyOptions();
+renderArrActivities();
 updateAllStepOptionalGuidance();
 initWorkflow();
 initMap();
@@ -1091,6 +1229,7 @@ initMap();
 if (registrySelect) {
   registrySelect.addEventListener("change", () => {
     populateMethodologyOptions();
+    renderArrActivities();
     updateAllStepOptionalGuidance();
     saveDraft();
   });
@@ -1098,6 +1237,7 @@ if (registrySelect) {
 
 if (methodologySelect) {
   methodologySelect.addEventListener("change", () => {
+    renderArrActivities();
     updateAllStepOptionalGuidance();
     saveDraft();
   });
