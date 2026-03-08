@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ARR Phase 1 Feasibility Tool — MetaCarbonics</title>
 <link
   rel="stylesheet"
@@ -10,333 +10,632 @@
   integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
   crossorigin=""
 />
-
 <style>
+:root {
+  --mc-green: #0f766e;
+  --mc-green-dark: #115e59;
+  --mc-accent: #4f772d;
+  --mc-ink: #1f2937;
+  --mc-muted: #4b5563;
+  --mc-bg: #f4f8f3;
+  --mc-card: #ffffff;
+  --mc-border: #dbe5da;
+}
+
+* { box-sizing: border-box; }
+
 body {
-  font-family: Arial, sans-serif;
   margin: 0;
-  background: linear-gradient(to bottom, #f8faf7, #eef3ec);
-  color: #2f3e2e;
+  font-family: Arial, sans-serif;
+  color: var(--mc-ink);
+  background: linear-gradient(to bottom, #f7fbf6, #edf5ea);
 }
 
-header {
-  padding: 20px 40px;
-  background: white;
-  border-bottom: 1px solid #e5e5e5;
-  font-weight: bold;
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #ffffff;
+  border-bottom: 1px solid #e5ece3;
 }
 
-.brand-accent {
-  color: #3a7d44;
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 40px 20px;
+.brand {
+  font-weight: 800;
+  letter-spacing: 0.4px;
 }
 
-h1 {
+.brand-accent { color: var(--mc-green); }
+
+.main-nav a {
+  text-decoration: none;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.main-nav a:hover { background: #eef4ef; }
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 18px 30px;
+}
+
+.hero {
+  margin-bottom: 14px;
+}
+
+.hero h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--mc-muted);
+}
+
+.card {
+  background: var(--mc-card);
+  border: 1px solid var(--mc-border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e6ede6;
+  overflow: hidden;
   margin-bottom: 10px;
 }
 
-.section-box {
-  background: #f4f6f3;
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  border: 1px solid #e0e5df;
+.progress-fill {
+  width: 10%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--mc-green), var(--mc-accent));
+  transition: width 0.25s ease;
+}
+
+.progress-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.progress-step {
+  border: 1px solid #cfe0cf;
+  border-radius: 999px;
+  background: #fff;
+  color: #35523a;
+  font-size: 12px;
+  padding: 6px 8px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.progress-step.active {
+  background: var(--mc-green);
+  border-color: var(--mc-green);
+  color: #fff;
+}
+
+.progress-step.done {
+  background: #e9f7ef;
+  border-color: #9ad6b0;
+  color: #165f35;
+}
+
+.section-step {
+  display: none;
+}
+
+.section-step.active {
+  display: block;
+}
+
+.section-step h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 label {
   display: block;
-  margin: 10px 0;
+  margin: 10px 0 6px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-select {
-  padding: 6px;
-  margin-left: 10px;
-}
-
-input[type="text"] {
+input[type="text"],
+select,
+textarea,
+input[type="file"] {
   width: 100%;
-  max-width: 420px;
-  padding: 10px;
-  border: 1px solid #c8d0c6;
+  border: 1px solid #cfdacb;
   border-radius: 8px;
-  margin-top: 6px;
+  padding: 10px;
+  font-size: 14px;
+  background: #fff;
 }
 
-button {
-  padding: 12px 20px;
-  background: #3a7d44;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-button:hover {
-  background: #2f6435;
-}
-
-.result-box {
-  margin-top: 30px;
-  padding: 25px;
-  border-radius: 10px;
-  display: none;
-}
-
-.go { background: #e6f4ea; border: 1px solid #3a7d44; }
-.conditional { background: #fff8e1; border: 1px solid #f4b400; }
-.no-go { background: #fdecea; border: 1px solid #d93025; }
-
-.score {
-  font-size: 22px;
-  font-weight: bold;
+textarea {
+  min-height: 90px;
+  resize: vertical;
 }
 
 .map-box {
   width: 100%;
-  height: 340px;
-  border: 1px solid #d5dfd3;
+  height: 360px;
+  border: 1px solid #d2dfd2;
   border-radius: 10px;
-  overflow: hidden;
-  margin-top: 10px;
-}
-
-.small {
-  color: #4c5e4a;
-  font-size: 13px;
   margin-top: 8px;
 }
 
-.btn-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
+.small {
+  color: var(--mc-muted);
+  font-size: 13px;
 }
 
-.btn-secondary {
-  background: #44564a;
-}
-
-.feedstock-table {
+.table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 12px;
-  background: #fff;
+  margin-top: 10px;
+  font-size: 13px;
 }
 
-.feedstock-table th,
-.feedstock-table td {
-  border: 1px solid #dbe4da;
-  padding: 8px;
-  font-size: 13px;
+.table th,
+.table td {
+  border: 1px solid #d8e4d7;
+  padding: 7px;
   text-align: left;
 }
 
-.feedstock-table th {
-  background: #eef4ec;
+.table th { background: #eff6ef; }
+
+.btn-row {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: 1px solid var(--mc-green);
+  background: var(--mc-green);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn:hover { background: var(--mc-green-dark); }
+
+.btn-secondary {
+  border-color: #4b5563;
+  background: #4b5563;
+}
+
+.result-box {
+  display: none;
+  margin-top: 14px;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid #cfdacb;
+}
+
+.go { background: #e8f8ec; border-color: #3a7d44; }
+.conditional { background: #fff8e1; border-color: #f4b400; }
+.no-go { background: #fdecea; border-color: #d93025; }
+
+.score {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .progress-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .btn-row { flex-direction: column; }
+  .btn-row .btn { width: 100%; }
 }
 </style>
 </head>
-
 <body>
-
-<header>
-  META<span class="brand-accent">CARBONICS</span> — ARR Phase 1 Feasibility Tool
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">META<span class="brand-accent">CARBONICS</span></div>
+    <nav class="main-nav"><a href="/index.html">Home</a></nav>
+  </div>
 </header>
 
-<div class="container">
+<main class="page">
+  <section class="hero">
+    <h1>ARR Phase 1 Feasibility</h1>
+    <p>Structured intake from project profile to pre-feasibility scoring.</p>
+  </section>
 
-<h1>Feasibility & Land Assessment</h1>
-<p>Evaluate project readiness before moving to Design & Registration.</p>
+  <section class="card">
+    <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+    <div id="progressSteps" class="progress-steps"></div>
+  </section>
 
-<div class="section-box">
-  <h3>Pre-Feasibility Project Profile</h3>
-  <label for="projectNameInput">Project Name</label>
-  <input id="projectNameInput" type="text" placeholder="Enter ARR project name" />
+  <form id="feasibilityForm" class="card">
+    <section class="section-step active" data-step="1">
+      <h3>1. User Info and basic inputs</h3>
+      <div class="grid-2">
+        <div>
+          <label for="projectPartner">Project Partner Name</label>
+          <input id="projectPartner" name="projectPartner" type="text" placeholder="Enter project partner name" />
+        </div>
+        <div>
+          <label for="projectName">Project Name</label>
+          <input id="projectName" name="projectName" type="text" placeholder="Enter ARR project name" />
+        </div>
+      </div>
 
-  <label style="margin-top:16px;">Project Boundary (click map to add boundary points)</label>
-  <div id="projectBoundaryMap" class="map-box" aria-label="Project boundary map"></div>
-  <div class="small" id="boundaryInfo">Boundary points: 0</div>
-  <div class="btn-row">
-    <button type="button" class="btn-secondary" onclick="closeBoundary()">Close Boundary</button>
-    <button type="button" class="btn-secondary" onclick="clearBoundary()">Clear Boundary</button>
-  </div>
-  <table class="feedstock-table">
-    <thead><tr><th>#</th><th>Latitude</th><th>Longitude</th></tr></thead>
-    <tbody id="boundaryPointsBody"><tr><td colspan="3">No boundary points yet.</td></tr></tbody>
-  </table>
-</div>
+      <label for="kmlUpload" style="margin-top:14px;">Upload Project Boundary KML (optional)</label>
+      <input id="kmlUpload" type="file" accept=".kml,application/vnd.google-earth.kml+xml" />
 
-<form id="feasibilityForm">
+      <label style="margin-top:14px;">Project Boundary Map</label>
+      <div id="projectMap" class="map-box"></div>
+      <div class="small" id="mapHint">Click on the map to add boundary points if KML is not uploaded.</div>
 
-<div class="section-box">
-<h3>Legal & Land Due Diligence</h3>
+      <div class="btn-row">
+        <button type="button" class="btn btn-secondary" id="closeBoundaryBtn">Close Boundary</button>
+        <button type="button" class="btn btn-secondary" id="clearBoundaryBtn">Clear Boundary</button>
+      </div>
 
-<label>Land ownership verified?
-<select name="ownership">
-<option value="2">Yes</option>
-<option value="1">Partially</option>
-<option value="0">No</option>
-</select>
-</label>
+      <div class="grid-2" style="margin-top:10px;">
+        <div><strong>Boundary Area (ha):</strong> <span id="boundaryArea">0.00</span></div>
+        <div><strong>Districts:</strong> <span id="districtList">N/A</span></div>
+      </div>
 
-<label>Carbon rights confirmed?
-<select name="carbonRights">
-<option value="2">Yes</option>
-<option value="1">Unclear</option>
-<option value="0">No</option>
-</select>
-</label>
+      <table class="table" style="margin-top:10px;">
+        <thead><tr><th>#</th><th>Latitude</th><th>Longitude</th></tr></thead>
+        <tbody id="boundaryPointsBody"><tr><td colspan="3">No points yet.</td></tr></tbody>
+      </table>
+    </section>
 
-<label>Disputes or encumbrances?
-<select name="disputes">
-<option value="2">None</option>
-<option value="1">Minor issues</option>
-<option value="0">Major disputes</option>
-</select>
-</label>
-</div>
+    <section class="section-step" data-step="2">
+      <h3>2. Baseline assessment</h3>
+      <label>Baseline land-use data available?
+        <select name="baselineData"><option value="2">Complete</option><option value="1">Partial</option><option value="0">No</option></select>
+      </label>
+      <label>Baseline carbon stock assessment completed?
+        <select name="baselineCarbon"><option value="2">Yes</option><option value="1">Draft</option><option value="0">No</option></select>
+      </label>
+    </section>
 
-<div class="section-box">
-<h3>Baseline & Environmental</h3>
+    <section class="section-step" data-step="3">
+      <h3>3. List Tree species Planted and Model</h3>
+      <label for="speciesList">Tree species list</label>
+      <textarea id="speciesList" name="speciesList" placeholder="Enter species list"></textarea>
+      <label>Planting model selected?
+        <select name="plantingModel"><option value="2">Yes</option><option value="1">Partially</option><option value="0">No</option></select>
+      </label>
+    </section>
 
-<label>Baseline land-use data available?
-<select name="baseline">
-<option value="2">Complete</option>
-<option value="1">Partial</option>
-<option value="0">No</option>
-</select>
-</label>
+    <section class="section-step" data-step="4">
+      <h3>4. Land Owenership Disputes or encumbrances and FPIC</h3>
+      <label>Land ownership verified?
+        <select name="ownership"><option value="2">Yes</option><option value="1">Partially</option><option value="0">No</option></select>
+      </label>
+      <label>Disputes or encumbrances?
+        <select name="disputes"><option value="2">None</option><option value="1">Minor issues</option><option value="0">Major disputes</option></select>
+      </label>
+      <label>FPIC completed?
+        <select name="fpic"><option value="2">Yes</option><option value="1">In progress</option><option value="0">No</option></select>
+      </label>
+    </section>
 
-<label>Soil & climate suitability?
-<select name="soilClimate">
-<option value="2">Suitable</option>
-<option value="1">Moderate risk</option>
-<option value="0">Unsuitable</option>
-</select>
-</label>
+    <section class="section-step" data-step="5">
+      <h3>5. Soil & climate suitability</h3>
+      <label>Soil suitability?
+        <select name="soil"><option value="2">Suitable</option><option value="1">Moderate risk</option><option value="0">Unsuitable</option></select>
+      </label>
+      <label>Climate suitability?
+        <select name="climate"><option value="2">Suitable</option><option value="1">Moderate risk</option><option value="0">Unsuitable</option></select>
+      </label>
+    </section>
 
-<label>Fire/Grazing/Pest Risk?
-<select name="risk">
-<option value="2">Low</option>
-<option value="1">Medium</option>
-<option value="0">High</option>
-</select>
-</label>
-</div>
+    <section class="section-step" data-step="6">
+      <h3>6. Leakage Assessment</h3>
+      <label>Leakage risk assessment completed?
+        <select name="leakageAssessment"><option value="2">Yes</option><option value="1">Preliminary</option><option value="0">No</option></select>
+      </label>
+      <label>Leakage mitigation plan available?
+        <select name="leakageMitigation"><option value="2">Yes</option><option value="1">Draft</option><option value="0">No</option></select>
+      </label>
+    </section>
 
-<div class="section-box">
-<h3>Financial Pre-Feasibility</h3>
+    <section class="section-step" data-step="7">
+      <h3>7. Fire/Grazing/Pest Risk</h3>
+      <label>Fire risk level?
+        <select name="fireRisk"><option value="2">Low</option><option value="1">Medium</option><option value="0">High</option></select>
+      </label>
+      <label>Grazing risk level?
+        <select name="grazingRisk"><option value="2">Low</option><option value="1">Medium</option><option value="0">High</option></select>
+      </label>
+      <label>Pest risk level?
+        <select name="pestRisk"><option value="2">Low</option><option value="1">Medium</option><option value="0">High</option></select>
+      </label>
+    </section>
 
-<label>Preliminary carbon yield estimate completed?
-<select name="yield">
-<option value="2">Yes</option>
-<option value="1">Estimated</option>
-<option value="0">No</option>
-</select>
-</label>
+    <section class="section-step" data-step="8">
+      <h3>8. Ex-ante Calculation</h3>
+      <label>Ex-ante removals estimate completed?
+        <select name="exAnte"><option value="2">Yes</option><option value="1">Draft</option><option value="0">No</option></select>
+      </label>
+      <label>Assumptions documented?
+        <select name="assumptions"><option value="2">Yes</option><option value="1">Partially</option><option value="0">No</option></select>
+      </label>
+    </section>
 
-<label>Capex/Opex estimated?
-<select name="costs">
-<option value="2">Yes</option>
-<option value="1">Rough estimate</option>
-<option value="0">No</option>
-</select>
-</label>
+    <section class="section-step" data-step="9">
+      <h3>9. Additionality Assessment</h3>
+      <label>Financial additionality justified?
+        <select name="financialAdditionality"><option value="2">Yes</option><option value="1">Partially</option><option value="0">No</option></select>
+      </label>
+      <label>Regulatory/common practice additionality justified?
+        <select name="regulatoryAdditionality"><option value="2">Yes</option><option value="1">Partially</option><option value="0">No</option></select>
+      </label>
+    </section>
 
-<label>Revenue projection viable?
-<select name="revenue">
-<option value="2">Strong</option>
-<option value="1">Uncertain</option>
-<option value="0">Not viable</option>
-</select>
-</label>
-</div>
+    <section class="section-step" data-step="10">
+      <h3>10. Revenue projection viable</h3>
+      <label>Capex/Opex estimated?
+        <select name="costs"><option value="2">Yes</option><option value="1">Rough estimate</option><option value="0">No</option></select>
+      </label>
+      <label>Revenue projection viable?
+        <select name="revenue"><option value="2">Strong</option><option value="1">Uncertain</option><option value="0">Not viable</option></select>
+      </label>
+      <div class="btn-row" style="margin-top:12px; justify-content:flex-start;">
+        <button class="btn" type="button" id="evaluateBtn">Evaluate Project</button>
+      </div>
+    </section>
 
-<button type="button" onclick="calculateScore()">Evaluate Project</button>
+    <div class="btn-row">
+      <button type="button" id="prevBtn" class="btn btn-secondary">Edit Previous</button>
+      <button type="button" id="nextBtn" class="btn">Next</button>
+    </div>
+  </form>
 
-</form>
+  <section id="result" class="result-box">
+    <div id="scoreText" class="score"></div>
+    <p id="decisionText"></p>
+  </section>
+</main>
 
-<div id="result" class="result-box">
-<div class="score" id="scoreText"></div>
-<p id="decisionText"></p>
-</div>
-
-</div>
-
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
 <script>
-const PREFEASIBILITY_STORAGE_KEY = "arr-phase1-prefeasibility";
-let boundaryMap = null;
-let boundaryPoints = [];
-let boundaryMarkersLayer = null;
-let boundaryPolygonLayer = null;
-let boundaryPolylineLayer = null;
+const STEP_LABELS = [
+  "1. User Info",
+  "2. Baseline",
+  "3. Species",
+  "4. Land/FPIC",
+  "5. Soil/Climate",
+  "6. Leakage",
+  "7. Risk",
+  "8. Ex-ante",
+  "9. Additionality",
+  "10. Revenue",
+];
 
-function persistPreFeasibility() {
-  const payload = {
-    project_name: document.getElementById("projectNameInput").value || "",
-    boundary_points: boundaryPoints,
-  };
-  localStorage.setItem(PREFEASIBILITY_STORAGE_KEY, JSON.stringify(payload));
+const STORAGE_KEY = "arr_phase1_prefeas_v2";
+let currentStep = 1;
+const maxStep = 10;
+
+const progressFill = document.getElementById("progressFill");
+const progressSteps = document.getElementById("progressSteps");
+const sections = Array.from(document.querySelectorAll(".section-step"));
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const evaluateBtn = document.getElementById("evaluateBtn");
+
+let map = null;
+let boundaryPoints = [];
+let markerLayer = null;
+let lineLayer = null;
+let polygonLayer = null;
+
+function initWorkflow() {
+  progressSteps.innerHTML = "";
+  STEP_LABELS.forEach((label, idx) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "progress-step";
+    b.textContent = label;
+    b.addEventListener("click", () => setStep(idx + 1));
+    progressSteps.appendChild(b);
+  });
+  setStep(1);
+}
+
+function setStep(step) {
+  currentStep = Math.max(1, Math.min(maxStep, step));
+  sections.forEach((s, idx) => s.classList.toggle("active", idx + 1 === currentStep));
+  const pct = ((currentStep - 1) / (maxStep - 1)) * 100;
+  progressFill.style.width = pct + "%";
+
+  const stepButtons = Array.from(progressSteps.querySelectorAll(".progress-step"));
+  stepButtons.forEach((btn, idx) => {
+    btn.classList.toggle("active", idx + 1 === currentStep);
+    btn.classList.toggle("done", idx + 1 < currentStep);
+  });
+
+  prevBtn.disabled = currentStep === 1;
+  nextBtn.style.display = currentStep === maxStep ? "none" : "inline-block";
+}
+
+nextBtn.addEventListener("click", () => setStep(currentStep + 1));
+prevBtn.addEventListener("click", () => setStep(currentStep - 1));
+
+function saveDraft() {
+  const form = document.getElementById("feasibilityForm");
+  const data = {};
+  Array.from(form.elements).forEach((el) => {
+    if (!el.name) return;
+    if (el.tagName === "SELECT" || el.tagName === "TEXTAREA" || el.tagName === "INPUT") data[el.name] = el.value;
+  });
+  data.boundaryPoints = boundaryPoints;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadDraft() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    const form = document.getElementById("feasibilityForm");
+    Array.from(form.elements).forEach((el) => {
+      if (!el.name) return;
+      if (data[el.name] !== undefined) el.value = data[el.name];
+    });
+    if (Array.isArray(data.boundaryPoints)) {
+      boundaryPoints = data.boundaryPoints
+        .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))
+        .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+    }
+  } catch (_) {}
+}
+
+function initMap() {
+  map = L.map("projectMap").setView([22, 79], 5);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 18,
+    attribution: "Tiles © Esri",
+  }).addTo(map);
+
+  markerLayer = L.layerGroup().addTo(map);
+  lineLayer = L.layerGroup().addTo(map);
+  polygonLayer = L.layerGroup().addTo(map);
+
+  map.on("click", (e) => {
+    boundaryPoints.push({ lat: Number(e.latlng.lat), lng: Number(e.latlng.lng) });
+    redrawBoundary();
+  });
+
+  redrawBoundary();
+}
+
+function redrawBoundary() {
+  if (!map) return;
+  markerLayer.clearLayers();
+  lineLayer.clearLayers();
+  polygonLayer.clearLayers();
+
+  boundaryPoints.forEach((p, idx) => {
+    const m = L.circleMarker([p.lat, p.lng], {
+      radius: 5,
+      color: "#0f766e",
+      fillColor: "#14b8a6",
+      fillOpacity: 0.9,
+      weight: 2,
+    });
+    m.bindTooltip(`P${idx + 1}`, { permanent: true, direction: "top", offset: [0, -6] });
+    markerLayer.addLayer(m);
+  });
+
+  if (boundaryPoints.length >= 2) {
+    L.polyline(boundaryPoints.map((p) => [p.lat, p.lng]), { color: "#0f766e", weight: 2, dashArray: "6,6" }).addTo(lineLayer);
+  }
+
+  if (boundaryPoints.length >= 3) {
+    L.polygon(boundaryPoints.map((p) => [p.lat, p.lng]), {
+      color: "#3a7d44",
+      fillColor: "#86efac",
+      fillOpacity: 0.25,
+      weight: 2,
+    }).addTo(polygonLayer);
+  }
+
+  renderBoundaryTable();
+  renderBoundaryStats();
+  saveDraft();
 }
 
 function renderBoundaryTable() {
   const body = document.getElementById("boundaryPointsBody");
-  const info = document.getElementById("boundaryInfo");
   body.innerHTML = "";
   if (!boundaryPoints.length) {
-    body.innerHTML = "<tr><td colspan='3'>No boundary points yet.</td></tr>";
-    info.textContent = "Boundary points: 0";
+    body.innerHTML = "<tr><td colspan='3'>No points yet.</td></tr>";
     return;
   }
   boundaryPoints.forEach((p, idx) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${idx + 1}</td><td>${Number(p.lat).toFixed(6)}</td><td>${Number(p.lng).toFixed(6)}</td>`;
+    tr.innerHTML = `<td>${idx + 1}</td><td>${p.lat.toFixed(6)}</td><td>${p.lng.toFixed(6)}</td>`;
     body.appendChild(tr);
   });
-  info.textContent = `Boundary points: ${boundaryPoints.length}`;
 }
 
-function renderBoundaryLayers() {
-  if (!boundaryMap || !window.L) return;
-  boundaryMarkersLayer.clearLayers();
-  boundaryPolylineLayer.clearLayers();
-  boundaryPolygonLayer.clearLayers();
-
-  boundaryPoints.forEach((p, idx) => {
-    const m = window.L.circleMarker([p.lat, p.lng], {
-      radius: 5,
-      color: "#0f766e",
-      fillColor: "#14b8a6",
-      fillOpacity: 0.8,
-      weight: 2,
-    });
-    m.bindTooltip(`P${idx + 1}`, { permanent: true, direction: "top", offset: [0, -6] });
-    boundaryMarkersLayer.addLayer(m);
+function polygonAreaHa(points) {
+  if (!Array.isArray(points) || points.length < 3) return 0;
+  const R = 6378137;
+  const lat0 = points.reduce((s, p) => s + p.lat, 0) / points.length;
+  const lat0Rad = (lat0 * Math.PI) / 180;
+  const xy = points.map((p) => {
+    const lonRad = (p.lng * Math.PI) / 180;
+    const latRad = (p.lat * Math.PI) / 180;
+    return { x: R * lonRad * Math.cos(lat0Rad), y: R * latRad };
   });
-
-  if (boundaryPoints.length >= 2) {
-    window.L.polyline(
-      boundaryPoints.map((p) => [p.lat, p.lng]),
-      { color: "#0f766e", weight: 2, dashArray: "5,5" }
-    ).addTo(boundaryPolylineLayer);
+  let area2 = 0;
+  for (let i = 0; i < xy.length; i += 1) {
+    const j = (i + 1) % xy.length;
+    area2 += xy[i].x * xy[j].y - xy[j].x * xy[i].y;
   }
+  return Math.abs(area2 / 2) / 10000;
+}
 
-  if (boundaryPoints.length >= 3) {
-    window.L.polygon(
-      boundaryPoints.map((p) => [p.lat, p.lng]),
-      { color: "#3a7d44", fillColor: "#86efac", fillOpacity: 0.2, weight: 2 }
-    ).addTo(boundaryPolygonLayer);
+function extractDistrictsFromKml(xmlDoc) {
+  const set = new Set();
+  xmlDoc.querySelectorAll("SimpleData, Data").forEach((n) => {
+    const key = (n.getAttribute("name") || "").toLowerCase();
+    const value = (n.textContent || "").trim();
+    if (value && key.includes("district")) set.add(value);
+  });
+  xmlDoc.querySelectorAll("Placemark > name").forEach((n) => {
+    const value = (n.textContent || "").trim();
+    if (value) set.add(value);
+  });
+  return Array.from(set).slice(0, 12);
+}
+
+function renderBoundaryStats(districts = null) {
+  const area = polygonAreaHa(boundaryPoints);
+  document.getElementById("boundaryArea").textContent = area.toFixed(2);
+
+  let list = districts;
+  if (!list) {
+    const raw = localStorage.getItem(STORAGE_KEY + "_districts");
+    list = raw ? JSON.parse(raw) : [];
   }
-
-  renderBoundaryTable();
-  persistPreFeasibility();
+  document.getElementById("districtList").textContent = list && list.length ? list.join(", ") : "N/A";
 }
 
 function closeBoundary() {
@@ -344,67 +643,67 @@ function closeBoundary() {
     alert("Add at least 3 points to close project boundary.");
     return;
   }
-  renderBoundaryLayers();
+  redrawBoundary();
 }
 
 function clearBoundary() {
   boundaryPoints = [];
-  renderBoundaryLayers();
+  localStorage.removeItem(STORAGE_KEY + "_districts");
+  redrawBoundary();
 }
 
-function initBoundaryMap() {
-  if (!window.L) return;
-  boundaryMap = window.L.map("projectBoundaryMap").setView([20, 78], 4);
-  window.L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    { maxZoom: 18, attribution: "Tiles &copy; Esri" }
-  ).addTo(boundaryMap);
+document.getElementById("closeBoundaryBtn").addEventListener("click", closeBoundary);
+document.getElementById("clearBoundaryBtn").addEventListener("click", clearBoundary);
 
-  boundaryMarkersLayer = window.L.layerGroup().addTo(boundaryMap);
-  boundaryPolylineLayer = window.L.layerGroup().addTo(boundaryMap);
-  boundaryPolygonLayer = window.L.layerGroup().addTo(boundaryMap);
+document.getElementById("kmlUpload").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const xml = new DOMParser().parseFromString(text, "text/xml");
 
-  boundaryMap.on("click", (e) => {
-    boundaryPoints.push({ lat: Number(e.latlng.lat), lng: Number(e.latlng.lng) });
-    renderBoundaryLayers();
-  });
+  const coordNode = xml.querySelector("Polygon outerBoundaryIs LinearRing coordinates");
+  if (!coordNode || !coordNode.textContent) {
+    alert("No polygon boundary found in KML.");
+    return;
+  }
 
-  try {
-    const raw = localStorage.getItem(PREFEASIBILITY_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") {
-        document.getElementById("projectNameInput").value = parsed.project_name || "";
-        if (Array.isArray(parsed.boundary_points)) {
-          boundaryPoints = parsed.boundary_points
-            .map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))
-            .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
-        }
-      }
-    }
-  } catch (_) {}
+  const coords = coordNode.textContent
+    .trim()
+    .split(/\s+/)
+    .map((token) => {
+      const parts = token.split(",");
+      return { lng: Number(parts[0]), lat: Number(parts[1]) };
+    })
+    .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
-  renderBoundaryLayers();
-}
+  if (coords.length < 3) {
+    alert("KML polygon has insufficient points.");
+    return;
+  }
 
-document.addEventListener("DOMContentLoaded", () => {
-  initBoundaryMap();
-  const projectNameInput = document.getElementById("projectNameInput");
-  projectNameInput.addEventListener("input", persistPreFeasibility);
+  boundaryPoints = coords;
+  const districts = extractDistrictsFromKml(xml);
+  localStorage.setItem(STORAGE_KEY + "_districts", JSON.stringify(districts));
+  redrawBoundary();
+  renderBoundaryStats(districts);
+
+  const bounds = L.latLngBounds(boundaryPoints.map((p) => [p.lat, p.lng]));
+  if (bounds.isValid()) map.fitBounds(bounds.pad(0.1));
 });
 
 function calculateScore() {
   const form = document.getElementById("feasibilityForm");
   let score = 0;
+  let maxScore = 0;
 
-  for (let element of form.elements) {
-    if (element.tagName === "SELECT") {
-      score += parseInt(element.value);
+  Array.from(form.elements).forEach((el) => {
+    if (el.tagName === "SELECT") {
+      score += Number(el.value || 0);
+      maxScore += 2;
     }
-  }
+  });
 
-  const maxScore = 18;
-  const percentage = (score / maxScore) * 100;
+  const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
   const resultBox = document.getElementById("result");
   const scoreText = document.getElementById("scoreText");
   const decisionText = document.getElementById("decisionText");
@@ -413,27 +712,31 @@ function calculateScore() {
 
   if (percentage >= 75) {
     resultBox.className = "result-box go";
-    scoreText.innerText = "Score: " + score + " / 18 — GO";
-    decisionText.innerText = "Project is viable. Proceed to Phase 2: Design & Registration.";
+    scoreText.textContent = `Score: ${score} / ${maxScore} - GO`;
+    decisionText.textContent = "Project is viable. Proceed to Phase 2: Design & Registration.";
   } else if (percentage >= 50) {
     resultBox.className = "result-box conditional";
-    scoreText.innerText = "Score: " + score + " / 18 — CONDITIONAL";
-    decisionText.innerText = "Project requires mitigation before proceeding.";
+    scoreText.textContent = `Score: ${score} / ${maxScore} - CONDITIONAL`;
+    decisionText.textContent = "Project requires mitigation before proceeding.";
   } else {
     resultBox.className = "result-box no-go";
-    scoreText.innerText = "Score: " + score + " / 18 — NO-GO";
-    decisionText.innerText = "Significant issues detected. Reassess land or legal structure.";
+    scoreText.textContent = `Score: ${score} / ${maxScore} - NO-GO`;
+    decisionText.textContent = "Significant issues detected. Reassess land or project design.";
   }
 
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-</script>
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
-></script>
-<script src="global-auth-ui.js"></script>
+evaluateBtn.addEventListener("click", calculateScore);
+
+Array.from(document.querySelectorAll("input, select, textarea")).forEach((el) => {
+  el.addEventListener("input", saveDraft);
+  el.addEventListener("change", saveDraft);
+});
+
+loadDraft();
+initWorkflow();
+initMap();
+</script>
 </body>
 </html>
