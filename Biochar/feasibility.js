@@ -929,10 +929,28 @@ function updateMapEditMode(enabled) {
 
 async function fetchStateBoundaryFeature(stateName, countryName) {
   const query = encodeURIComponent([stateName, countryName].filter(Boolean).join(", "));
-  const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=1&q=${query}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&addressdetails=1&limit=10&q=${query}`;
   const res = await fetch(url);
   const rows = await res.json();
-  const first = Array.isArray(rows) ? rows[0] : null;
+  const isAreaGeo = (geo) => {
+    const t = String(geo?.type || "");
+    return t === "Polygon" || t === "MultiPolygon";
+  };
+  const list = Array.isArray(rows) ? rows.filter((r) => r?.geojson) : [];
+  const areaList = list.filter((r) => isAreaGeo(r.geojson));
+  const pool = areaList.length ? areaList : list;
+  const stateNorm = normalizeBoundaryName(stateName);
+  const scoreRow = (r) => {
+    let score = 0;
+    const addr = r?.address || {};
+    if (String(r?.class || "").toLowerCase() === "boundary") score += 6;
+    if (String(r?.type || "").toLowerCase() === "administrative") score += 6;
+    if (boundaryNameMatches(r?.name, stateNorm) || boundaryNameMatches(addr.state, stateNorm)) score += 10;
+    if (isAreaGeo(r?.geojson)) score += 4;
+    if (String(r?.osm_type || "").toLowerCase() === "node") score -= 5;
+    return score;
+  };
+  const first = pool.sort((a, b) => scoreRow(b) - scoreRow(a))[0] || null;
   if (!first?.geojson) return null;
   return { type: "Feature", properties: { name: stateName }, geometry: first.geojson };
 }
@@ -944,6 +962,12 @@ async function fetchDistrictBoundaryFeature(cityName, stateName, countryName) {
   const res = await fetch(url);
   const rows = await res.json();
   const list = Array.isArray(rows) ? rows.filter((r) => r?.geojson) : [];
+  const isAreaGeo = (geo) => {
+    const t = String(geo?.type || "");
+    return t === "Polygon" || t === "MultiPolygon";
+  };
+  const areaList = list.filter((r) => isAreaGeo(r.geojson));
+  const pool = areaList.length ? areaList : list;
   const cityNorm = normalizeBoundaryName(cityName);
   const stateNorm = normalizeBoundaryName(stateName);
   const scoreRow = (r) => {
@@ -962,12 +986,11 @@ async function fetchDistrictBoundaryFeature(cityName, stateName, countryName) {
     if (String(r?.type || "").toLowerCase() === "administrative") score += 6;
     if (boundaryNameMatches(adminName, cityNorm) || boundaryNameMatches(r?.name, cityNorm)) score += 10;
     if (boundaryNameMatches(addr.state, stateNorm)) score += 4;
-    const gType = String(r?.geojson?.type || "");
-    if (gType === "Polygon" || gType === "MultiPolygon") score += 3;
+    if (isAreaGeo(r?.geojson)) score += 4;
     if (String(r?.osm_type || "").toLowerCase() === "node") score -= 5;
     return score;
   };
-  const best = list.sort((a, b) => scoreRow(b) - scoreRow(a))[0] || null;
+  const best = pool.sort((a, b) => scoreRow(b) - scoreRow(a))[0] || null;
   const first = best || (Array.isArray(rows) ? rows[0] : null);
   if (!first?.geojson) return null;
   return { type: "Feature", properties: { name: cityName, state: stateName }, geometry: first.geojson };
