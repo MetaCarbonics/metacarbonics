@@ -125,6 +125,7 @@ const pyroQ19 = document.getElementById("pyroQ19");
 const pyroQ20 = document.getElementById("pyroQ20");
 const pyroFacilitySelect = document.getElementById("pyroFacilitySelect");
 const pyroFacilityInfo = document.getElementById("pyroFacilityInfo");
+const savePyroFacilityBtn = document.getElementById("savePyroFacilityBtn");
 const financeQ21 = document.getElementById("financeQ21");
 const financeQ22 = document.getElementById("financeQ22");
 
@@ -345,6 +346,18 @@ function savePyroFormToSelectedFacility() {
   entry.q18_facility_certifications = getMultiValues(pyroQ18);
   entry.q19_energy_used_mwh_a = pyroQ19.value;
   entry.q20_energy_source = pyroQ20.value;
+}
+
+function savePyroFacilityInfo() {
+  if (!pyroFacilitySelect?.value) {
+    alert("Select a facility first.");
+    return;
+  }
+  savePyroFormToSelectedFacility();
+  renderPyrolysisSummary();
+  renderSummary();
+  saveUserToLocalStorage();
+  if (pyroFacilityInfo) pyroFacilityInfo.textContent = `Saved pyrolysis data for ${getFacilityLabelById(pyroFacilitySelect.value)}.`;
 }
 
 function reconcilePyroWithFacilities() {
@@ -1402,6 +1415,13 @@ function hideFeedstockForm() {
   feedstockNotes.value = "";
 }
 
+function hideFeedstockEntryPanel() {
+  hideFeedstockForm();
+  if (feedstockEntryPanel) feedstockEntryPanel.classList.add("hidden");
+  if (feedstockFacilitySelect) feedstockFacilitySelect.value = "";
+  if (feedstockType) feedstockType.value = "";
+}
+
 function showFeedstockEntryPanel() {
   if (feedstockEntryPanel) feedstockEntryPanel.classList.remove("hidden");
 }
@@ -1497,7 +1517,7 @@ function saveFeedstockInfo() {
   renderSummary();
   saveUserToLocalStorage();
   feedstockFeedback.textContent = `Saved ${row.feedstock} information.`;
-  hideFeedstockForm();
+  hideFeedstockEntryPanel();
 }
 
 function openFeedstockFormForEdit(index) {
@@ -2246,11 +2266,7 @@ async function downloadPreviewPdf() {
         city_name: data.city_name || "",
       }].filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
   const showProfileMap = profilePointsForPdf.length > 0;
-  const profileMapW = 220;
-  const profileMapH = 132;
-  const profileMapX = marginX + maxWidth - profileMapW;
-  const profileMapY = 78;
-  const profileTextWidth = showProfileMap ? maxWidth - profileMapW - 14 : maxWidth;
+  const profileTextWidth = maxWidth;
   y = 78;
   doc.text(`Date: ${new Date().toLocaleString()}`, marginX, y);
   y += 14;
@@ -2289,75 +2305,6 @@ async function downloadPreviewPdf() {
       doc.text(w, marginX, y);
       y += lineHeight;
     });
-  }
-  if (showProfileMap) {
-    const profileBounds = computePdfMapExtent(profilePointsForPdf, stateBoundaryFeatures);
-    let drawn = false;
-    if (profileBounds) {
-      try {
-        const sat = await fetchSatelliteMapDataUrl(profileBounds);
-        doc.addImage(sat.dataUrl, "PNG", profileMapX, profileMapY, profileMapW, profileMapH, undefined, "FAST");
-        const toX = (lng) => profileMapX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng || 1e-9)) * profileMapW;
-        const toY = (lat) => profileMapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat || 1e-9)) * profileMapH;
-        const drawRing = (ring) => {
-          if (!Array.isArray(ring) || ring.length < 2) return;
-          for (let i = 1; i < ring.length; i += 1) {
-            const a = ring[i - 1];
-            const b = ring[i];
-            doc.line(toX(Number(a[0])), toY(Number(a[1])), toX(Number(b[0])), toY(Number(b[1])));
-          }
-        };
-        doc.setDrawColor(234, 179, 8);
-        doc.setLineWidth(0.8);
-        stateBoundaryFeatures.forEach((f) => {
-          const g = f?.geometry;
-          if (!g) return;
-          if (g.type === "Polygon") (g.coordinates || []).forEach(drawRing);
-          if (g.type === "MultiPolygon") (g.coordinates || []).forEach((poly) => (poly || []).forEach(drawRing));
-        });
-        doc.setDrawColor(220, 38, 38);
-        doc.setFillColor(220, 38, 38);
-        profilePointsForPdf.forEach((pt) => {
-          doc.circle(toX(Number(pt.lng)), toY(Number(pt.lat)), 3.4, "F");
-        });
-        drawn = true;
-      } catch {
-        drawn = false;
-      }
-    }
-    if (!drawn) {
-      doc.setDrawColor(148, 163, 184);
-      doc.rect(profileMapX, profileMapY, profileMapW, profileMapH);
-      doc.setFontSize(8);
-      doc.text("Satellite image unavailable.", profileMapX + 8, profileMapY + 14);
-      doc.setFillColor(220, 38, 38);
-      doc.circle(profileMapX + profileMapW * 0.5, profileMapY + profileMapH * 0.5, 3.4, "F");
-      doc.setFontSize(10);
-    }
-    y = Math.max(y, profileMapY + profileMapH + 8);
-  }
-  if (profilePointsForPdf.length) {
-    drawTable(
-      "Facility Locations",
-      ["Facility", "State", "City", "Lat", "Lng", "Operation Start Date"],
-      profilePointsForPdf.map((pt, idx) => ({
-        cells: [
-          `Facility ${idx + 1}`,
-          fmt(pt.state_name),
-          fmt(pt.city_name),
-          Number(pt.lat).toFixed(6),
-          Number(pt.lng).toFixed(6),
-          fmt(pt.start_date),
-        ],
-      })),
-      [55, 85, 85, 75, 75, 140]
-    );
-    const p0 = profilePointsForPdf[0];
-    const mapLink = `https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`;
-    const mapLinkY = y;
-    doc.text("Map Link:", marginX, mapLinkY);
-    drawLink("Open Map", mapLink, marginX + 45, mapLinkY);
-    y += lineHeight;
   }
   y += 6;
   doc.setDrawColor(203, 213, 225);
@@ -2503,6 +2450,86 @@ async function downloadPreviewPdf() {
     );
   }
 
+  if (showProfileMap || profilePointsForPdf.length) {
+    ensureSpace(40);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Further Details: Facility Locations & Map", marginX, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    y += 12;
+
+    if (showProfileMap) {
+      const mapW = maxWidth;
+      const mapH = 180;
+      ensureSpace(mapH + 20);
+      const mapY = y;
+      const bounds = computePdfMapExtent(profilePointsForPdf, stateBoundaryFeatures);
+      let drawn = false;
+      if (bounds) {
+        try {
+          const sat = await fetchSatelliteMapDataUrl(bounds);
+          doc.addImage(sat.dataUrl, "PNG", marginX, mapY, mapW, mapH, undefined, "FAST");
+          const toX = (lng) => marginX + ((lng - sat.minLng) / (sat.maxLng - sat.minLng || 1e-9)) * mapW;
+          const toY = (lat) => mapY + ((sat.maxLat - lat) / (sat.maxLat - sat.minLat || 1e-9)) * mapH;
+          const drawRing = (ring) => {
+            if (!Array.isArray(ring) || ring.length < 2) return;
+            for (let i = 1; i < ring.length; i += 1) {
+              const a = ring[i - 1];
+              const b = ring[i];
+              doc.line(toX(Number(a[0])), toY(Number(a[1])), toX(Number(b[0])), toY(Number(b[1])));
+            }
+          };
+          doc.setDrawColor(234, 179, 8);
+          doc.setLineWidth(0.8);
+          stateBoundaryFeatures.forEach((f) => {
+            const g = f?.geometry;
+            if (!g) return;
+            if (g.type === "Polygon") (g.coordinates || []).forEach(drawRing);
+            if (g.type === "MultiPolygon") (g.coordinates || []).forEach((poly) => (poly || []).forEach(drawRing));
+          });
+          doc.setDrawColor(220, 38, 38);
+          doc.setFillColor(220, 38, 38);
+          profilePointsForPdf.forEach((pt) => {
+            doc.circle(toX(Number(pt.lng)), toY(Number(pt.lat)), 3.2, "F");
+          });
+          drawn = true;
+        } catch {
+          drawn = false;
+        }
+      }
+      if (!drawn) {
+        doc.setDrawColor(148, 163, 184);
+        doc.rect(marginX, mapY, mapW, mapH);
+        doc.text("Satellite image unavailable.", marginX + 8, mapY + 14);
+      }
+      y = mapY + mapH + 8;
+    }
+
+    if (profilePointsForPdf.length) {
+      drawTable(
+        "Facility Locations",
+        ["Facility", "State", "City", "Lat", "Lng", "Operation Start Date"],
+        profilePointsForPdf.map((pt, idx) => ({
+          cells: [
+            `Facility ${idx + 1}`,
+            fmt(pt.state_name),
+            fmt(pt.city_name),
+            Number(pt.lat).toFixed(6),
+            Number(pt.lng).toFixed(6),
+            fmt(pt.start_date),
+          ],
+        })),
+        [55, 85, 85, 75, 75, 140]
+      );
+      const p0 = profilePointsForPdf[0];
+      const mapLink = `https://www.openstreetmap.org/?mlat=${p0.lat}&mlon=${p0.lng}#map=12/${p0.lat}/${p0.lng}`;
+      doc.text("Map Link:", marginX, y);
+      drawLink("Open Map", mapLink, marginX + 45, y);
+      y += lineHeight;
+    }
+  }
+
   const facilityMatricesPdf = computeFacilityMatrices();
   facilityMatricesPdf.forEach((m) => {
     const rows = m.feedstocks.map((fs) => ({
@@ -2581,6 +2608,7 @@ function updateContractLockState() {
   addFeedstockBtn.disabled = locked;
   addAdditionalInfoBtn.disabled = locked;
   openRegistryCalculatorBtn.disabled = locked;
+  if (savePyroFacilityBtn) savePyroFacilityBtn.disabled = locked;
   additionalInfoList.querySelectorAll("button[data-delete-additional-idx]").forEach((btn) => {
     btn.disabled = locked;
   });
@@ -3370,6 +3398,9 @@ if (pyroFacilitySelect) {
     renderPyrolysisSummary();
     saveUserToLocalStorage();
   });
+}
+if (savePyroFacilityBtn) {
+  savePyroFacilityBtn.addEventListener("click", savePyroFacilityInfo);
 }
 editFeedstockFromFeedstockBtn.addEventListener("click", () => {
   showFeedstockEntryPanel();
