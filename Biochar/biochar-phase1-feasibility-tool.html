@@ -121,25 +121,16 @@
         <h2>Step 2: Feedstock</h2>
         <div class="questionnaire-card">
           <div class="title-row">
-            <h4>Biochar Critical Info</h4>
+            <h4>Project Summary</h4>
             <button id="editStep1FromFeedstockBtn" class="btn btn-secondary btn-sm" type="button">Edit Step 1 Info</button>
           </div>
           <div id="previousSummaryInFeedstock" class="small">Select registry to begin.</div>
         </div>
 
-        <label>Total Biomass (t/year)</label>
-        <div id="biomassTotalFeedstock" class="summary">0</div>
-        <div id="feedstockQcSummary" class="small">QA/QC: No feedstock entries yet.</div>
-        <div id="feedstockFeedback" class="small"></div>
-
         <div class="title-row">
-          <label>Feedstock Summary Table</label>
+          <label>Feedstock Summary Table (All Facilities Combined)</label>
           <button id="editFeedstockFromFeedstockBtn" class="btn btn-secondary btn-sm" type="button">Edit Feedstock Details</button>
         </div>
-        <label for="feedstockFacilitySelect">Select Facility</label>
-        <select id="feedstockFacilitySelect">
-          <option value="">Select facility first</option>
-        </select>
         <table class="feedstock-table">
           <thead>
             <tr>
@@ -154,6 +145,16 @@
             <tr><td colspan="5">No feedstock added yet.</td></tr>
           </tbody>
         </table>
+
+        <label>Total Biomass (t/year)</label>
+        <div id="biomassTotalFeedstock" class="summary">0</div>
+        <div id="feedstockQcSummary" class="small">QA/QC: No feedstock entries yet.</div>
+        <div id="feedstockFeedback" class="small"></div>
+
+        <label for="feedstockFacilitySelect">Select Facility</label>
+        <select id="feedstockFacilitySelect">
+          <option value="">Select facility first</option>
+        </select>
 
         <label for="feedstockType">Feedstock Type (based on selected registry)</label>
         <select id="feedstockType" disabled>
