@@ -221,6 +221,45 @@ textarea {
   color: #0f172a;
   margin-bottom: 6px;
 }
+.trend-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.trend-card {
+  background: #ffffff;
+  border: 1px solid #dbe5da;
+  border-radius: 10px;
+  padding: 10px;
+}
+.trend-card strong {
+  display: block;
+  font-size: 22px;
+  color: #0f766e;
+}
+.trend-bars {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.trend-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 62px;
+  gap: 8px;
+  align-items: center;
+}
+.trend-bar-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e5efe7;
+  overflow: hidden;
+}
+.trend-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0f766e, #4f772d);
+}
 
 .table {
   width: 100%;
@@ -285,6 +324,7 @@ textarea {
   .progress-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .btn-row { flex-direction: column; }
   .btn-row .btn { width: 100%; }
+  .trend-grid { grid-template-columns: 1fr 1fr; }
 }
 </style>
 </head>
@@ -560,6 +600,13 @@ textarea {
         <select name="pestRisk"><option value="2">Low</option><option value="1">Medium</option><option value="0">High</option></select>
       </label>
       <div class="step-optional-box">
+        <div class="step-optional-title">Tripura Historical Fire Trends</div>
+        <div class="small">Historical archive summary for Tripura from the Fire EWS backend. This helps screen fire-risk context before PM approval and deeper modeling.</div>
+        <div id="tripuraFireTrendSummary" class="small" style="margin-top:8px;">Loading Tripura historical trend summary...</div>
+        <div id="tripuraFireTrendGrid" class="trend-grid"></div>
+        <div id="tripuraFireTrendBars" class="trend-bars"></div>
+      </div>
+      <div class="step-optional-box">
         <div class="step-optional-title">Trigger Tripura Fire EWS Screening</div>
         <div class="small">This sends the current feasibility boundary, project profile, ARR activities, and fire-risk screening context into Climavector for later PM approval and risk assessment processing.</div>
         <div class="btn-row" style="justify-content:flex-start;">
@@ -660,6 +707,9 @@ const strataTypeSummaryBody = document.getElementById("strataTypeSummaryBody");
 const arrStrataDataInput = document.getElementById("arrStrataData");
 const triggerFireEwsBtn = document.getElementById("triggerFireEwsBtn");
 const fireEwsTriggerStatus = document.getElementById("fireEwsTriggerStatus");
+const tripuraFireTrendSummary = document.getElementById("tripuraFireTrendSummary");
+const tripuraFireTrendGrid = document.getElementById("tripuraFireTrendGrid");
+const tripuraFireTrendBars = document.getElementById("tripuraFireTrendBars");
 const FIRE_EWS_API_BASE = "http://localhost:8787/api";
 
 let map = null;
@@ -1135,6 +1185,9 @@ function setStep(step) {
       strataMap.invalidateSize();
       syncBoundaryToStrataMap();
     }, 100);
+  }
+  if (currentStep === 7) {
+    loadTripuraHistoricalTrends();
   }
 }
 
@@ -1652,6 +1705,56 @@ async function triggerFireEwsScreening() {
     }
   } catch (error) {
     if (fireEwsTriggerStatus) fireEwsTriggerStatus.textContent = `Trigger failed: ${error.message}`;
+  }
+}
+
+async function loadTripuraHistoricalTrends() {
+  if (!tripuraFireTrendSummary || !tripuraFireTrendGrid || !tripuraFireTrendBars) return;
+  tripuraFireTrendSummary.textContent = "Loading Tripura historical trend summary...";
+  tripuraFireTrendGrid.innerHTML = "";
+  tripuraFireTrendBars.innerHTML = "";
+
+  try {
+    const response = await fetch(`${FIRE_EWS_API_BASE}/analytics`);
+    const analytics = await response.json();
+    if (!response.ok) throw new Error(analytics.error || "Unable to load analytics");
+    const summary = analytics.summary || {};
+    const yearly = Array.isArray(analytics.yearly) ? analytics.yearly : [];
+    const yearsCovered = Array.isArray(summary.years_covered) ? `${summary.years_covered[0]} - ${summary.years_covered[1]}` : "N/A";
+    tripuraFireTrendSummary.textContent = `Tripura historical archive loaded. Use this as initial evidence for Step 7 fire-risk screening.`;
+
+    const cards = [
+      { label: "Years Covered", value: yearsCovered },
+      { label: "Fire Events", value: summary.event_count || 0 },
+      { label: "Burned Area (ha)", value: Math.round(summary.burned_area_total_ha || 0) },
+      { label: "Trend / Year", value: Number(summary.event_trend_per_year || 0).toFixed(2) },
+    ];
+    tripuraFireTrendGrid.innerHTML = cards
+      .map((card) => `<div class="trend-card"><span>${card.label}</span><strong>${card.value}</strong></div>`)
+      .join("");
+
+    if (!yearly.length) {
+      tripuraFireTrendBars.innerHTML = `<div class="small">No yearly trend rows available yet.</div>`;
+      return;
+    }
+
+    const maxEvents = Math.max(...yearly.map((row) => Number(row.events || 0)), 1);
+    tripuraFireTrendBars.innerHTML = yearly
+      .map((row) => {
+        const pct = Math.max(6, (Number(row.events || 0) / maxEvents) * 100);
+        return `
+          <div class="trend-row">
+            <span>${row.year}</span>
+            <div class="trend-bar-track"><div class="trend-bar-fill" style="width:${pct}%;"></div></div>
+            <span>${row.events} fires</span>
+          </div>
+        `;
+      })
+      .join("");
+  } catch (error) {
+    tripuraFireTrendSummary.textContent = `Tripura historical trend load failed: ${error.message}`;
+    tripuraFireTrendGrid.innerHTML = "";
+    tripuraFireTrendBars.innerHTML = "";
   }
 }
 
