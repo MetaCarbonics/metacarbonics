@@ -559,6 +559,14 @@ textarea {
       <label>Pest risk level?
         <select name="pestRisk"><option value="2">Low</option><option value="1">Medium</option><option value="0">High</option></select>
       </label>
+      <div class="step-optional-box">
+        <div class="step-optional-title">Trigger Tripura Fire EWS Screening</div>
+        <div class="small">This sends the current feasibility boundary, project profile, ARR activities, and fire-risk screening context into Climavector for later PM approval and risk assessment processing.</div>
+        <div class="btn-row" style="justify-content:flex-start;">
+          <button type="button" id="triggerFireEwsBtn" class="btn">Send to Fire EWS</button>
+        </div>
+        <div id="fireEwsTriggerStatus" class="small">No trigger sent yet.</div>
+      </div>
     </section>
 
     <section class="section-step" data-step="8">
@@ -650,6 +658,9 @@ const clearStrataBtn = document.getElementById("clearStrataBtn");
 const strataSummaryBody = document.getElementById("strataSummaryBody");
 const strataTypeSummaryBody = document.getElementById("strataTypeSummaryBody");
 const arrStrataDataInput = document.getElementById("arrStrataData");
+const triggerFireEwsBtn = document.getElementById("triggerFireEwsBtn");
+const fireEwsTriggerStatus = document.getElementById("fireEwsTriggerStatus");
+const FIRE_EWS_API_BASE = "http://localhost:8787/api";
 
 let map = null;
 let boundaryPoints = [];
@@ -1590,6 +1601,60 @@ function calculateScore() {
   resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+async function triggerFireEwsScreening() {
+  if (!boundaryPoints.length || boundaryPoints.length < 3) {
+    alert("Add or upload the project boundary in Step 1 before sending to Fire EWS.");
+    return;
+  }
+
+  const form = document.getElementById("feasibilityForm");
+  const fireRiskValue = form.elements.fireRisk ? form.elements.fireRisk.value : "";
+  const fireRiskLabel = fireRiskValue === "2" ? "low" : fireRiskValue === "1" ? "medium" : "high";
+  const payload = {
+    projectName: form.elements.projectName ? form.elements.projectName.value || "Unnamed ARR Project" : "Unnamed ARR Project",
+    projectPartner: form.elements.projectPartner ? form.elements.projectPartner.value || "" : "",
+    registry: registrySelect ? registrySelect.value : "",
+    methodology: methodologySelect ? methodologySelect.value : "",
+    activities: arrActivitiesInput && arrActivitiesInput.value ? arrActivitiesInput.value.split("|").map((s) => s.trim()).filter(Boolean) : [],
+    customActivities: arrCustomActivitiesInput && arrCustomActivitiesInput.value ? arrCustomActivitiesInput.value.split("|").map((s) => s.trim()).filter(Boolean) : [],
+    boundary: {
+      type: "Feature",
+      properties: { source: "arr-phase1-feasibility-tool" },
+      geometry: { type: "Polygon", coordinates: [[...boundaryPoints.map((p) => [p.lng, p.lat]), [boundaryPoints[0].lng, boundaryPoints[0].lat]]] }
+    },
+    boundaryAreaHa: Number(document.getElementById("boundaryArea").textContent || 0),
+    districts: String(document.getElementById("districtList").textContent || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    fireRisk: fireRiskLabel,
+    grazingRisk: form.elements.grazingRisk ? form.elements.grazingRisk.value : "",
+    pestRisk: form.elements.pestRisk ? form.elements.pestRisk.value : "",
+    lulcStrata: strataRecords,
+    sourceWorkflow: "ARR_FEASIBILITY",
+    sourceStage: "7",
+    communityIntelligenceEnabled: true,
+    notes: "Pending project manager approval layer. Trigger created from ARR feasibility stage 7."
+  };
+
+  if (fireEwsTriggerStatus) fireEwsTriggerStatus.textContent = "Sending Fire EWS trigger...";
+
+  try {
+    const response = await fetch(`${FIRE_EWS_API_BASE}/fire-ews/trigger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || "Trigger failed");
+    if (fireEwsTriggerStatus) {
+      fireEwsTriggerStatus.textContent = `Trigger sent. Status: ${body.status}. Trigger ID: ${body.id}`;
+    }
+  } catch (error) {
+    if (fireEwsTriggerStatus) fireEwsTriggerStatus.textContent = `Trigger failed: ${error.message}`;
+  }
+}
+
 evaluateBtn.addEventListener("click", calculateScore);
 
 initStepOptionalGuidance();
@@ -1655,6 +1720,10 @@ if (strataSummaryBody) {
     syncStrataInput();
     saveDraft();
   });
+}
+
+if (triggerFireEwsBtn) {
+  triggerFireEwsBtn.addEventListener("click", triggerFireEwsScreening);
 }
 </script>
 </body>
