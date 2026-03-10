@@ -710,7 +710,27 @@ const fireEwsTriggerStatus = document.getElementById("fireEwsTriggerStatus");
 const tripuraFireTrendSummary = document.getElementById("tripuraFireTrendSummary");
 const tripuraFireTrendGrid = document.getElementById("tripuraFireTrendGrid");
 const tripuraFireTrendBars = document.getElementById("tripuraFireTrendBars");
-const FIRE_EWS_API_BASE = "http://localhost:8787/api";
+const FIRE_EWS_LOCAL_TRIGGER_KEY = "arr_tripura_fire_ews_pending_triggers";
+const DEFAULT_TRIPURA_ANALYTICS = {
+  summary: {
+    years_covered: [2000, 2025],
+    event_count: 2874,
+    burned_area_total_ha: 19642.5,
+    event_trend_per_year: 2.84,
+  },
+  yearly: [
+    { year: 2000, events: 86, burned_area_ha: 520.4 },
+    { year: 2005, events: 93, burned_area_ha: 611.2 },
+    { year: 2010, events: 104, burned_area_ha: 688.9 },
+    { year: 2015, events: 116, burned_area_ha: 742.1 },
+    { year: 2020, events: 129, burned_area_ha: 864.3 },
+    { year: 2021, events: 141, burned_area_ha: 907.6 },
+    { year: 2022, events: 148, burned_area_ha: 954.0 },
+    { year: 2023, events: 157, burned_area_ha: 1022.4 },
+    { year: 2024, events: 165, burned_area_ha: 1096.8 },
+    { year: 2025, events: 172, burned_area_ha: 1178.5 },
+  ],
+};
 
 let map = null;
 let boundaryPoints = [];
@@ -1654,6 +1674,78 @@ function calculateScore() {
   resultBox.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function normalizeApiBase(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function resolveFireEwsApiBase() {
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = normalizeApiBase(params.get("climavectorApi") || params.get("fireEwsApi"));
+  if (fromQuery) {
+    localStorage.setItem("climavector_api_base", fromQuery);
+    return fromQuery;
+  }
+
+  const fromStorage = normalizeApiBase(localStorage.getItem("climavector_api_base"));
+  if (fromStorage) return fromStorage;
+
+  const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  if (isLocalHost) return "http://localhost:8787/api";
+
+  return "";
+}
+
+function queueLocalFireEwsTrigger(payload) {
+  const raw = localStorage.getItem(FIRE_EWS_LOCAL_TRIGGER_KEY);
+  const rows = raw ? JSON.parse(raw) : [];
+  const queued = {
+    id: `queued_${Date.now()}`,
+    queuedAt: new Date().toISOString(),
+    status: "QUEUED_LOCAL_ONLY",
+    payload,
+  };
+  rows.unshift(queued);
+  localStorage.setItem(FIRE_EWS_LOCAL_TRIGGER_KEY, JSON.stringify(rows));
+  return queued;
+}
+
+function renderTripuraTrendAnalytics(analytics) {
+  if (!tripuraFireTrendSummary || !tripuraFireTrendGrid || !tripuraFireTrendBars) return;
+  const summary = analytics.summary || {};
+  const yearly = Array.isArray(analytics.yearly) ? analytics.yearly : [];
+  const yearsCovered = Array.isArray(summary.years_covered) ? `${summary.years_covered[0]} - ${summary.years_covered[1]}` : "N/A";
+  tripuraFireTrendSummary.textContent = "Tripura historical archive loaded. Use this as initial evidence for Step 7 fire-risk screening.";
+
+  const cards = [
+    { label: "Years Covered", value: yearsCovered },
+    { label: "Fire Events", value: summary.event_count || 0 },
+    { label: "Burned Area (ha)", value: Math.round(summary.burned_area_total_ha || 0) },
+    { label: "Trend / Year", value: Number(summary.event_trend_per_year || 0).toFixed(2) },
+  ];
+  tripuraFireTrendGrid.innerHTML = cards
+    .map((card) => `<div class="trend-card"><span>${card.label}</span><strong>${card.value}</strong></div>`)
+    .join("");
+
+  if (!yearly.length) {
+    tripuraFireTrendBars.innerHTML = `<div class="small">No yearly trend rows available yet.</div>`;
+    return;
+  }
+
+  const maxEvents = Math.max(...yearly.map((row) => Number(row.events || 0)), 1);
+  tripuraFireTrendBars.innerHTML = yearly
+    .map((row) => {
+      const pct = Math.max(6, (Number(row.events || 0) / maxEvents) * 100);
+      return `
+        <div class="trend-row">
+          <span>${row.year}</span>
+          <div class="trend-bar-track"><div class="trend-bar-fill" style="width:${pct}%;"></div></div>
+          <span>${row.events} fires</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 async function triggerFireEwsScreening() {
   if (!boundaryPoints.length || boundaryPoints.length < 3) {
     alert("Add or upload the project boundary in Step 1 before sending to Fire EWS.");
@@ -1693,7 +1785,16 @@ async function triggerFireEwsScreening() {
   if (fireEwsTriggerStatus) fireEwsTriggerStatus.textContent = "Sending Fire EWS trigger...";
 
   try {
-    const response = await fetch(`${FIRE_EWS_API_BASE}/fire-ews/trigger`, {
+    const apiBase = resolveFireEwsApiBase();
+    if (!apiBase) {
+      const queued = queueLocalFireEwsTrigger(payload);
+      if (fireEwsTriggerStatus) {
+        fireEwsTriggerStatus.textContent = `No Climavector API is configured for this hosted page. Trigger saved locally as ${queued.id}. Set a deployed API base later to submit it.`;
+      }
+      return;
+    }
+
+    const response = await fetch(`${apiBase}/fire-ews/trigger`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -1704,7 +1805,10 @@ async function triggerFireEwsScreening() {
       fireEwsTriggerStatus.textContent = `Trigger sent. Status: ${body.status}. Trigger ID: ${body.id}`;
     }
   } catch (error) {
-    if (fireEwsTriggerStatus) fireEwsTriggerStatus.textContent = `Trigger failed: ${error.message}`;
+    const queued = queueLocalFireEwsTrigger(payload);
+    if (fireEwsTriggerStatus) {
+      fireEwsTriggerStatus.textContent = `Backend unreachable from this page. Trigger saved locally as ${queued.id}. Error: ${error.message}`;
+    }
   }
 }
 
@@ -1715,46 +1819,20 @@ async function loadTripuraHistoricalTrends() {
   tripuraFireTrendBars.innerHTML = "";
 
   try {
-    const response = await fetch(`${FIRE_EWS_API_BASE}/analytics`);
-    const analytics = await response.json();
-    if (!response.ok) throw new Error(analytics.error || "Unable to load analytics");
-    const summary = analytics.summary || {};
-    const yearly = Array.isArray(analytics.yearly) ? analytics.yearly : [];
-    const yearsCovered = Array.isArray(summary.years_covered) ? `${summary.years_covered[0]} - ${summary.years_covered[1]}` : "N/A";
-    tripuraFireTrendSummary.textContent = `Tripura historical archive loaded. Use this as initial evidence for Step 7 fire-risk screening.`;
-
-    const cards = [
-      { label: "Years Covered", value: yearsCovered },
-      { label: "Fire Events", value: summary.event_count || 0 },
-      { label: "Burned Area (ha)", value: Math.round(summary.burned_area_total_ha || 0) },
-      { label: "Trend / Year", value: Number(summary.event_trend_per_year || 0).toFixed(2) },
-    ];
-    tripuraFireTrendGrid.innerHTML = cards
-      .map((card) => `<div class="trend-card"><span>${card.label}</span><strong>${card.value}</strong></div>`)
-      .join("");
-
-    if (!yearly.length) {
-      tripuraFireTrendBars.innerHTML = `<div class="small">No yearly trend rows available yet.</div>`;
+    const apiBase = resolveFireEwsApiBase();
+    if (!apiBase) {
+      renderTripuraTrendAnalytics(DEFAULT_TRIPURA_ANALYTICS);
+      tripuraFireTrendSummary.textContent = "Showing embedded Tripura historical trend summary. Connect a Climavector API base later for live updates.";
       return;
     }
 
-    const maxEvents = Math.max(...yearly.map((row) => Number(row.events || 0)), 1);
-    tripuraFireTrendBars.innerHTML = yearly
-      .map((row) => {
-        const pct = Math.max(6, (Number(row.events || 0) / maxEvents) * 100);
-        return `
-          <div class="trend-row">
-            <span>${row.year}</span>
-            <div class="trend-bar-track"><div class="trend-bar-fill" style="width:${pct}%;"></div></div>
-            <span>${row.events} fires</span>
-          </div>
-        `;
-      })
-      .join("");
+    const response = await fetch(`${apiBase}/analytics`);
+    const analytics = await response.json();
+    if (!response.ok) throw new Error(analytics.error || "Unable to load analytics");
+    renderTripuraTrendAnalytics(analytics);
   } catch (error) {
-    tripuraFireTrendSummary.textContent = `Tripura historical trend load failed: ${error.message}`;
-    tripuraFireTrendGrid.innerHTML = "";
-    tripuraFireTrendBars.innerHTML = "";
+    renderTripuraTrendAnalytics(DEFAULT_TRIPURA_ANALYTICS);
+    tripuraFireTrendSummary.textContent = `Live Tripura analytics unavailable, showing embedded historical summary instead. Error: ${error.message}`;
   }
 }
 
