@@ -117,6 +117,14 @@
         };
     }
 
+    function inferNameFromEmail(email) {
+        const prefix = String(email || "").split("@")[0] || "User";
+        return prefix
+            .replace(/[._-]+/g, " ")
+            .replace(/\b\w/g, (match) => match.toUpperCase())
+            .trim();
+    }
+
     function fileToDataUrl(file) {
         return new Promise((resolve, reject) => {
             if (typeof FileReader === "undefined") {
@@ -286,7 +294,27 @@
             },
             async signInWithPassword({ email, password }) {
                 const users = loadUsers();
-                const user = users.find((entry) => entry.email.toLowerCase() === String(email || "").toLowerCase());
+                const normalizedEmail = String(email || "").trim().toLowerCase();
+                let user = users.find((entry) => entry.email.toLowerCase() === normalizedEmail);
+
+                // Bootstrap a local account on first login in an empty browser store.
+                if (!user && users.length === 0 && normalizedEmail && password) {
+                    user = {
+                        id: uid("user"),
+                        email: normalizedEmail,
+                        password,
+                        confirmed_at: new Date().toISOString(),
+                        created_at: new Date().toISOString(),
+                        user_metadata: {
+                            full_name: inferNameFromEmail(normalizedEmail)
+                        },
+                        app_metadata: {}
+                    };
+                    users.push(user);
+                    saveUsers(users);
+                    ensureProfile(user);
+                }
+
                 if (!user || user.password !== password) {
                     return { data: { session: null, user: null }, error: makeError("Invalid email or password.", 401) };
                 }
