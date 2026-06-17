@@ -88,9 +88,15 @@
 
         const safeName = String(name).replace(/</g, "&lt;").replace(/>/g, "&gt;");
         authNavSlot.innerHTML = `
-            <span class="text-white font-semibold mr-2">Hi, ${safeName}</span>
-            <a href="profile.html" class="bg-white text-primary-dark font-semibold py-1 px-3 rounded-full hover:bg-gray-200 transition duration-150 mr-2">My Account</a>
-            <button id="logoutRightBtn" class="bg-primary-mid text-white font-semibold py-1 px-3 rounded-full hover:bg-primary-dark transition duration-150">Logout</button>
+            <details class="auth-menu" title="${safeName}">
+                <summary aria-label="Open account menu" class="cursor-pointer">
+                    <img src="assets/logged-in-avatar.svg" alt="Logged in" class="h-9 w-9 rounded-full bg-white ring-2 ring-white/80 hover:ring-green-100 transition"/>
+                </summary>
+                <div class="auth-menu-panel">
+                    <a href="profile.html">Account</a>
+                    <button type="button" id="logoutRightBtn">Logout</button>
+                </div>
+            </details>
         `;
 
         const logoutRightBtn = document.getElementById("logoutRightBtn");

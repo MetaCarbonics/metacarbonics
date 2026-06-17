@@ -49,6 +49,58 @@
         
         /* Utility for smooth scrolling to sections */
         .scroll-mt-24 { scroll-margin-top: 6rem; }
+        .home-nav {
+            align-items: center;
+            gap: 1.15rem;
+        }
+        .home-nav a {
+            white-space: nowrap;
+        }
+        .auth-menu {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .auth-menu summary {
+            list-style: none;
+        }
+        .auth-menu summary::-webkit-details-marker {
+            display: none;
+        }
+        .auth-menu-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            min-width: 160px;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid rgba(11, 61, 46, .14);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, .18);
+        }
+        .auth-menu:hover .auth-menu-panel,
+        .auth-menu[open] .auth-menu-panel {
+            display: block;
+        }
+        .auth-menu-panel a,
+        .auth-menu-panel button {
+            display: block;
+            width: 100%;
+            padding: 11px 14px;
+            color: #0b3d2e;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: left;
+            background: #ffffff;
+            border: 0;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .auth-menu-panel a:hover,
+        .auth-menu-panel button:hover {
+            background: #daf7e8;
+        }
     </style>
 </head>
 <body class="text-slate-800">
@@ -59,19 +111,17 @@
             <div class="brand text-2xl font-extrabold text-white">
                 META<span class="brand-accent">CARBONICS</span>
             </div>
-            <nav class="main-nav space-x-6 hidden md:flex text-sm font-medium">
+            <nav class="main-nav home-nav hidden lg:flex text-sm font-medium">
                 <a href="about.html" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">About Us</a>
-                <a href="#projects" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Projects</a>
-                <a href="#blogs" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Blogs</a>
-                <a href="climavector.html" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">ClimaVector</a>
-                <a href="nbshub.html" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">NBSHub</a>
-                <a href="carbonhub.html" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Carbon Hub</a>
-                <a href="#contact" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Contact</a>
+                <a href="#dmrv" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Capabilities</a>
+                <a href="#projects" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Portfolio</a>
+                <a href="#blogs" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">News &amp; Insights</a>
+                <a href="#contact" class="text-white hover:text-gray-200 transition duration-150 py-1 px-2 rounded-lg">Get in Touch</a>
                 <span id="authNavSlot">
                     <a href="login.html" class="bg-white text-primary-dark font-semibold py-1 px-4 rounded-full hover:bg-gray-200 transition duration-150">Login</a>
                 </span>
             </nav>
-            <button class="md:hidden p-2 text-white hover:text-gray-200">
+            <button class="lg:hidden p-2 text-white hover:text-gray-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                 </svg>
