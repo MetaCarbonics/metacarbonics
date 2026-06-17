@@ -138,6 +138,110 @@
         .auth-menu-panel button:hover {
             background: #daf7e8;
         }
+        .about-feature-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(340px, 0.92fr);
+            gap: 3rem;
+            align-items: center;
+        }
+        .about-copy-panel {
+            text-align: left;
+        }
+        .about-copy-panel .section-title {
+            text-align: left;
+        }
+        .climate-motion-card {
+            position: relative;
+            min-height: 430px;
+            border-radius: 40px;
+            background: linear-gradient(180deg, #ffffff 0%, #ffffff 70%, #effdf4 100%);
+            border: 1px solid rgba(15, 95, 68, .08);
+            box-shadow: 0 24px 70px rgba(11, 61, 46, .10);
+            overflow: hidden;
+        }
+        .climate-motion-card::before {
+            content: "";
+            position: absolute;
+            inset: 28px;
+            border-radius: 32px;
+            border: 1px solid rgba(15, 95, 68, .08);
+            pointer-events: none;
+        }
+        .climate-motion-card svg {
+            position: relative;
+            z-index: 1;
+            display: block;
+            width: 100%;
+            height: 430px;
+        }
+        .motion-scene {
+            opacity: 0;
+            transform-origin: 300px 220px;
+            animation: sceneCycle 12s ease-in-out infinite;
+        }
+        .scene-wind {
+            animation-delay: 0s;
+        }
+        .scene-forest {
+            animation-delay: 4s;
+        }
+        .scene-recycle {
+            animation-delay: 8s;
+        }
+        .wind-blades {
+            transform-origin: 0 0;
+        }
+        .cloud-drift {
+            animation: cloudDrift 6s ease-in-out infinite;
+        }
+        .recycle-loop {
+            transform-origin: 300px 210px;
+            animation: recycleSpin 7s linear infinite;
+        }
+        .sun-rays {
+            animation: sunPulse 2.8s ease-in-out infinite;
+        }
+        .epr-item {
+            opacity: 0;
+            transform-origin: 0 0;
+            animation: eprCenterSwap 4s ease-in-out infinite;
+        }
+        .epr-bottle {
+            animation-delay: 0s;
+        }
+        .epr-ewaste {
+            animation-delay: 2s;
+        }
+        @keyframes sceneCycle {
+            0%, 4% { opacity: 0; transform: translateY(10px) scale(.98); }
+            10%, 28% { opacity: 1; transform: translateY(0) scale(1); }
+            34%, 100% { opacity: 0; transform: translateY(-8px) scale(.99); }
+        }
+        @keyframes cloudDrift {
+            0%, 100% { transform: translateX(-8px); }
+            50% { transform: translateX(12px); }
+        }
+        @keyframes recycleSpin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes sunPulse {
+            0%, 100% { opacity: .75; transform: scale(.96); transform-origin: 120px 115px; }
+            50% { opacity: 1; transform: scale(1.04); transform-origin: 120px 115px; }
+        }
+        @keyframes eprCenterSwap {
+            0%, 18% { opacity: 0; transform: scale(.94); }
+            28%, 62% { opacity: 1; transform: scale(1); }
+            72%, 100% { opacity: 0; transform: scale(.96); }
+        }
+        @media (max-width: 960px) {
+            .about-feature-grid {
+                grid-template-columns: 1fr;
+            }
+            .about-copy-panel,
+            .about-copy-panel .section-title {
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body class="text-slate-800">
@@ -186,9 +290,9 @@
 
         <!-- About Us Section -->
         <section id="about" class="section scroll-mt-24 bg-gray-50">
-            <div class="wrap max-w-4xl mx-auto">
-                <h2 class="section-title text-4xl font-bold mb-6 text-center">About Us</h2>
-                <div class="space-y-6 text-center">
+            <div class="wrap about-feature-grid">
+                <div class="about-copy-panel space-y-6">
+                    <h2 class="section-title text-4xl font-bold mb-6">About Us</h2>
                     <p class="text-lg text-text-muted leading-relaxed">
                         MetaCarbonics is dedicated to accelerating the global transition to net-zero by developing and scaling high-integrity carbon removal solutions. We focus on integrating nature-based sequestration methods (ARR, IFM, ALM) with technology-driven measurement, reporting, and verification (DMRV) to ensure every carbon credit represents real, permanent climate impact.
                     </p>
@@ -196,8 +300,117 @@
                         Our approach is rooted in transparency, scientific rigor, and community engagement, working across geographies to deliver verifiable climate-positive outcomes for a sustainable future.
                     </p>
                     <p>
-                        <a href="about.html" class="inline-block px-5 py-2 text-sm font-semibold text-white bg-primary-dark rounded-full hover:bg-primary-mid transition">About Us</a>
+                        <a href="about.html" class="inline-block px-5 py-2 text-sm font-semibold text-white bg-primary-dark rounded-full hover:bg-primary-mid transition">More</a>
                     </p>
+                </div>
+                <div class="climate-motion-card" aria-label="Animated climate infographic cycling through wind power, forest, and recycling scenes">
+                    <svg viewBox="0 0 600 430" role="img" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="groundFade" x1="0" x2="1">
+                                <stop offset="0" stop-color="#f0fbf5" stop-opacity=".35"/>
+                                <stop offset=".45" stop-color="#daf7e8" stop-opacity=".75"/>
+                                <stop offset="1" stop-color="#f0fbf5" stop-opacity=".35"/>
+                            </linearGradient>
+                            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0b3d2e" flood-opacity=".08"/>
+                            </filter>
+                        </defs>
+                        <g class="motion-scene scene-wind" filter="url(#softShadow)">
+                            <rect x="32" y="300" width="536" height="78" fill="#f3fcf7"/>
+                            <path d="M80 358c96-24 205-26 318-4 54 10 98 15 122 13v24H80Z" fill="url(#groundFade)"/>
+                            <path d="M92 318h416" stroke="#daf7e8" stroke-width="8" stroke-linecap="round"/>
+                            <path d="M170 318V170" stroke="#daf7e8" stroke-width="12" stroke-linecap="round"/>
+                            <g transform="translate(170 170)">
+                                <g class="wind-blades">
+                                    <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="2.8s" repeatCount="indefinite"/>
+                                    <path d="M0 0C26-8 52-10 82-4C52 12 28 13 0 0Z" fill="#0f5f44"/>
+                                    <path d="M0 0C-8 25-22 48-45 69C-43 34-31 14 0 0Z" fill="#67c95d"/>
+                                    <path d="M0 0C-17-21-30-44-34-76C-8-51 3-28 0 0Z" fill="#0b3d2e"/>
+                                </g>
+                                <circle r="10" fill="#0f5f44"/>
+                            </g>
+                            <path d="M382 318V126" stroke="#daf7e8" stroke-width="12" stroke-linecap="round"/>
+                            <g transform="translate(382 126)">
+                                <g class="wind-blades">
+                                    <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="2.8s" repeatCount="indefinite"/>
+                                    <path d="M0 0C30-10 61-12 96-5C60 14 31 15 0 0Z" fill="#0b3d2e"/>
+                                    <path d="M0 0C-10 29-26 56-52 80C-49 40-35 17 0 0Z" fill="#0f5f44"/>
+                                    <path d="M0 0C-19-25-34-52-39-88C-9-59 3-32 0 0Z" fill="#67c95d"/>
+                                </g>
+                                <circle r="11" fill="#0f5f44"/>
+                            </g>
+                        </g>
+
+                        <g class="motion-scene scene-forest" filter="url(#softShadow)">
+                            <g class="sun-rays">
+                                <circle cx="118" cy="106" r="29" fill="#e3fa73"/>
+                                <path d="M118 50v22M118 140v22M62 106h22M152 106h22M78 66l16 16M142 130l16 16M78 146l16-16M142 82l16-16" stroke="#e3fa73" stroke-width="7" stroke-linecap="round"/>
+                            </g>
+                            <g class="cloud-drift" fill="#f0fbf5">
+                                <ellipse cx="276" cy="118" rx="56" ry="24"/>
+                                <ellipse cx="330" cy="116" rx="48" ry="24"/>
+                                <ellipse cx="372" cy="126" rx="36" ry="18"/>
+                                <ellipse cx="448" cy="142" rx="58" ry="25"/>
+                                <ellipse cx="501" cy="141" rx="42" ry="22"/>
+                            </g>
+                            <g>
+                                <rect x="32" y="324" width="536" height="54" fill="#f3fcf7"/>
+                                <path d="M80 366c94-24 206-26 318-4 52 10 94 15 122 13v16H80Z" fill="url(#groundFade)"/>
+                                <path d="M92 334h416" stroke="#daf7e8" stroke-width="8" stroke-linecap="round"/>
+                                <path d="M152 334V238" stroke="#daf7e8" stroke-width="13" stroke-linecap="round"/>
+                                <circle cx="152" cy="226" r="38" fill="#67c95d"/>
+                                <circle cx="125" cy="245" r="23" fill="#0f5f44"/>
+                                <circle cx="181" cy="246" r="22" fill="#d9f99d"/>
+                                <path d="M260 334V220" stroke="#daf7e8" stroke-width="14" stroke-linecap="round"/>
+                                <circle cx="260" cy="207" r="50" fill="#67c95d"/>
+                                <circle cx="224" cy="232" r="30" fill="#0f5f44"/>
+                                <circle cx="295" cy="234" r="28" fill="#d9f99d"/>
+                                <path d="M382 334V236" stroke="#daf7e8" stroke-width="13" stroke-linecap="round"/>
+                                <circle cx="382" cy="223" r="42" fill="#67c95d"/>
+                                <circle cx="351" cy="246" r="25" fill="#0f5f44"/>
+                                <circle cx="413" cy="247" r="23" fill="#d9f99d"/>
+                                <path d="M496 334V244" stroke="#daf7e8" stroke-width="13" stroke-linecap="round"/>
+                                <circle cx="496" cy="232" r="36" fill="#67c95d"/>
+                                <circle cx="471" cy="255" r="20" fill="#0f5f44"/>
+                                <circle cx="521" cy="256" r="20" fill="#d9f99d"/>
+                            </g>
+                        </g>
+
+                        <g class="motion-scene scene-recycle" filter="url(#softShadow)">
+                            <g class="recycle-loop">
+                                <g transform="translate(300 210)">
+                                    <g>
+                                        <path d="M-28-112C38-122 108-75 124-23" fill="none" stroke="#67c95d" stroke-width="18" stroke-linecap="round"/>
+                                        <path d="M135 1 101-26 145-48Z" fill="#67c95d"/>
+                                    </g>
+                                    <g transform="rotate(120)">
+                                        <path d="M-28-112C38-122 108-75 124-23" fill="none" stroke="#0b3d2e" stroke-width="18" stroke-linecap="round"/>
+                                        <path d="M135 1 101-26 145-48Z" fill="#0b3d2e"/>
+                                    </g>
+                                    <g transform="rotate(240)">
+                                        <path d="M-28-112C38-122 108-75 124-23" fill="none" stroke="#0f5f44" stroke-width="18" stroke-linecap="round"/>
+                                        <path d="M135 1 101-26 145-48Z" fill="#0f5f44"/>
+                                    </g>
+                                </g>
+                            </g>
+                            <g transform="translate(300 216)">
+                                <g class="epr-item epr-bottle">
+                                    <path d="M-14-52h28v16c0 8 9 12 9 24v58c0 8-6 14-14 14h-18c-8 0-14-6-14-14v-58c0-12 9-16 9-24Z" fill="#ffffff" stroke="#daf7e8" stroke-width="6" stroke-linejoin="round"/>
+                                    <path d="M-10-62h20v14h-20Z" fill="#daf7e8"/>
+                                    <path d="M-15 1h30v34h-30Z" fill="#f3fcf7" stroke="#0f5f44" stroke-width="4" stroke-linejoin="round"/>
+                                    <path d="M-7 19h14" stroke="#67c95d" stroke-width="5" stroke-linecap="round"/>
+                                </g>
+                                <g class="epr-item epr-ewaste">
+                                    <rect x="-42" y="-31" width="84" height="58" rx="10" fill="#ffffff" stroke="#daf7e8" stroke-width="6"/>
+                                    <rect x="-25" y="-17" width="50" height="28" rx="5" fill="#f3fcf7" stroke="#0f5f44" stroke-width="4"/>
+                                    <circle cx="-29" cy="34" r="6" fill="#0b3d2e"/>
+                                    <circle cx="0" cy="34" r="6" fill="#0f5f44"/>
+                                    <circle cx="29" cy="34" r="6" fill="#67c95d"/>
+                                    <path d="M-14-3h28M0-17v28M-42-2h-17M42-2h17M-18 27v17M18 27v17" stroke="#67c95d" stroke-width="5" stroke-linecap="round"/>
+                                </g>
+                            </g>
+                        </g>
+                    </svg>
                 </div>
             </div>
         </section>
