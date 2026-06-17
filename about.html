@@ -27,7 +27,14 @@
     .why-card::before{counter-increment:why;content:counter(why);display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--green-dark);color:white;font-weight:800;margin-bottom:14px}
     .why-card h3{margin:0 0 10px;color:var(--green-mid);font-size:20px}
     .why-card p{margin:0;color:#40514b}
-    .main-nav .active{color:var(--green-light);font-weight:700}
+    .about-nav{align-items:center;gap:1.15rem}
+    .about-nav a{white-space:nowrap}
+    .nav-dropdown{position:relative;display:inline-flex;align-items:center}
+    .nav-dropdown-trigger{color:#ffffff;white-space:nowrap;text-decoration:none;opacity:.95}
+    .nav-dropdown-panel{display:none;position:absolute;top:calc(100% + 10px);left:0;min-width:260px;overflow:hidden;border-radius:8px;background:#ffffff;border:1px solid rgba(11,61,46,.14);box-shadow:0 18px 40px rgba(0,0,0,.18)}
+    .nav-dropdown:hover .nav-dropdown-panel,.nav-dropdown:focus-within .nav-dropdown-panel{display:block}
+    .nav-dropdown-panel a{display:block;margin:0;padding:12px 14px;color:#0b3d2e;font-size:14px;font-weight:700;text-decoration:none;white-space:normal}
+    .nav-dropdown-panel a:hover{background:#daf7e8;opacity:1}
     @media (max-width:880px){
       .about-hero{padding:64px 0}
       .person-card{align-items:flex-start}
@@ -39,13 +46,20 @@
   <header class="site-header">
     <div class="wrap header-inner">
       <div class="brand">META<span class="brand-accent">CARBONICS</span></div>
-      <nav class="main-nav">
+      <nav class="main-nav about-nav">
         <a href="index.html">Home</a>
-        <a class="active" href="about.html">About Us</a>
-        <a href="index.html#projects">Projects</a>
-        <a href="climavector.html">ClimaVector</a>
-        <a href="nbshub.html">NBSHub</a>
-        <a href="carbonhub.html">Carbon Hub</a>
+        <div class="nav-dropdown">
+          <a href="index.html#dmrv" class="nav-dropdown-trigger">Capabilities</a>
+          <div class="nav-dropdown-panel">
+            <a href="brsr-assurance-esg-advisory.html">BRSR Assurance &amp; ESG Advisory</a>
+            <a href="climate-advisory-projects.html">Climate Advisory &amp; Projects</a>
+            <a href="dmrv.html">dMRV</a>
+            <a href="epr-circular-economy.html">EPR &amp; Circular Economy</a>
+          </div>
+        </div>
+        <a href="index.html#projects">Portfolio</a>
+        <a href="index.html#blogs">News &amp; Insights</a>
+        <a href="index.html#contact">Get in Touch</a>
       </nav>
     </div>
   </header>
