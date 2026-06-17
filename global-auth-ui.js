@@ -1,5 +1,5 @@
 (function () {
-    const PUBLIC_PAGES = new Set(["", "index.html", "login.html", "signup.html", "reset-password.html"]);
+    const PUBLIC_PAGES = new Set(["", "index.html", "about.html", "login.html", "signup.html", "reset-password.html"]);
     const LOGIN_PAGE = "login.html";
     const WRAPPER_ID = "globalAuthBar";
 

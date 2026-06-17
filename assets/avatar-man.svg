@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Generic man avatar">
+  <rect width="240" height="240" rx="120" fill="#daf7e8"/>
+  <circle cx="120" cy="88" r="42" fill="#0b3d2e"/>
+  <path d="M60 205c8-43 31-70 60-70s52 27 60 70" fill="#0f5f44"/>
+  <path d="M83 82c8-32 29-48 56-37 14 6 22 19 24 37-17-10-32-14-47-13-12 1-23 5-33 13Z" fill="#062e22"/>
+</svg>
