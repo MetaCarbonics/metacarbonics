@@ -6,6 +6,17 @@
   <title>Climate Advisory &amp; Projects — MetaCarbonics</title>
   <link rel="stylesheet" href="styles.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    .infinite-slider{overflow:hidden;mask-image:linear-gradient(to right,transparent,#000 5%,#000 95%,transparent)}
+    .slider-track{display:flex;width:fit-content;animation:slide 30s linear infinite;padding-bottom:14px}
+    .infinite-slider:hover .slider-track{animation-play-state:paused}
+    @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    .project-card{min-width:300px;margin-right:24px;padding:24px;border-top:4px solid var(--green-dark)}
+    .project-card.alt{border-top-color:var(--green-mid)}
+    .project-card img{height:40px;width:40px;margin-bottom:14px}
+    .project-card p{min-height:42px}
+    .page-intro{text-align:center;max-width:760px;margin:0 auto 36px}
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -24,6 +35,68 @@
         <p class="eyebrow">Capabilities</p>
         <h1 class="hero-title">Climate Advisory &amp; Projects</h1>
         <p class="hero-sub">This capability page will be developed with the dedicated private repository.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="page-intro">
+          <h2 class="section-title" style="text-align:center">Projects</h2>
+          <p class="muted">Explore how we are building long-term carbon removal and storage solutions.</p>
+        </div>
+        <div class="infinite-slider">
+          <div class="slider-track">
+            <a class="card project-card" href="biochar.html">
+              <img src="https://www.svgrepo.com/show/522502/charcoal.svg" alt="Biochar Icon">
+              <div class="card-body">
+                <h3>Biochar</h3>
+                <p class="muted">High-quality carbon removal using certified pyrolysis systems.</p>
+                <div class="card-actions"><span class="btn">Learn more</span></div>
+              </div>
+            </a>
+            <a class="card project-card alt" href="arr.html">
+              <img src="https://www.svgrepo.com/show/433190/planting-tree-ecology.svg" alt="ARR Icon">
+              <div class="card-body">
+                <h3>ARR</h3>
+                <p class="muted">Afforestation, Reforestation &amp; Revegetation projects.</p>
+                <div class="card-actions"><span class="btn">Learn more</span></div>
+              </div>
+            </a>
+            <a class="card project-card" href="ifm.html">
+              <img src="https://www.svgrepo.com/show/433189/forest-ecology.svg" alt="IFM Icon">
+              <div class="card-body">
+                <h3>IFM</h3>
+                <p class="muted">Improved Forest Management for long-term storage.</p>
+                <div class="card-actions"><span class="btn">Learn more</span></div>
+              </div>
+            </a>
+            <a class="card project-card alt" href="alm.html">
+              <img src="https://www.svgrepo.com/show/441223/soil-earth-land.svg" alt="ALM Icon">
+              <div class="card-body">
+                <h3>ALM</h3>
+                <p class="muted">Agricultural Land Management for soil carbon enhancement.</p>
+                <div class="card-actions"><span class="btn">Learn more</span></div>
+              </div>
+            </a>
+
+            <a class="card project-card" href="biochar.html">
+              <img src="https://www.svgrepo.com/show/522502/charcoal.svg" alt="Biochar Icon">
+              <div class="card-body"><h3>Biochar</h3></div>
+            </a>
+            <a class="card project-card alt" href="arr.html">
+              <img src="https://www.svgrepo.com/show/433190/planting-tree-ecology.svg" alt="ARR Icon">
+              <div class="card-body"><h3>ARR</h3></div>
+            </a>
+            <a class="card project-card" href="ifm.html">
+              <img src="https://www.svgrepo.com/show/433189/forest-ecology.svg" alt="IFM Icon">
+              <div class="card-body"><h3>IFM</h3></div>
+            </a>
+            <a class="card project-card alt" href="alm.html">
+              <img src="https://www.svgrepo.com/show/441223/soil-earth-land.svg" alt="ALM Icon">
+              <div class="card-body"><h3>ALM</h3></div>
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   </main>
