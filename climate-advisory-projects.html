@@ -16,6 +16,16 @@
     .project-card img{height:40px;width:40px;margin-bottom:14px}
     .project-card p{min-height:42px}
     .page-intro{text-align:center;max-width:760px;margin:0 auto 36px}
+    .choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin:0 auto 22px;max-width:920px}
+    .choice-button{appearance:none;border:1px solid rgba(15,95,68,.16);background:white;border-radius:8px;padding:24px 18px 22px;cursor:pointer;text-align:center;box-shadow:0 10px 28px rgba(11,61,46,.08);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+    .choice-button:hover,.choice-button.active{transform:translateY(-3px);border-color:var(--green-mid);box-shadow:0 18px 36px rgba(11,61,46,.14)}
+    .choice-icon{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;margin:0 auto 16px;background:var(--green-light);color:var(--green-dark)}
+    .choice-button.active .choice-icon{background:var(--green-dark);color:white}
+    .choice-icon svg{width:42px;height:42px;stroke:currentColor}
+    .choice-button h3{margin:0 0 10px;color:var(--green-dark);font-size:20px}
+    .choice-button p{margin:0;min-height:66px}
+    .options-panel{display:none;margin-top:38px}
+    .options-panel.visible{display:block}
     .category-tabs{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:0 auto 34px}
     .category-tabs button{border:1px solid rgba(15,95,68,.18);background:white;color:var(--green-dark);border-radius:999px;padding:10px 16px;font-weight:800;cursor:pointer}
     .category-tabs button.active,.category-tabs button:hover{background:var(--green-dark);color:white}
@@ -31,6 +41,10 @@
     .nav-dropdown-panel a:hover{background:var(--green-light);opacity:1}
     .contact-helper{text-align:center;margin:28px auto 0;color:var(--green-dark);font-weight:800}
     .contact-helper a{color:var(--green-mid)}
+    @media(max-width:760px){
+      .choice-grid{grid-template-columns:1fr}
+      .choice-button p{min-height:0}
+    }
   </style>
 </head>
 <body>
@@ -67,21 +81,70 @@
     <section class="section">
       <div class="wrap">
         <div class="page-intro">
-          <h2 class="section-title" style="text-align:center">Select Project Category</h2>
-          <p class="muted">Choose a sector tab to view matching services and project types below.</p>
+          <h2 class="section-title" style="text-align:center">Select Support Type</h2>
+          <p class="muted">Choose the support you need and the relevant options will appear below.</p>
         </div>
-        <div class="category-tabs" id="categoryTabs" aria-label="Climate advisory categories"></div>
-        <p class="category-summary" id="categorySummary"></p>
-        <div class="infinite-slider">
-          <div class="slider-track" id="projectSlider"></div>
+        <div class="choice-grid" aria-label="Climate advisory support types">
+          <button class="choice-button" type="button" data-pathway="advisory">
+            <span class="choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 36c7-12 15-18 30-23"/>
+                <path d="M14 35h18"/>
+                <path d="M29 14h10v10"/>
+                <circle cx="14" cy="35" r="4"/>
+                <circle cx="34" cy="15" r="4"/>
+              </svg>
+            </span>
+            <h3>Advisory</h3>
+            <p class="muted">Sector mapping, feasibility guidance, methodology screening, documentation planning, and readiness support.</p>
+          </button>
+          <button class="choice-button" type="button" data-pathway="assetDevelopment">
+            <span class="choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M24 42V20"/>
+                <path d="M14 24c0-8 4-14 10-18 6 4 10 10 10 18"/>
+                <path d="M15 25c5 0 8-2 9-6 1 4 4 6 9 6"/>
+                <path d="M10 42h28"/>
+              </svg>
+            </span>
+            <h3>Carbon Asset Development</h3>
+            <p class="muted">Project structuring across feasibility, design, implementation, MRV, validation, issuance, and registry workflows.</p>
+          </button>
+          <button class="choice-button" type="button" data-pathway="commercialisation">
+            <span class="choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 32h32"/>
+                <path d="M14 32V18h20v14"/>
+                <path d="M18 18l6-7 6 7"/>
+                <path d="M17 38h14"/>
+                <path d="M36 15h4v4"/>
+                <path d="M40 15l-8 8"/>
+              </svg>
+            </span>
+            <h3>Commercialisation</h3>
+            <p class="muted">Buyer readiness, portfolio packaging, credit positioning, market linkage, and transaction support.</p>
+          </button>
         </div>
-        <p class="contact-helper" id="contactHelper"></p>
+        <p class="contact-helper">Unable to decide? <a href="index.html#contact">Get in touch with us.</a></p>
+
+        <div class="options-panel" id="optionsPanel">
+          <div class="page-intro">
+            <h2 class="section-title" id="optionsTitle" style="text-align:center">Select Option</h2>
+            <p class="muted" id="optionsIntro"></p>
+          </div>
+          <div class="category-tabs" id="categoryTabs" aria-label="Climate advisory options"></div>
+          <p class="category-summary" id="categorySummary"></p>
+          <div class="infinite-slider">
+            <div class="slider-track" id="projectSlider"></div>
+          </div>
+          <p class="contact-helper" id="contactHelper"></p>
+        </div>
       </div>
     </section>
   </main>
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
   <script>
-    const categoryData = {
+    const advisoryData = {
       energySupply: {
         label: "Energy Supply",
         summary: "Renewable power, cleaner fuel transition, and energy supply decarbonisation advisory.",
@@ -255,29 +318,140 @@
       }
     };
 
+    const pathwayData = {
+      assetDevelopment: {
+        title: "Carbon Asset Development Options",
+        intro: "Choose the project development stage you want to explore.",
+        defaultKey: "feasibility",
+        options: {
+          feasibility: {
+            label: "Feasibility",
+            summary: "Early screening for project eligibility, boundary, baseline, additionality, risks, and methodology fit.",
+            items: [
+              { title: "ARR Feasibility", desc: "Screen afforestation, reforestation, and revegetation opportunities before design begins.", href: "login.html?next=arr-phase1-feasibility-tool1.html", tag: "Login Required" },
+              { title: "Biochar Feasibility", desc: "Evaluate feedstock, technology, permanence, and registry pathways for biochar projects.", href: "biochar.html", tag: "Login Required" },
+              { title: "ALM Feasibility", desc: "Assess agricultural land management potential and data readiness.", href: "login.html?next=alm.html", tag: "Login Required" }
+            ]
+          },
+          design: {
+            label: "Design & Documentation",
+            summary: "Project design documents, monitoring plans, safeguards, stakeholder records, and validation-ready files.",
+            items: [
+              { title: "ARR Project Design", desc: "Design project structure, activity data, monitoring plots, and documentation systems.", href: "login.html?next=arr-phase2-design-tool1.html", tag: "Login Required" },
+              { title: "Biochar Project Design", desc: "Prepare biochar project design, batch records, monitoring plans, and registry files.", href: "biochar.html", tag: "Login Required" },
+              { title: "Methodology Fitment", desc: "Map project activities to suitable carbon standards and documentation expectations.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
+            ]
+          },
+          implementation: {
+            label: "Implementation",
+            summary: "Field execution support, operational records, activity tracking, quality checks, and implementation evidence.",
+            items: [
+              { title: "ARR Implementation", desc: "Track plantation, survival, field evidence, and implementation readiness.", href: "login.html?next=arr-phase3-implementation-tool1.html", tag: "Login Required" },
+              { title: "Biochar Implementation", desc: "Manage production, application, traceability, and operational evidence.", href: "biochar.html", tag: "Login Required" },
+              { title: "Project Controls", desc: "Build execution workflows that keep records aligned with verification needs.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
+            ]
+          },
+          monitoring: {
+            label: "MRV & Validation",
+            summary: "Monitoring systems, evidence trails, validation coordination, and verification readiness.",
+            items: [
+              { title: "ARR MRV", desc: "Connect field data, geospatial evidence, and monitoring records.", href: "login.html?next=arr-phase4-mrv-tool1.html", tag: "Login Required" },
+              { title: "Biochar MRV", desc: "Structure batch-level evidence, permanence records, and issuance documentation.", href: "biochar.html", tag: "Login Required" },
+              { title: "dMRV Systems", desc: "Set up digital MRV workflows for continuous evidence and review readiness.", href: "login.html?next=dmrv.html", tag: "Login Required" }
+            ]
+          },
+          issuance: {
+            label: "Issuance Readiness",
+            summary: "Registry coordination, monitoring reports, verifier queries, issuance records, and post-issuance files.",
+            items: [
+              { title: "Registry Coordination", desc: "Prepare project files, review responses, and issuance support records.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Monitoring Report Support", desc: "Translate project evidence into review-ready reporting packs.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Credit Delivery Files", desc: "Organize issuance documents, evidence archives, and buyer-facing material.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
+            ]
+          }
+        }
+      },
+      commercialisation: {
+        title: "Commercialisation Options",
+        intro: "Choose the market support you want to explore.",
+        defaultKey: "buyerReadiness",
+        options: {
+          buyerReadiness: {
+            label: "Buyer Readiness",
+            summary: "Prepare credits and project narratives for buyer diligence and procurement review.",
+            items: [
+              { title: "Buyer Diligence Pack", desc: "Prepare project summaries, risk notes, SDG evidence, and claim-ready files.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Quality Positioning", desc: "Frame permanence, additionality, leakage, safeguards, and co-benefits for buyers.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Portfolio Profile", desc: "Create clear project profiles for institutional buyer review.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
+            ]
+          },
+          marketLinkage: {
+            label: "Market Linkage",
+            summary: "Connect project supply with buyer categories, platforms, and transaction pathways.",
+            items: [
+              { title: "Buyer Mapping", desc: "Identify suitable demand segments for credit type, geography, and vintage.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Offer Structuring", desc: "Shape pricing, delivery timing, volume availability, and transaction material.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Platform Readiness", desc: "Prepare project data for marketplaces and buyer discovery channels.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
+            ]
+          },
+          offtake: {
+            label: "Offtake Support",
+            summary: "Support forward sale, offtake, and long-term buyer engagement structures.",
+            items: [
+              { title: "Offtake Preparation", desc: "Build materials for forward purchase and delivery conversations.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Commercial Terms", desc: "Support pricing logic, delivery risk, volume confidence, and transaction records.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Buyer Communication", desc: "Prepare concise project material for commercial discussions.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
+            ]
+          },
+          article6: {
+            label: "Article 6 & CORSIA",
+            summary: "Market readiness for international demand, authorization pathways, and eligible buyer requirements.",
+            items: [
+              { title: "Article 6 Readiness", desc: "Review host country alignment, authorization pathways, and accounting integrity.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "CORSIA Positioning", desc: "Assess credit positioning against aviation market expectations.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
+              { title: "Traceability Files", desc: "Maintain records that support buyer confidence and market-facing claims.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
+            ]
+          }
+        }
+      }
+    };
+
     const tabs = document.getElementById("categoryTabs");
     const summary = document.getElementById("categorySummary");
     const slider = document.getElementById("projectSlider");
+    const optionsPanel = document.getElementById("optionsPanel");
+    const optionsTitle = document.getElementById("optionsTitle");
+    const optionsIntro = document.getElementById("optionsIntro");
+    let currentOptions = null;
+
+    function loginHref(target) {
+      let nextTarget = target || "";
+      if (nextTarget.startsWith("login.html?")) {
+        nextTarget = new URLSearchParams(nextTarget.split("?")[1]).get("next") || "";
+      }
+      const next = /^[a-zA-Z0-9._-]+\.html$/.test(nextTarget) ? nextTarget : "climate-advisory-projects.html";
+      return `login.html?next=${encodeURIComponent(next)}`;
+    }
 
     function cardTemplate(item, index) {
       const alt = index % 2 ? " alt" : "";
       return `
-        <a class="card project-card${alt}" href="${item.href}">
+        <a class="card project-card${alt}" href="${loginHref(item.href)}">
           <div class="card-body">
             <span class="tag">${item.tag}</span>
             <h3>${item.title}</h3>
             <p class="muted">${item.desc}</p>
-            <div class="card-actions"><span class="btn">Learn more</span></div>
+            <div class="card-actions"><span class="btn">Login to continue</span></div>
           </div>
         </a>
       `;
     }
 
-    function renderCategory(key) {
-      const selected = categoryData[key];
+    function renderOption(key) {
+      const selected = currentOptions.options[key];
       summary.textContent = selected.summary;
       tabs.querySelectorAll("button").forEach((button) => {
-        button.classList.toggle("active", button.dataset.category === key);
+        button.classList.toggle("active", button.dataset.option === key);
       });
       const cards = [...selected.items, ...selected.items].map(cardTemplate).join("");
       slider.innerHTML = cards;
@@ -287,16 +461,42 @@
       slider.style.animation = "";
     }
 
-    Object.entries(categoryData).forEach(([key, value]) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.dataset.category = key;
-      button.textContent = value.label;
-      button.addEventListener("click", () => renderCategory(key));
-      tabs.appendChild(button);
-    });
+    function renderTabs(options) {
+      tabs.innerHTML = "";
+      Object.entries(options).forEach(([key, value]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.option = key;
+        button.textContent = value.label;
+        button.addEventListener("click", () => renderOption(key));
+        tabs.appendChild(button);
+      });
+    }
 
-    renderCategory("forestry");
+    function selectPathway(key) {
+      const isAdvisory = key === "advisory";
+      currentOptions = isAdvisory
+        ? {
+            title: "Advisory Sector Options",
+            intro: "Choose a sector tab to view matching advisory services and project types below.",
+            defaultKey: "forestry",
+            options: advisoryData
+          }
+        : pathwayData[key];
+
+      document.querySelectorAll(".choice-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.pathway === key);
+      });
+      optionsPanel.classList.add("visible");
+      optionsTitle.textContent = currentOptions.title;
+      optionsIntro.textContent = currentOptions.intro;
+      renderTabs(currentOptions.options);
+      renderOption(currentOptions.defaultKey);
+    }
+
+    document.querySelectorAll(".choice-button").forEach((button) => {
+      button.addEventListener("click", () => selectPathway(button.dataset.pathway));
+    });
   </script>
 </body>
 </html>
