@@ -6,6 +6,36 @@
   <title>BRSR Assurance &amp; ESG Advisory — MetaCarbonics</title>
   <link rel="stylesheet" href="styles.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    .capability-hero{background:linear-gradient(135deg,var(--green-dark),var(--green-mid));color:white;padding:92px 0 78px}
+    .capability-hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.82fr);gap:48px;align-items:center}
+    .capability-hero h1{font-size:clamp(42px,7vw,76px);line-height:1;margin:12px 0 18px;letter-spacing:0}
+    .capability-hero p{font-size:18px;color:rgba(255,255,255,.86);margin:0}
+    .tool-card{background:white;color:#123;border-radius:8px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.18)}
+    .tool-badge{display:inline-flex;align-items:center;gap:8px;background:var(--green-light);color:var(--green-dark);font-weight:800;border-radius:999px;padding:8px 12px;margin-bottom:18px}
+    .tool-screen{border:1px solid rgba(15,95,68,.12);border-radius:8px;background:#f6f8f6;padding:18px;margin-top:18px}
+    .screen-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(15,95,68,.09);gap:16px}
+    .screen-row:last-child{border-bottom:0}
+    .status-pill{border-radius:999px;background:#daf7e8;color:#0b3d2e;font-size:12px;font-weight:800;padding:6px 10px;white-space:nowrap}
+    .intro-grid{display:grid;grid-template-columns:minmax(0,.95fr) minmax(300px,1fr);gap:28px;align-items:start}
+    .content-panel{background:white;border-radius:8px;padding:26px;box-shadow:0 8px 20px rgba(20,30,20,.06);border:1px solid rgba(11,61,46,.08)}
+    .content-panel h3{margin:0 0 12px;color:var(--green-dark)}
+    .content-panel p{margin:0;color:#40514b}
+    .workflow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+    .workflow-card{background:white;border-radius:8px;padding:22px;border-top:4px solid var(--green-mid);box-shadow:0 8px 20px rgba(20,30,20,.06)}
+    .workflow-card strong{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--green-dark);color:white;margin-bottom:14px}
+    .workflow-card h3{margin:0 0 10px;color:var(--green-mid)}
+    .workflow-card p{margin:0;color:#40514b}
+    .scope-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px}
+    .scope-list span{display:block;background:#f6f8f6;border:1px solid rgba(15,95,68,.1);border-radius:8px;padding:14px;color:#123;font-weight:700}
+    .cta-band{background:var(--green-dark);color:white;text-align:center}
+    .cta-band p{max-width:760px;margin:0 auto 22px;color:rgba(255,255,255,.82)}
+    .cta-band .btn{background:white;color:var(--green-dark)}
+    @media (max-width:880px){
+      .capability-hero .wrap,.intro-grid{grid-template-columns:1fr}
+      .capability-hero{text-align:left;padding:68px 0}
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -14,19 +44,130 @@
       <nav class="main-nav">
         <a href="index.html">Home</a>
         <a href="about.html">About Us</a>
+        <a href="index.html#projects">Capabilities</a>
         <a href="index.html#contact">Get in Touch</a>
       </nav>
     </div>
   </header>
+
   <main>
-    <section class="hero">
+    <section class="capability-hero">
       <div class="wrap">
-        <p class="eyebrow">Capabilities</p>
-        <h1 class="hero-title">BRSR Assurance &amp; ESG Advisory</h1>
-        <p class="hero-sub">This capability page will be developed with the dedicated private repository.</p>
+        <div>
+          <p class="eyebrow">BRSR Assurance &amp; ESG Advisory</p>
+          <h1>BRSR Assurance &amp; ESG Advisory</h1>
+          <p>MetaCarbonics supports organizations that need stronger ESG systems, BRSR readiness, assurance, and documentation workflows that can stand up to stakeholder and market scrutiny.</p>
+        </div>
+        <aside class="tool-card" aria-label="ClimaScope tool preview">
+          <div class="tool-badge">Services</div>
+          <h2 style="margin:0;color:var(--green-dark)">Advisory Scope</h2>
+          <p class="muted" style="margin-top:8px">Practical ESG and BRSR support for teams preparing data, documentation, and review files.</p>
+          <div class="tool-screen">
+            <div class="screen-row"><span>BRSR data readiness</span><span class="status-pill">Service</span></div>
+            <div class="screen-row"><span>ESG advisory support</span><span class="status-pill">Service</span></div>
+            <div class="screen-row"><span>Assurance support</span><span class="status-pill">Service</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap intro-grid">
+        <div class="content-panel">
+          <h2 class="section-title">Services We Support</h2>
+          <p>Our BRSR Assurance &amp; ESG Advisory services help organizations build stronger disclosure systems, clean documentation trails, and practical readiness for assurance and stakeholder review. We also support assurance work where organizations need structured review, evidence testing, and defensible reporting files.</p>
+        </div>
+        <div class="content-panel">
+          <h3>Service Focus Areas</h3>
+          <div class="scope-list">
+            <span>BRSR data readiness</span>
+            <span>ESG documentation review</span>
+            <span>Evidence traceability</span>
+            <span>Assurance gap tracking</span>
+            <span>Assurance support</span>
+            <span>Management response planning</span>
+            <span>Reporting workflow support</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section light">
+      <div class="wrap intro-grid">
+        <div class="content-panel">
+          <h2 class="section-title">Assurance &amp; Certification Coverage</h2>
+          <p>BRSR and ESG assurance work requires trained assurance capability, documented review procedures, independence discipline, evidence testing, and familiarity with recognized sustainability assurance and reporting frameworks. MetaCarbonics has the required certification coverage and trained capability to support BRSR assurance and ESG advisory engagements.</p>
+        </div>
+        <div class="content-panel">
+          <h3>Coverage Includes</h3>
+          <div class="scope-list">
+            <span>BRSR Core assurance readiness</span>
+            <span>ESG assurance methodology</span>
+            <span>ISAE 3000 / SAE 3000 aligned review approach</span>
+            <span>AA1000AS familiarity</span>
+            <span>GHG accounting and emissions data checks</span>
+            <span>Audit trail and evidence file preparation</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <h2 class="section-title" style="text-align:center">Service Workflow</h2>
+        <div class="workflow-grid">
+          <article class="workflow-card">
+            <strong>1</strong>
+            <h3>Collect</h3>
+            <p>Bring ESG, BRSR, and operational records into a structured documentation workspace.</p>
+          </article>
+          <article class="workflow-card">
+            <strong>2</strong>
+            <h3>Map</h3>
+            <p>Connect data points to disclosure needs, internal owners, supporting evidence, and gaps.</p>
+          </article>
+          <article class="workflow-card">
+            <strong>3</strong>
+            <h3>Review</h3>
+            <p>Identify weak documentation, missing proof, inconsistent inputs, and assurance risks.</p>
+          </article>
+          <article class="workflow-card">
+            <strong>4</strong>
+            <h3>Prepare</h3>
+            <p>Develop a cleaner reporting file for advisory review, management action, and readiness checks.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap intro-grid">
+        <div class="content-panel">
+          <h2 class="section-title">ClimaScope</h2>
+          <p>ClimaScope helps teams run the service workflow with better structure. Use it to organize BRSR evidence, ESG data checks, gap tracking, and assurance files in one place as the advisory and assurance work progresses.</p>
+        </div>
+        <aside class="tool-card" aria-label="ClimaScope tool reference" style="box-shadow:0 8px 20px rgba(20,30,20,.06);border:1px solid rgba(11,61,46,.08)">
+          <div class="tool-badge">ClimaScope</div>
+          <h3 style="margin:0;color:var(--green-dark)">ESG Readiness Workspace</h3>
+          <p class="muted" style="margin-top:8px">Use ClimaScope to map disclosures to evidence, track data quality, and prepare review-ready files.</p>
+          <div class="tool-screen">
+            <div class="screen-row"><span>BRSR evidence map</span><span class="status-pill">Mapped</span></div>
+            <div class="screen-row"><span>ESG data quality review</span><span class="status-pill">In progress</span></div>
+            <div class="screen-row"><span>Assurance readiness file</span><span class="status-pill">Ready</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section cta-band">
+      <div class="wrap">
+        <h2 class="section-title" style="text-align:center;color:white">Build ESG And BRSR Readiness</h2>
+        <p>MetaCarbonics combines advisory execution, assurance support, and tool-enabled documentation so ESG and BRSR workflows remain structured, traceable, and review-ready.</p>
+        <a class="btn" href="index.html#contact">Get in Touch</a>
       </div>
     </section>
   </main>
+
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
 </body>
 </html>
