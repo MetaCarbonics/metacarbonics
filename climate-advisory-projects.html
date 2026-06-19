@@ -22,6 +22,15 @@
     .category-summary{max-width:820px;margin:0 auto 28px;text-align:center;color:var(--muted)}
     .project-card h3{min-height:48px}
     .project-card .tag{display:inline-block;margin-bottom:12px;border-radius:999px;background:var(--green-light);color:var(--green-dark);font-size:12px;font-weight:800;padding:6px 10px}
+    .brand{color:white}
+    .nav-dropdown{position:relative;display:inline-flex;align-items:center}
+    .nav-dropdown-trigger{color:white;text-decoration:none;opacity:.95}
+    .nav-dropdown-panel{display:none;position:absolute;top:calc(100% + 10px);left:0;min-width:260px;overflow:hidden;border-radius:8px;background:white;border:1px solid rgba(11,61,46,.14);box-shadow:0 18px 40px rgba(0,0,0,.18);z-index:20}
+    .nav-dropdown:hover .nav-dropdown-panel,.nav-dropdown:focus-within .nav-dropdown-panel{display:block}
+    .nav-dropdown-panel a{display:block;margin:0;padding:12px 14px;color:var(--green-dark);font-size:14px;font-weight:700;text-decoration:none;white-space:normal}
+    .nav-dropdown-panel a:hover{background:var(--green-light);opacity:1}
+    .contact-helper{text-align:center;margin:28px auto 0;color:var(--green-dark);font-weight:800}
+    .contact-helper a{color:var(--green-mid)}
   </style>
 </head>
 <body>
@@ -31,6 +40,17 @@
       <nav class="main-nav">
         <a href="index.html">Home</a>
         <a href="about.html">About Us</a>
+        <div class="nav-dropdown">
+          <a href="index.html#projects" class="nav-dropdown-trigger">Capabilities</a>
+          <div class="nav-dropdown-panel">
+            <a href="brsr-assurance-esg-advisory.html">BRSR Assurance &amp; ESG Advisory</a>
+            <a href="climate-advisory-projects.html">Climate Advisory &amp; Projects</a>
+            <a href="dmrv.html">dMRV</a>
+            <a href="epr-circular-economy.html">EPR &amp; Circular Economy</a>
+          </div>
+        </div>
+        <a href="index.html#projects">Portfolio</a>
+        <a href="index.html#blogs">News &amp; Insights</a>
         <a href="index.html#contact">Get in Touch</a>
       </nav>
     </div>
@@ -48,80 +68,189 @@
       <div class="wrap">
         <div class="page-intro">
           <h2 class="section-title" style="text-align:center">Select Project Category</h2>
-          <p class="muted">Choose a category to view the matching services and project types in the rotating slider.</p>
+          <p class="muted">Choose a sector tab to view matching services and project types below.</p>
         </div>
         <div class="category-tabs" id="categoryTabs" aria-label="Climate advisory categories"></div>
         <p class="category-summary" id="categorySummary"></p>
         <div class="infinite-slider">
           <div class="slider-track" id="projectSlider"></div>
         </div>
+        <p class="contact-helper" id="contactHelper"></p>
       </div>
     </section>
   </main>
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
   <script>
     const categoryData = {
-      afolu: {
-        label: "AFOLU",
-        summary: "Forestry, land use, agriculture, and soil-carbon project pathways under advisory and implementation scopes.",
+      energySupply: {
+        label: "Energy Supply",
+        summary: "Renewable power, cleaner fuel transition, and energy supply decarbonisation advisory.",
         items: [
-          { title: "ARR", desc: "Afforestation, Reforestation and Revegetation project development.", href: "arr.html", tag: "Scope 14" },
-          { title: "REDD+", desc: "Avoided deforestation and forest conservation advisory support.", href: "climate-advisory-projects.html", tag: "Scope 14" },
-          { title: "IFM", desc: "Improved Forest Management for long-term carbon storage.", href: "ifm.html", tag: "Scope 14" },
-          { title: "Blue Carbon", desc: "Coastal and wetland carbon project feasibility and design.", href: "climate-advisory-projects.html", tag: "Scope 14" },
-          { title: "Agroforestry", desc: "Tree-crop systems, farm forestry, and co-benefit project design.", href: "climate-advisory-projects.html", tag: "Scope 14" },
-          { title: "Bamboo", desc: "Bamboo-based sequestration and livelihood-linked project pathways.", href: "climate-advisory-projects.html", tag: "Scope 14" },
-          { title: "ALM / Soil Carbon", desc: "Agricultural land management and soil organic carbon enhancement.", href: "alm.html", tag: "Scope 15" },
-          { title: "AWD Rice Methane", desc: "Alternate wetting and drying approaches for rice methane reduction.", href: "climate-advisory-projects.html", tag: "Scope 15" },
-          { title: "Regenerative Agriculture", desc: "Regenerative practice packages and carbon project structuring.", href: "climate-advisory-projects.html", tag: "Scope 15" },
-          { title: "Biochar to Soil", desc: "Biochar application pathways for durable soil carbon outcomes.", href: "biochar.html", tag: "Scope 15" },
-          { title: "NTFP & Agroforestry", desc: "Non-timber forest product and agroforestry-linked carbon opportunities.", href: "climate-advisory-projects.html", tag: "Scope 15" }
+          { title: "Renewable Energy Strategy", desc: "Feasibility, methodology fitment, and market positioning for renewable energy projects.", href: "climate-advisory-projects.html", tag: "Energy" },
+          { title: "Fuel Switching", desc: "Lower-carbon fuel transition project feasibility and design.", href: "climate-advisory-projects.html", tag: "Energy" },
+          { title: "Grid Emission Reduction", desc: "Project structuring for cleaner energy supply and avoided emissions.", href: "climate-advisory-projects.html", tag: "Energy" }
+        ]
+      },
+      energyDistribution: {
+        label: "Energy Distribution",
+        summary: "Distribution efficiency, loss reduction, and energy infrastructure advisory.",
+        items: [
+          { title: "Distribution Loss Reduction", desc: "Advisory for reduced technical losses and improved energy delivery.", href: "climate-advisory-projects.html", tag: "Distribution" },
+          { title: "Grid Efficiency", desc: "Efficiency-linked project screening and documentation support.", href: "climate-advisory-projects.html", tag: "Distribution" },
+          { title: "MRV Design", desc: "Monitoring plans and data systems for distribution projects.", href: "dmrv.html", tag: "Distribution" }
+        ]
+      },
+      energyDemand: {
+        label: "Energy Demand",
+        summary: "Energy efficiency, demand-side management, and reduced consumption pathways.",
+        items: [
+          { title: "Energy Efficiency", desc: "Project feasibility and carbon strategy for demand reduction.", href: "climate-advisory-projects.html", tag: "Demand" },
+          { title: "Demand-Side Management", desc: "Programme design and impact documentation for lower energy use.", href: "climate-advisory-projects.html", tag: "Demand" },
+          { title: "Monitoring Framework", desc: "Evidence systems for energy savings and reporting.", href: "dmrv.html", tag: "Demand" }
+        ]
+      },
+      manufacturing: {
+        label: "Manufacturing Industries",
+        summary: "Industrial decarbonisation, process efficiency, and emissions reduction advisory.",
+        items: [
+          { title: "Industrial Carbon Strategy", desc: "Facility and portfolio-level emissions reduction planning.", href: "climate-advisory-projects.html", tag: "Industry" },
+          { title: "Process Efficiency", desc: "Project screening for manufacturing energy and material efficiency.", href: "climate-advisory-projects.html", tag: "Industry" },
+          { title: "GHG Baseline", desc: "Baseline development and monitoring plan design.", href: "brsr-assurance-esg-advisory.html", tag: "Industry" }
+        ]
+      },
+      chemicals: {
+        label: "Chemical Industries",
+        summary: "Chemical process emissions, substitution, and compliance-linked project advisory.",
+        items: [
+          { title: "Process Emissions Review", desc: "Assessment of emissions sources and reduction pathways.", href: "climate-advisory-projects.html", tag: "Chemicals" },
+          { title: "Low-Carbon Inputs", desc: "Advisory for material substitution and lower-emission processes.", href: "climate-advisory-projects.html", tag: "Chemicals" },
+          { title: "Documentation Support", desc: "Evidence files for project design and reporting.", href: "brsr-assurance-esg-advisory.html", tag: "Chemicals" }
+        ]
+      },
+      construction: {
+        label: "Construction",
+        summary: "Built environment, material efficiency, and construction emissions advisory.",
+        items: [
+          { title: "Low-Carbon Construction", desc: "Advisory for reduced embodied and operational emissions.", href: "climate-advisory-projects.html", tag: "Construction" },
+          { title: "Material Efficiency", desc: "Project design for reduced material use and waste generation.", href: "climate-advisory-projects.html", tag: "Construction" },
+          { title: "Carbon Accounting", desc: "Construction-linked GHG baselines and tracking support.", href: "brsr-assurance-esg-advisory.html", tag: "Construction" }
         ]
       },
       transport: {
         label: "Transport",
         summary: "Clean transport and energy-access project types under project development and implementation scope.",
         items: [
-          { title: "Improved Cookstoves", desc: "Cleaner cooking interventions with emission reduction potential.", href: "climate-advisory-projects.html", tag: "Scope 7" },
-          { title: "Clean Cooking / Biogas", desc: "Household, community, and institutional clean cooking pathways.", href: "climate-advisory-projects.html", tag: "Scope 7" },
-          { title: "EV & Clean Transport", desc: "Electric mobility and transport decarbonisation project advisory.", href: "climate-advisory-projects.html", tag: "Scope 7" },
-          { title: "Water Purification", desc: "Reduced fuel-use interventions through safe water access.", href: "climate-advisory-projects.html", tag: "Scope 7" },
-          { title: "Fuel Switching", desc: "Lower-carbon fuel transition project feasibility and design.", href: "climate-advisory-projects.html", tag: "Scope 7" }
+          { title: "Improved Cookstoves", desc: "Cleaner cooking interventions with emission reduction potential.", href: "climate-advisory-projects.html", tag: "Transport" },
+          { title: "Clean Cooking / Biogas", desc: "Household, community, and institutional clean cooking pathways.", href: "climate-advisory-projects.html", tag: "Transport" },
+          { title: "EV & Clean Transport", desc: "Electric mobility and transport decarbonisation project advisory.", href: "climate-advisory-projects.html", tag: "Transport" },
+          { title: "Water Purification", desc: "Reduced fuel-use interventions through safe water access.", href: "climate-advisory-projects.html", tag: "Transport" },
+          { title: "Fuel Switching", desc: "Lower-carbon fuel transition project feasibility and design.", href: "climate-advisory-projects.html", tag: "Transport" }
+        ]
+      },
+      mining: {
+        label: "Mining & Mineral Production",
+        summary: "Mining efficiency, methane, energy transition, and land restoration advisory.",
+        items: [
+          { title: "Mining Emissions Review", desc: "Carbon strategy and emissions source assessment for mining assets.", href: "climate-advisory-projects.html", tag: "Mining" },
+          { title: "Energy Transition", desc: "Lower-carbon energy and operational efficiency pathways.", href: "climate-advisory-projects.html", tag: "Mining" },
+          { title: "Land Restoration", desc: "Restoration-linked project opportunities and MRV design.", href: "dmrv.html", tag: "Mining" }
+        ]
+      },
+      metals: {
+        label: "Metal Production",
+        summary: "Metal production emissions, process efficiency, and decarbonisation project advisory.",
+        items: [
+          { title: "Metal Production Baseline", desc: "Baseline development for high-emission industrial processes.", href: "climate-advisory-projects.html", tag: "Metals" },
+          { title: "Efficiency Pathways", desc: "Project screening for process and energy efficiency.", href: "climate-advisory-projects.html", tag: "Metals" },
+          { title: "Market Alignment", desc: "Carbon market and compliance alignment for metals producers.", href: "climate-advisory-projects.html", tag: "Metals" }
+        ]
+      },
+      fugitiveFuels: {
+        label: "Fugitive Emissions - Fuels",
+        summary: "Fugitive fuel emissions, leak detection, methane avoidance, and monitoring advisory.",
+        items: [
+          { title: "Methane Avoidance", desc: "Project pathways for avoided methane and fugitive emissions.", href: "climate-advisory-projects.html", tag: "Fugitive" },
+          { title: "Leak Detection", desc: "Monitoring and evidence systems for fugitive fuel emissions.", href: "dmrv.html", tag: "Fugitive" },
+          { title: "Verification Readiness", desc: "Documentation support for review and validation.", href: "brsr-assurance-esg-advisory.html", tag: "Fugitive" }
+        ]
+      },
+      fugitiveGases: {
+        label: "Fugitive Emissions - Gases",
+        summary: "Industrial gas leak reduction, monitoring, and emissions control advisory.",
+        items: [
+          { title: "Gas Leakage Reduction", desc: "Project screening and evidence planning for gas leakage reduction.", href: "climate-advisory-projects.html", tag: "Gases" },
+          { title: "Monitoring Plan", desc: "MRV workflows for gas detection and reporting.", href: "dmrv.html", tag: "Gases" },
+          { title: "Audit Trail", desc: "Traceable documentation for emissions reduction claims.", href: "brsr-assurance-esg-advisory.html", tag: "Gases" }
+        ]
+      },
+      solvents: {
+        label: "Solvents Use",
+        summary: "Solvent substitution, process change, and emissions reduction advisory.",
+        items: [
+          { title: "Solvent Substitution", desc: "Lower-emission input and process change advisory.", href: "climate-advisory-projects.html", tag: "Solvents" },
+          { title: "Process Redesign", desc: "Operational changes to reduce emissions from solvent use.", href: "climate-advisory-projects.html", tag: "Solvents" },
+          { title: "Reporting Support", desc: "Documentation and evidence files for claims and reporting.", href: "brsr-assurance-esg-advisory.html", tag: "Solvents" }
         ]
       },
       waste: {
-        label: "Waste",
+        label: "Waste Handling & Disposal",
         summary: "Waste handling and disposal projects including methane avoidance, material recovery, and circular systems.",
         items: [
-          { title: "Waste to Energy", desc: "Energy recovery project pathways for suitable waste streams.", href: "climate-advisory-projects.html", tag: "Scope 13" },
-          { title: "Biogas / Landfill Gas", desc: "Methane capture, landfill gas, and anaerobic digestion projects.", href: "climate-advisory-projects.html", tag: "Scope 13" },
-          { title: "Composting", desc: "Organic waste diversion and composting emission reduction projects.", href: "climate-advisory-projects.html", tag: "Scope 13" },
-          { title: "Plastic Waste Management", desc: "Plastic waste recovery, traceability, and carbon-linked pathways.", href: "climate-advisory-projects.html", tag: "Scope 13" },
-          { title: "E-waste Recovery", desc: "E-waste recovery and circular material project opportunities.", href: "climate-advisory-projects.html", tag: "Scope 13" }
+          { title: "Waste to Energy", desc: "Energy recovery project pathways for suitable waste streams.", href: "climate-advisory-projects.html", tag: "Waste" },
+          { title: "Biogas / Landfill Gas", desc: "Methane capture, landfill gas, and anaerobic digestion projects.", href: "climate-advisory-projects.html", tag: "Waste" },
+          { title: "Composting", desc: "Organic waste diversion and composting emission reduction projects.", href: "climate-advisory-projects.html", tag: "Waste" },
+          { title: "Plastic Waste Management", desc: "Plastic waste recovery, traceability, and carbon-linked pathways.", href: "epr-circular-economy.html", tag: "Waste" },
+          { title: "E-waste Recovery", desc: "E-waste recovery and circular material project opportunities.", href: "epr-circular-economy.html", tag: "Waste" }
         ]
       },
-      advisory: {
-        label: "Advisory",
-        summary: "End-to-end carbon advisory services across all 18 sectoral scopes.",
+      forestry: {
+        label: "Forestry & Other Land Use",
+        summary: "Forestry, land-use, and nature-based carbon project pathways.",
         items: [
-          { title: "Carbon Strategy", desc: "Portfolio strategy and carbon market positioning.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Feasibility Assessment", desc: "Project screening, eligibility, risks, and opportunity assessment.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Methodology Selection", desc: "Registry and methodology fitment with additionality analysis.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Baseline Development", desc: "Baseline logic, financial modelling, and project scenario design.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "PDD Preparation", desc: "Project Design Document preparation and supporting annexures.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "MRV Framework Design", desc: "Monitoring plans, data systems, and evidence workflows.", href: "dmrv.html", tag: "Advisory" }
+          { title: "ARR", desc: "Afforestation, Reforestation and Revegetation project development.", href: "arr.html", tag: "AFOLU" },
+          { title: "REDD+", desc: "Avoided deforestation and forest conservation advisory support.", href: "climate-advisory-projects.html", tag: "AFOLU" },
+          { title: "IFM", desc: "Improved Forest Management for long-term carbon storage.", href: "ifm.html", tag: "AFOLU" },
+          { title: "Blue Carbon", desc: "Coastal and wetland carbon project feasibility and design.", href: "climate-advisory-projects.html", tag: "AFOLU" },
+          { title: "Agroforestry", desc: "Tree-crop systems, farm forestry, and co-benefit project design.", href: "climate-advisory-projects.html", tag: "AFOLU" },
+          { title: "Bamboo", desc: "Bamboo-based sequestration and livelihood-linked project pathways.", href: "climate-advisory-projects.html", tag: "AFOLU" }
         ]
       },
-      registry: {
-        label: "Registry & Markets",
-        summary: "Validation, registry coordination, issuance readiness, commercialisation, and market alignment.",
+      agriculture: {
+        label: "Agriculture",
+        summary: "Agriculture, soil carbon, methane reduction, and regenerative practice project pathways.",
         items: [
-          { title: "Validation Support", desc: "DOE coordination and validation support documentation.", href: "climate-advisory-projects.html", tag: "Registry" },
-          { title: "Registry Coordination", desc: "Registry listing, project documentation, and review follow-through.", href: "climate-advisory-projects.html", tag: "Registry" },
-          { title: "Issuance Readiness", desc: "Verification readiness, issuance file preparation, and credit management.", href: "climate-advisory-projects.html", tag: "Registry" },
-          { title: "Commercialisation", desc: "Buyer network linkage and carbon credit commercial strategy.", href: "climate-advisory-projects.html", tag: "Markets" },
-          { title: "Article 6 / ITMO", desc: "Host-country readiness and international transfer alignment.", href: "climate-advisory-projects.html", tag: "Markets" },
-          { title: "CORSIA & India CCTS", desc: "Compliance alignment for aviation and domestic carbon market structures.", href: "climate-advisory-projects.html", tag: "Markets" }
+          { title: "ALM / Soil Carbon", desc: "Agricultural land management and soil organic carbon enhancement.", href: "alm.html", tag: "AFOLU" },
+          { title: "AWD Rice Methane", desc: "Alternate wetting and drying approaches for rice methane reduction.", href: "climate-advisory-projects.html", tag: "AFOLU" },
+          { title: "Regenerative Agriculture", desc: "Regenerative practice packages and carbon project structuring.", href: "climate-advisory-projects.html", tag: "AFOLU" },
+          { title: "Biochar to Soil", desc: "Biochar application pathways for durable soil carbon outcomes.", href: "biochar.html", tag: "AFOLU" },
+          { title: "NTFP & Agroforestry", desc: "Non-timber forest product and agroforestry-linked carbon opportunities.", href: "climate-advisory-projects.html", tag: "AFOLU" }
+        ]
+      },
+      geologicalStorage: {
+        label: "Geological Carbon Storage",
+        summary: "Engineered storage readiness, monitoring concepts, and market alignment advisory.",
+        items: [
+          { title: "Storage Feasibility", desc: "Early-stage feasibility and project pathway review.", href: "climate-advisory-projects.html", tag: "Storage" },
+          { title: "Monitoring Concept", desc: "MRV planning for storage integrity and reporting.", href: "dmrv.html", tag: "Storage" },
+          { title: "Registry Alignment", desc: "Methodology and market alignment for storage projects.", href: "climate-advisory-projects.html", tag: "Storage" }
+        ]
+      },
+      engineeredRemovals: {
+        label: "Other Engineered Removals",
+        summary: "Engineered carbon removal feasibility, design, and commercialisation advisory.",
+        items: [
+          { title: "Biochar", desc: "High-quality carbon removal using certified pyrolysis systems.", href: "biochar.html", tag: "Removal" },
+          { title: "Engineered CDR Feasibility", desc: "Screening and project concept development for engineered removals.", href: "climate-advisory-projects.html", tag: "Removal" },
+          { title: "Commercialisation", desc: "Buyer network linkage and carbon credit commercial strategy.", href: "climate-advisory-projects.html", tag: "Removal" }
+        ]
+      },
+      oceans: {
+        label: "Oceans & Marine Resources",
+        summary: "Marine, coastal, blue carbon, and ocean-linked climate opportunity advisory.",
+        items: [
+          { title: "Blue Carbon", desc: "Coastal and wetland carbon project feasibility and design.", href: "climate-advisory-projects.html", tag: "Marine" },
+          { title: "Marine Restoration", desc: "Ocean and coastal restoration opportunity assessment.", href: "climate-advisory-projects.html", tag: "Marine" },
+          { title: "Coastal MRV", desc: "Monitoring plans for marine and coastal climate projects.", href: "dmrv.html", tag: "Marine" }
         ]
       }
     };
@@ -152,6 +281,7 @@
       });
       const cards = [...selected.items, ...selected.items].map(cardTemplate).join("");
       slider.innerHTML = cards;
+      document.getElementById("contactHelper").innerHTML = "Unable to decide? <a href=\"index.html#contact\">Get in touch with us.</a>";
       slider.style.animation = "none";
       void slider.offsetWidth;
       slider.style.animation = "";
@@ -166,7 +296,7 @@
       tabs.appendChild(button);
     });
 
-    renderCategory("afolu");
+    renderCategory("forestry");
   </script>
 </body>
 </html>
