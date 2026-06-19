@@ -16,6 +16,12 @@
     .project-card img{height:40px;width:40px;margin-bottom:14px}
     .project-card p{min-height:42px}
     .page-intro{text-align:center;max-width:760px;margin:0 auto 36px}
+    .category-tabs{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:0 auto 34px}
+    .category-tabs button{border:1px solid rgba(15,95,68,.18);background:white;color:var(--green-dark);border-radius:999px;padding:10px 16px;font-weight:800;cursor:pointer}
+    .category-tabs button.active,.category-tabs button:hover{background:var(--green-dark);color:white}
+    .category-summary{max-width:820px;margin:0 auto 28px;text-align:center;color:var(--muted)}
+    .project-card h3{min-height:48px}
+    .project-card .tag{display:inline-block;margin-bottom:12px;border-radius:999px;background:var(--green-light);color:var(--green-dark);font-size:12px;font-weight:800;padding:6px 10px}
   </style>
 </head>
 <body>
@@ -34,72 +40,133 @@
       <div class="wrap">
         <p class="eyebrow">Capabilities</p>
         <h1 class="hero-title">Climate Advisory &amp; Projects</h1>
-        <p class="hero-sub">This capability page will be developed with the dedicated private repository.</p>
+        <p class="hero-sub">Carbon advisory, feasibility, project development, validation support, registry coordination, issuance readiness, and commercialisation across priority climate project categories.</p>
       </div>
     </section>
 
     <section class="section">
       <div class="wrap">
         <div class="page-intro">
-          <h2 class="section-title" style="text-align:center">Projects</h2>
-          <p class="muted">Explore how we are building long-term carbon removal and storage solutions.</p>
+          <h2 class="section-title" style="text-align:center">Select Project Category</h2>
+          <p class="muted">Choose a category to view the matching services and project types in the rotating slider.</p>
         </div>
+        <div class="category-tabs" id="categoryTabs" aria-label="Climate advisory categories"></div>
+        <p class="category-summary" id="categorySummary"></p>
         <div class="infinite-slider">
-          <div class="slider-track">
-            <a class="card project-card" href="biochar.html">
-              <img src="https://www.svgrepo.com/show/522502/charcoal.svg" alt="Biochar Icon">
-              <div class="card-body">
-                <h3>Biochar</h3>
-                <p class="muted">High-quality carbon removal using certified pyrolysis systems.</p>
-                <div class="card-actions"><span class="btn">Learn more</span></div>
-              </div>
-            </a>
-            <a class="card project-card alt" href="arr.html">
-              <img src="https://www.svgrepo.com/show/433190/planting-tree-ecology.svg" alt="ARR Icon">
-              <div class="card-body">
-                <h3>ARR</h3>
-                <p class="muted">Afforestation, Reforestation &amp; Revegetation projects.</p>
-                <div class="card-actions"><span class="btn">Learn more</span></div>
-              </div>
-            </a>
-            <a class="card project-card" href="ifm.html">
-              <img src="https://www.svgrepo.com/show/433189/forest-ecology.svg" alt="IFM Icon">
-              <div class="card-body">
-                <h3>IFM</h3>
-                <p class="muted">Improved Forest Management for long-term storage.</p>
-                <div class="card-actions"><span class="btn">Learn more</span></div>
-              </div>
-            </a>
-            <a class="card project-card alt" href="alm.html">
-              <img src="https://www.svgrepo.com/show/441223/soil-earth-land.svg" alt="ALM Icon">
-              <div class="card-body">
-                <h3>ALM</h3>
-                <p class="muted">Agricultural Land Management for soil carbon enhancement.</p>
-                <div class="card-actions"><span class="btn">Learn more</span></div>
-              </div>
-            </a>
-
-            <a class="card project-card" href="biochar.html">
-              <img src="https://www.svgrepo.com/show/522502/charcoal.svg" alt="Biochar Icon">
-              <div class="card-body"><h3>Biochar</h3></div>
-            </a>
-            <a class="card project-card alt" href="arr.html">
-              <img src="https://www.svgrepo.com/show/433190/planting-tree-ecology.svg" alt="ARR Icon">
-              <div class="card-body"><h3>ARR</h3></div>
-            </a>
-            <a class="card project-card" href="ifm.html">
-              <img src="https://www.svgrepo.com/show/433189/forest-ecology.svg" alt="IFM Icon">
-              <div class="card-body"><h3>IFM</h3></div>
-            </a>
-            <a class="card project-card alt" href="alm.html">
-              <img src="https://www.svgrepo.com/show/441223/soil-earth-land.svg" alt="ALM Icon">
-              <div class="card-body"><h3>ALM</h3></div>
-            </a>
-          </div>
+          <div class="slider-track" id="projectSlider"></div>
         </div>
       </div>
     </section>
   </main>
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
+  <script>
+    const categoryData = {
+      afolu: {
+        label: "AFOLU",
+        summary: "Forestry, land use, agriculture, and soil-carbon project pathways under advisory and implementation scopes.",
+        items: [
+          { title: "ARR", desc: "Afforestation, Reforestation and Revegetation project development.", href: "arr.html", tag: "Scope 14" },
+          { title: "REDD+", desc: "Avoided deforestation and forest conservation advisory support.", href: "climate-advisory-projects.html", tag: "Scope 14" },
+          { title: "IFM", desc: "Improved Forest Management for long-term carbon storage.", href: "ifm.html", tag: "Scope 14" },
+          { title: "Blue Carbon", desc: "Coastal and wetland carbon project feasibility and design.", href: "climate-advisory-projects.html", tag: "Scope 14" },
+          { title: "Agroforestry", desc: "Tree-crop systems, farm forestry, and co-benefit project design.", href: "climate-advisory-projects.html", tag: "Scope 14" },
+          { title: "Bamboo", desc: "Bamboo-based sequestration and livelihood-linked project pathways.", href: "climate-advisory-projects.html", tag: "Scope 14" },
+          { title: "ALM / Soil Carbon", desc: "Agricultural land management and soil organic carbon enhancement.", href: "alm.html", tag: "Scope 15" },
+          { title: "AWD Rice Methane", desc: "Alternate wetting and drying approaches for rice methane reduction.", href: "climate-advisory-projects.html", tag: "Scope 15" },
+          { title: "Regenerative Agriculture", desc: "Regenerative practice packages and carbon project structuring.", href: "climate-advisory-projects.html", tag: "Scope 15" },
+          { title: "Biochar to Soil", desc: "Biochar application pathways for durable soil carbon outcomes.", href: "biochar.html", tag: "Scope 15" },
+          { title: "NTFP & Agroforestry", desc: "Non-timber forest product and agroforestry-linked carbon opportunities.", href: "climate-advisory-projects.html", tag: "Scope 15" }
+        ]
+      },
+      transport: {
+        label: "Transport",
+        summary: "Clean transport and energy-access project types under project development and implementation scope.",
+        items: [
+          { title: "Improved Cookstoves", desc: "Cleaner cooking interventions with emission reduction potential.", href: "climate-advisory-projects.html", tag: "Scope 7" },
+          { title: "Clean Cooking / Biogas", desc: "Household, community, and institutional clean cooking pathways.", href: "climate-advisory-projects.html", tag: "Scope 7" },
+          { title: "EV & Clean Transport", desc: "Electric mobility and transport decarbonisation project advisory.", href: "climate-advisory-projects.html", tag: "Scope 7" },
+          { title: "Water Purification", desc: "Reduced fuel-use interventions through safe water access.", href: "climate-advisory-projects.html", tag: "Scope 7" },
+          { title: "Fuel Switching", desc: "Lower-carbon fuel transition project feasibility and design.", href: "climate-advisory-projects.html", tag: "Scope 7" }
+        ]
+      },
+      waste: {
+        label: "Waste",
+        summary: "Waste handling and disposal projects including methane avoidance, material recovery, and circular systems.",
+        items: [
+          { title: "Waste to Energy", desc: "Energy recovery project pathways for suitable waste streams.", href: "climate-advisory-projects.html", tag: "Scope 13" },
+          { title: "Biogas / Landfill Gas", desc: "Methane capture, landfill gas, and anaerobic digestion projects.", href: "climate-advisory-projects.html", tag: "Scope 13" },
+          { title: "Composting", desc: "Organic waste diversion and composting emission reduction projects.", href: "climate-advisory-projects.html", tag: "Scope 13" },
+          { title: "Plastic Waste Management", desc: "Plastic waste recovery, traceability, and carbon-linked pathways.", href: "climate-advisory-projects.html", tag: "Scope 13" },
+          { title: "E-waste Recovery", desc: "E-waste recovery and circular material project opportunities.", href: "climate-advisory-projects.html", tag: "Scope 13" }
+        ]
+      },
+      advisory: {
+        label: "Advisory",
+        summary: "End-to-end carbon advisory services across all 18 sectoral scopes.",
+        items: [
+          { title: "Carbon Strategy", desc: "Portfolio strategy and carbon market positioning.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Feasibility Assessment", desc: "Project screening, eligibility, risks, and opportunity assessment.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Methodology Selection", desc: "Registry and methodology fitment with additionality analysis.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Baseline Development", desc: "Baseline logic, financial modelling, and project scenario design.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "PDD Preparation", desc: "Project Design Document preparation and supporting annexures.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "MRV Framework Design", desc: "Monitoring plans, data systems, and evidence workflows.", href: "dmrv.html", tag: "Advisory" }
+        ]
+      },
+      registry: {
+        label: "Registry & Markets",
+        summary: "Validation, registry coordination, issuance readiness, commercialisation, and market alignment.",
+        items: [
+          { title: "Validation Support", desc: "DOE coordination and validation support documentation.", href: "climate-advisory-projects.html", tag: "Registry" },
+          { title: "Registry Coordination", desc: "Registry listing, project documentation, and review follow-through.", href: "climate-advisory-projects.html", tag: "Registry" },
+          { title: "Issuance Readiness", desc: "Verification readiness, issuance file preparation, and credit management.", href: "climate-advisory-projects.html", tag: "Registry" },
+          { title: "Commercialisation", desc: "Buyer network linkage and carbon credit commercial strategy.", href: "climate-advisory-projects.html", tag: "Markets" },
+          { title: "Article 6 / ITMO", desc: "Host-country readiness and international transfer alignment.", href: "climate-advisory-projects.html", tag: "Markets" },
+          { title: "CORSIA & India CCTS", desc: "Compliance alignment for aviation and domestic carbon market structures.", href: "climate-advisory-projects.html", tag: "Markets" }
+        ]
+      }
+    };
+
+    const tabs = document.getElementById("categoryTabs");
+    const summary = document.getElementById("categorySummary");
+    const slider = document.getElementById("projectSlider");
+
+    function cardTemplate(item, index) {
+      const alt = index % 2 ? " alt" : "";
+      return `
+        <a class="card project-card${alt}" href="${item.href}">
+          <div class="card-body">
+            <span class="tag">${item.tag}</span>
+            <h3>${item.title}</h3>
+            <p class="muted">${item.desc}</p>
+            <div class="card-actions"><span class="btn">Learn more</span></div>
+          </div>
+        </a>
+      `;
+    }
+
+    function renderCategory(key) {
+      const selected = categoryData[key];
+      summary.textContent = selected.summary;
+      tabs.querySelectorAll("button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.category === key);
+      });
+      const cards = [...selected.items, ...selected.items].map(cardTemplate).join("");
+      slider.innerHTML = cards;
+      slider.style.animation = "none";
+      void slider.offsetWidth;
+      slider.style.animation = "";
+    }
+
+    Object.entries(categoryData).forEach(([key, value]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.category = key;
+      button.textContent = value.label;
+      button.addEventListener("click", () => renderCategory(key));
+      tabs.appendChild(button);
+    });
+
+    renderCategory("afolu");
+  </script>
 </body>
 </html>
