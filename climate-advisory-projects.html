@@ -145,175 +145,58 @@
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
   <script>
     const advisoryData = {
-      energySupply: {
-        label: "Energy Supply",
-        summary: "Renewable power, cleaner fuel transition, and energy supply decarbonisation advisory.",
+      feasibility: {
+        label: "Feasibility",
+        summary: "Early project screening for eligibility, project boundary, baseline approach, methodology fit, risks, and data readiness.",
         items: [
-          { title: "Renewable Energy Strategy", desc: "Feasibility, methodology fitment, and market positioning for renewable energy projects.", href: "climate-advisory-projects.html", tag: "Energy" },
-          { title: "Fuel Switching", desc: "Lower-carbon fuel transition project feasibility and design.", href: "climate-advisory-projects.html", tag: "Energy" },
-          { title: "Grid Emission Reduction", desc: "Project structuring for cleaner energy supply and avoided emissions.", href: "climate-advisory-projects.html", tag: "Energy" }
+          { title: "Project Feasibility", desc: "Assess whether the project idea can move forward under suitable carbon standards and market expectations.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Methodology Screening", desc: "Compare relevant methodologies and identify the most practical route for project development.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Data Gap Review", desc: "Identify missing activity data, geospatial evidence, ownership records, and monitoring inputs before development starts.", href: "climate-advisory-projects.html", tag: "Advisory" }
         ]
       },
-      energyDistribution: {
-        label: "Energy Distribution",
-        summary: "Distribution efficiency, loss reduction, and energy infrastructure advisory.",
+      pdd: {
+        label: "PDD",
+        summary: "Project Design Document advisory for baseline, additionality, project boundary, monitoring plan, safeguards, and documentation structure.",
         items: [
-          { title: "Distribution Loss Reduction", desc: "Advisory for reduced technical losses and improved energy delivery.", href: "climate-advisory-projects.html", tag: "Distribution" },
-          { title: "Grid Efficiency", desc: "Efficiency-linked project screening and documentation support.", href: "climate-advisory-projects.html", tag: "Distribution" },
-          { title: "MRV Design", desc: "Monitoring plans and data systems for distribution projects.", href: "dmrv.html", tag: "Distribution" }
+          { title: "PDD Structuring", desc: "Organize project information into a clear design document aligned with the selected methodology.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Baseline & Additionality", desc: "Support baseline selection, additionality logic, leakage consideration, and assumptions documentation.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Safeguards & Stakeholders", desc: "Prepare safeguard, stakeholder, ownership, and co-benefit records for review readiness.", href: "climate-advisory-projects.html", tag: "Advisory" }
         ]
       },
-      energyDemand: {
-        label: "Energy Demand",
-        summary: "Energy efficiency, demand-side management, and reduced consumption pathways.",
+      monitoring: {
+        label: "Monitoring",
+        summary: "Monitoring plan advisory for activity tracking, evidence systems, data quality, geospatial support, and MRV readiness.",
         items: [
-          { title: "Energy Efficiency", desc: "Project feasibility and carbon strategy for demand reduction.", href: "climate-advisory-projects.html", tag: "Demand" },
-          { title: "Demand-Side Management", desc: "Programme design and impact documentation for lower energy use.", href: "climate-advisory-projects.html", tag: "Demand" },
-          { title: "Monitoring Framework", desc: "Evidence systems for energy savings and reporting.", href: "dmrv.html", tag: "Demand" }
+          { title: "Monitoring Plan", desc: "Design monitoring parameters, data collection frequency, responsibilities, and quality control workflows.", href: "dmrv.html", tag: "Advisory" },
+          { title: "Evidence System", desc: "Set up traceable records for field activity, production, land-use, or operational project evidence.", href: "dmrv.html", tag: "Advisory" },
+          { title: "dMRV Readiness", desc: "Translate monitoring requirements into digital workflows for continuous evidence and review support.", href: "dmrv.html", tag: "Advisory" }
         ]
       },
-      manufacturing: {
-        label: "Manufacturing Industries",
-        summary: "Industrial decarbonisation, process efficiency, and emissions reduction advisory.",
+      registry: {
+        label: "Registry",
+        summary: "Registry pathway advisory for account readiness, project listing, document submission, validation coordination, and issuance workflow.",
         items: [
-          { title: "Industrial Carbon Strategy", desc: "Facility and portfolio-level emissions reduction planning.", href: "climate-advisory-projects.html", tag: "Industry" },
-          { title: "Process Efficiency", desc: "Project screening for manufacturing energy and material efficiency.", href: "climate-advisory-projects.html", tag: "Industry" },
-          { title: "GHG Baseline", desc: "Baseline development and monitoring plan design.", href: "brsr-assurance-esg-advisory.html", tag: "Industry" }
+          { title: "Registry Pathway", desc: "Map the project to suitable registry requirements, submission stages, and review expectations.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Listing Support", desc: "Prepare project listing material, supporting documents, and registry-facing information packs.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Review Coordination", desc: "Support responses, document updates, and issue tracking during registry review cycles.", href: "climate-advisory-projects.html", tag: "Advisory" }
         ]
       },
-      chemicals: {
-        label: "Chemical Industries",
-        summary: "Chemical process emissions, substitution, and compliance-linked project advisory.",
+      validation: {
+        label: "Validation & Verification",
+        summary: "Independent review readiness support for validation, verification, audit evidence, corrective actions, and query responses.",
         items: [
-          { title: "Process Emissions Review", desc: "Assessment of emissions sources and reduction pathways.", href: "climate-advisory-projects.html", tag: "Chemicals" },
-          { title: "Low-Carbon Inputs", desc: "Advisory for material substitution and lower-emission processes.", href: "climate-advisory-projects.html", tag: "Chemicals" },
-          { title: "Documentation Support", desc: "Evidence files for project design and reporting.", href: "brsr-assurance-esg-advisory.html", tag: "Chemicals" }
+          { title: "Validation Readiness", desc: "Prepare the project design, evidence files, and assumptions for validator review.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Verification Readiness", desc: "Organize monitoring reports, supporting records, and audit trails for verification.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Query Response Support", desc: "Track findings, clarify evidence, and support corrective action documentation.", href: "climate-advisory-projects.html", tag: "Advisory" }
         ]
       },
-      construction: {
-        label: "Construction",
-        summary: "Built environment, material efficiency, and construction emissions advisory.",
+      issuance: {
+        label: "Issuance Readiness",
+        summary: "Advisory for monitoring report completion, issuance documentation, credit delivery files, and market-facing evidence packs.",
         items: [
-          { title: "Low-Carbon Construction", desc: "Advisory for reduced embodied and operational emissions.", href: "climate-advisory-projects.html", tag: "Construction" },
-          { title: "Material Efficiency", desc: "Project design for reduced material use and waste generation.", href: "climate-advisory-projects.html", tag: "Construction" },
-          { title: "Carbon Accounting", desc: "Construction-linked GHG baselines and tracking support.", href: "brsr-assurance-esg-advisory.html", tag: "Construction" }
-        ]
-      },
-      transport: {
-        label: "Transport",
-        summary: "Clean transport and energy-access project types under project development and implementation scope.",
-        items: [
-          { title: "Improved Cookstoves", desc: "Cleaner cooking interventions with emission reduction potential.", href: "climate-advisory-projects.html", tag: "Transport" },
-          { title: "Clean Cooking / Biogas", desc: "Household, community, and institutional clean cooking pathways.", href: "climate-advisory-projects.html", tag: "Transport" },
-          { title: "EV & Clean Transport", desc: "Electric mobility and transport decarbonisation project advisory.", href: "climate-advisory-projects.html", tag: "Transport" },
-          { title: "Water Purification", desc: "Reduced fuel-use interventions through safe water access.", href: "climate-advisory-projects.html", tag: "Transport" },
-          { title: "Fuel Switching", desc: "Lower-carbon fuel transition project feasibility and design.", href: "climate-advisory-projects.html", tag: "Transport" }
-        ]
-      },
-      mining: {
-        label: "Mining & Mineral Production",
-        summary: "Mining efficiency, methane, energy transition, and land restoration advisory.",
-        items: [
-          { title: "Mining Emissions Review", desc: "Carbon strategy and emissions source assessment for mining assets.", href: "climate-advisory-projects.html", tag: "Mining" },
-          { title: "Energy Transition", desc: "Lower-carbon energy and operational efficiency pathways.", href: "climate-advisory-projects.html", tag: "Mining" },
-          { title: "Land Restoration", desc: "Restoration-linked project opportunities and MRV design.", href: "dmrv.html", tag: "Mining" }
-        ]
-      },
-      metals: {
-        label: "Metal Production",
-        summary: "Metal production emissions, process efficiency, and decarbonisation project advisory.",
-        items: [
-          { title: "Metal Production Baseline", desc: "Baseline development for high-emission industrial processes.", href: "climate-advisory-projects.html", tag: "Metals" },
-          { title: "Efficiency Pathways", desc: "Project screening for process and energy efficiency.", href: "climate-advisory-projects.html", tag: "Metals" },
-          { title: "Market Alignment", desc: "Carbon market and compliance alignment for metals producers.", href: "climate-advisory-projects.html", tag: "Metals" }
-        ]
-      },
-      fugitiveFuels: {
-        label: "Fugitive Emissions - Fuels",
-        summary: "Fugitive fuel emissions, leak detection, methane avoidance, and monitoring advisory.",
-        items: [
-          { title: "Methane Avoidance", desc: "Project pathways for avoided methane and fugitive emissions.", href: "climate-advisory-projects.html", tag: "Fugitive" },
-          { title: "Leak Detection", desc: "Monitoring and evidence systems for fugitive fuel emissions.", href: "dmrv.html", tag: "Fugitive" },
-          { title: "Verification Readiness", desc: "Documentation support for review and validation.", href: "brsr-assurance-esg-advisory.html", tag: "Fugitive" }
-        ]
-      },
-      fugitiveGases: {
-        label: "Fugitive Emissions - Gases",
-        summary: "Industrial gas leak reduction, monitoring, and emissions control advisory.",
-        items: [
-          { title: "Gas Leakage Reduction", desc: "Project screening and evidence planning for gas leakage reduction.", href: "climate-advisory-projects.html", tag: "Gases" },
-          { title: "Monitoring Plan", desc: "MRV workflows for gas detection and reporting.", href: "dmrv.html", tag: "Gases" },
-          { title: "Audit Trail", desc: "Traceable documentation for emissions reduction claims.", href: "brsr-assurance-esg-advisory.html", tag: "Gases" }
-        ]
-      },
-      solvents: {
-        label: "Solvents Use",
-        summary: "Solvent substitution, process change, and emissions reduction advisory.",
-        items: [
-          { title: "Solvent Substitution", desc: "Lower-emission input and process change advisory.", href: "climate-advisory-projects.html", tag: "Solvents" },
-          { title: "Process Redesign", desc: "Operational changes to reduce emissions from solvent use.", href: "climate-advisory-projects.html", tag: "Solvents" },
-          { title: "Reporting Support", desc: "Documentation and evidence files for claims and reporting.", href: "brsr-assurance-esg-advisory.html", tag: "Solvents" }
-        ]
-      },
-      waste: {
-        label: "Waste Handling & Disposal",
-        summary: "Waste handling and disposal projects including methane avoidance, material recovery, and circular systems.",
-        items: [
-          { title: "Waste to Energy", desc: "Energy recovery project pathways for suitable waste streams.", href: "climate-advisory-projects.html", tag: "Waste" },
-          { title: "Biogas / Landfill Gas", desc: "Methane capture, landfill gas, and anaerobic digestion projects.", href: "climate-advisory-projects.html", tag: "Waste" },
-          { title: "Composting", desc: "Organic waste diversion and composting emission reduction projects.", href: "climate-advisory-projects.html", tag: "Waste" },
-          { title: "Plastic Waste Management", desc: "Plastic waste recovery, traceability, and carbon-linked pathways.", href: "epr-circular-economy.html", tag: "Waste" },
-          { title: "E-waste Recovery", desc: "E-waste recovery and circular material project opportunities.", href: "epr-circular-economy.html", tag: "Waste" }
-        ]
-      },
-      forestry: {
-        label: "Forestry & Other Land Use",
-        summary: "Forestry, land-use, and nature-based carbon project pathways.",
-        items: [
-          { title: "ARR", desc: "Afforestation, Reforestation and Revegetation project development.", href: "arr.html", tag: "AFOLU" },
-          { title: "REDD+", desc: "Avoided deforestation and forest conservation advisory support.", href: "climate-advisory-projects.html", tag: "AFOLU" },
-          { title: "IFM", desc: "Improved Forest Management for long-term carbon storage.", href: "ifm.html", tag: "AFOLU" },
-          { title: "Blue Carbon", desc: "Coastal and wetland carbon project feasibility and design.", href: "climate-advisory-projects.html", tag: "AFOLU" },
-          { title: "Agroforestry", desc: "Tree-crop systems, farm forestry, and co-benefit project design.", href: "climate-advisory-projects.html", tag: "AFOLU" },
-          { title: "Bamboo", desc: "Bamboo-based sequestration and livelihood-linked project pathways.", href: "climate-advisory-projects.html", tag: "AFOLU" }
-        ]
-      },
-      agriculture: {
-        label: "Agriculture",
-        summary: "Agriculture, soil carbon, methane reduction, and regenerative practice project pathways.",
-        items: [
-          { title: "ALM / Soil Carbon", desc: "Agricultural land management and soil organic carbon enhancement.", href: "alm.html", tag: "AFOLU" },
-          { title: "AWD Rice Methane", desc: "Alternate wetting and drying approaches for rice methane reduction.", href: "climate-advisory-projects.html", tag: "AFOLU" },
-          { title: "Regenerative Agriculture", desc: "Regenerative practice packages and carbon project structuring.", href: "climate-advisory-projects.html", tag: "AFOLU" },
-          { title: "Biochar to Soil", desc: "Biochar application pathways for durable soil carbon outcomes.", href: "biochar.html", tag: "AFOLU" },
-          { title: "NTFP & Agroforestry", desc: "Non-timber forest product and agroforestry-linked carbon opportunities.", href: "climate-advisory-projects.html", tag: "AFOLU" }
-        ]
-      },
-      geologicalStorage: {
-        label: "Geological Carbon Storage",
-        summary: "Engineered storage readiness, monitoring concepts, and market alignment advisory.",
-        items: [
-          { title: "Storage Feasibility", desc: "Early-stage feasibility and project pathway review.", href: "climate-advisory-projects.html", tag: "Storage" },
-          { title: "Monitoring Concept", desc: "MRV planning for storage integrity and reporting.", href: "dmrv.html", tag: "Storage" },
-          { title: "Registry Alignment", desc: "Methodology and market alignment for storage projects.", href: "climate-advisory-projects.html", tag: "Storage" }
-        ]
-      },
-      engineeredRemovals: {
-        label: "Other Engineered Removals",
-        summary: "Engineered carbon removal feasibility, design, and commercialisation advisory.",
-        items: [
-          { title: "Biochar", desc: "High-quality carbon removal using certified pyrolysis systems.", href: "biochar.html", tag: "Removal" },
-          { title: "Engineered CDR Feasibility", desc: "Screening and project concept development for engineered removals.", href: "climate-advisory-projects.html", tag: "Removal" },
-          { title: "Commercialisation", desc: "Buyer network linkage and carbon credit commercial strategy.", href: "climate-advisory-projects.html", tag: "Removal" }
-        ]
-      },
-      oceans: {
-        label: "Oceans & Marine Resources",
-        summary: "Marine, coastal, blue carbon, and ocean-linked climate opportunity advisory.",
-        items: [
-          { title: "Blue Carbon", desc: "Coastal and wetland carbon project feasibility and design.", href: "climate-advisory-projects.html", tag: "Marine" },
-          { title: "Marine Restoration", desc: "Ocean and coastal restoration opportunity assessment.", href: "climate-advisory-projects.html", tag: "Marine" },
-          { title: "Coastal MRV", desc: "Monitoring plans for marine and coastal climate projects.", href: "dmrv.html", tag: "Marine" }
+          { title: "Monitoring Report Review", desc: "Review monitoring report completeness before submission and verification stages.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Issuance File Pack", desc: "Organize registry files, verification statements, serial records, and supporting documentation.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Buyer Evidence Pack", desc: "Prepare concise post-issuance material for buyer diligence and commercial conversations.", href: "climate-advisory-projects.html", tag: "Advisory" }
         ]
       }
     };
@@ -477,9 +360,9 @@
       const isAdvisory = key === "advisory";
       currentOptions = isAdvisory
         ? {
-            title: "Advisory Sector Options",
-            intro: "Choose a sector tab to view matching advisory services and project types below.",
-            defaultKey: "forestry",
+            title: "Advisory Options",
+            intro: "Choose the advisory support area you want to explore.",
+            defaultKey: "feasibility",
             options: advisoryData
           }
         : pathwayData[key];
