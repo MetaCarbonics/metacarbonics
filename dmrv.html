@@ -174,7 +174,7 @@
         badge: "ClimaScope",
         title: "ClimaScope Registry",
         intro: "Register the company first. The logged-in user becomes the company admin for BRSR assurance and ESG workflows.",
-        repo: "../ClimaScope/README.md",
+        repo: "../ClimaScope/index.html",
         roles: {
           "Company Admin": ["Company profile", "User requests", "BRSR workspace setup", "Assurance file status"],
           "Facility Manager": ["Facility data upload", "Utility evidence", "Waste and water records", "Open queries"],
@@ -249,6 +249,10 @@
     async function selectService(service) {
       sessionStorage.setItem(selectedServiceKey, service);
       if (await hasSession()) {
+        if (service === "brsr") {
+          window.location.href = registryData.brsr.repo;
+          return;
+        }
         renderRegistry(service);
         return;
       }
@@ -282,7 +286,14 @@
 
     (async () => {
       const stored = sessionStorage.getItem(selectedServiceKey);
-      if (stored && await hasSession()) renderRegistry(stored);
+      if (stored && await hasSession()) {
+        if (stored === "brsr") {
+          sessionStorage.removeItem(selectedServiceKey);
+          window.location.href = registryData.brsr.repo;
+          return;
+        }
+        renderRegistry(stored);
+      }
     })();
   </script>
   <script src="capabilities-nav.js"></script>
