@@ -32,6 +32,30 @@
     .category-summary{max-width:820px;margin:0 auto 28px;text-align:center;color:var(--muted)}
     .project-card h3{min-height:48px}
     .project-card .tag{display:inline-block;margin-bottom:12px;border-radius:999px;background:var(--green-light);color:var(--green-dark);font-size:12px;font-weight:800;padding:6px 10px}
+    .advisory-request{display:none;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:24px;align-items:start;margin-top:22px}
+    .advisory-request.visible{display:grid}
+    .request-form,.meeting-card{background:white;border:1px solid rgba(15,95,68,.12);border-radius:8px;box-shadow:0 12px 28px rgba(11,61,46,.08);padding:24px}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .field{display:flex;flex-direction:column;gap:7px}
+    .field.full{grid-column:1/-1}
+    .field label{color:var(--green-dark);font-weight:800;font-size:13px}
+    .field input,.field select,.field textarea{width:100%;border:1px solid rgba(15,95,68,.18);border-radius:8px;padding:11px 12px;font:inherit;color:var(--green-dark);background:#fff}
+    .field input[readonly]{background:var(--green-light);font-weight:800}
+    .field textarea{min-height:96px;resize:vertical}
+    .calendar-shell{margin-top:16px;border:1px solid rgba(15,95,68,.12);border-radius:8px;overflow:hidden}
+    .calendar-head{display:flex;justify-content:space-between;align-items:center;background:var(--green-dark);color:white;padding:12px 14px;font-weight:800}
+    .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:rgba(15,95,68,.10)}
+    .calendar-grid span,.calendar-grid button{min-height:38px;display:grid;place-items:center;background:white;color:var(--green-dark);font-weight:700;font-size:13px}
+    .calendar-grid button{border:0;cursor:pointer;font:inherit}
+    .calendar-grid button:hover,.calendar-grid button.active{background:var(--green-light);box-shadow:inset 0 0 0 2px var(--green-mid)}
+    .calendar-grid .muted-day{color:#9aa8a1;background:#f6faf7}
+    .calendar-note{margin-top:12px;font-size:13px;color:var(--muted)}
+    .slot-grid{display:none;grid-template-columns:1fr;gap:10px;margin-top:16px}
+    .slot-grid.visible{display:grid}
+    .slot-grid button{border:1px solid rgba(15,95,68,.18);background:white;color:var(--green-dark);border-radius:8px;padding:10px 12px;font:inherit;font-weight:800;cursor:pointer;text-align:left}
+    .slot-grid button:hover,.slot-grid button.active{background:var(--green-dark);color:white}
+    .form-message{display:none;margin:12px 0 0;padding:12px 14px;border-radius:8px;background:var(--green-light);color:var(--green-dark);font-weight:800}
+    .form-message.visible{display:block}
     .brand{color:white}
     .nav-dropdown{position:relative;display:inline-flex;align-items:center}
     .nav-dropdown-trigger{color:white;text-decoration:none;opacity:.95}
@@ -39,11 +63,15 @@
     .nav-dropdown:hover .nav-dropdown-panel,.nav-dropdown:focus-within .nav-dropdown-panel{display:block}
     .nav-dropdown-panel a{display:block;margin:0;padding:12px 14px;color:var(--green-dark);font-size:14px;font-weight:700;text-decoration:none;white-space:normal}
     .nav-dropdown-panel a:hover{background:var(--green-light);opacity:1}
-    .contact-helper{text-align:center;margin:28px auto 0;color:var(--green-dark);font-weight:800}
-    .contact-helper a{color:var(--green-mid)}
+    .bottom-cta{margin:56px auto 0;padding:28px;border-radius:8px;background:var(--green-dark);color:white;text-align:center;max-width:860px}
+    .bottom-cta h3{margin:0 0 8px;font-size:24px;color:white}
+    .bottom-cta p{margin:0 auto 18px;max-width:620px;color:rgba(255,255,255,.82)}
+    .bottom-cta .btn{background:white;color:var(--green-dark)}
     @media(max-width:760px){
       .choice-grid{grid-template-columns:1fr}
       .choice-button p{min-height:0}
+      .advisory-request{grid-template-columns:1fr}
+      .form-grid{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -125,8 +153,6 @@
             <p class="muted">Buyer readiness, portfolio packaging, credit positioning, market linkage, and transaction support.</p>
           </button>
         </div>
-        <p class="contact-helper">Unable to decide? <a href="index.html#contact">Get in touch with us.</a></p>
-
         <div class="options-panel" id="optionsPanel">
           <div class="page-intro">
             <h2 class="section-title" id="optionsTitle" style="text-align:center">Select Option</h2>
@@ -137,122 +163,235 @@
           <div class="infinite-slider">
             <div class="slider-track" id="projectSlider"></div>
           </div>
-          <p class="contact-helper" id="contactHelper"></p>
+          <div class="advisory-request" id="advisoryRequestPanel">
+            <form class="request-form" id="advisoryForm">
+              <div class="form-grid">
+                <div class="field">
+                  <label for="selectedScope">Sectoral Scope</label>
+                  <input id="selectedScope" name="selectedScope" type="text" readonly>
+                </div>
+                <div class="field">
+                  <label for="selectedActivity">Related Activity</label>
+                  <select id="selectedActivity" name="selectedActivity"></select>
+                </div>
+                <div class="field">
+                  <label for="contactName">Name</label>
+                  <input id="contactName" name="contactName" type="text" placeholder="Your name">
+                </div>
+                <div class="field">
+                  <label for="contactEmail">Email</label>
+                  <input id="contactEmail" name="contactEmail" type="email" placeholder="name@company.com">
+                </div>
+                <div class="field">
+                  <label for="contactCompany">Company</label>
+                  <input id="contactCompany" name="contactCompany" type="text" placeholder="Organisation">
+                </div>
+                <div class="field">
+                  <label for="contactPhone">Phone</label>
+                  <input id="contactPhone" name="contactPhone" type="tel" placeholder="Optional">
+                </div>
+                <div class="field full">
+                  <label for="meetingPreference">Meeting Preference</label>
+                  <input id="meetingPreference" name="meetingPreference" type="text" placeholder="Select a date and time slot from the calendar" readonly>
+                </div>
+                <div class="field full">
+                  <label for="projectNote">Project Note</label>
+                  <textarea id="projectNote" name="projectNote" placeholder="Briefly describe the project, location, stage, and support needed."></textarea>
+                </div>
+                <div class="field full">
+                  <button class="btn" id="submitEnquiry" type="button">Submit enquiry</button>
+                  <p class="form-message" id="formMessage">Based on availability among your selected slots, the meeting invite will be shared.</p>
+                </div>
+              </div>
+            </form>
+            <aside class="meeting-card">
+              <h3>Setup a meeting invite</h3>
+              <p class="muted">Calendar booking will be enabled later. For now, share your preferred time in the project note.</p>
+              <div class="calendar-shell" aria-label="Meeting calendar placeholder">
+                <div class="calendar-head"><span>June 2026</span><span>Invite setup</span></div>
+                <div class="calendar-grid">
+                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                  <button type="button" data-date="June 1, 2026">1</button><button type="button" data-date="June 2, 2026">2</button><button type="button" data-date="June 3, 2026">3</button><button type="button" data-date="June 4, 2026">4</button><button type="button" data-date="June 5, 2026">5</button><button type="button" data-date="June 6, 2026">6</button><button type="button" data-date="June 7, 2026">7</button>
+                  <button type="button" data-date="June 8, 2026">8</button><button type="button" data-date="June 9, 2026">9</button><button type="button" data-date="June 10, 2026">10</button><button type="button" data-date="June 11, 2026">11</button><button type="button" data-date="June 12, 2026">12</button><button type="button" data-date="June 13, 2026">13</button><button type="button" data-date="June 14, 2026">14</button>
+                  <button type="button" data-date="June 15, 2026">15</button><button type="button" data-date="June 16, 2026">16</button><button type="button" data-date="June 17, 2026">17</button><button type="button" data-date="June 18, 2026">18</button><button type="button" data-date="June 19, 2026">19</button><button type="button" data-date="June 20, 2026">20</button><button type="button" data-date="June 21, 2026">21</button>
+                  <button type="button" data-date="June 22, 2026">22</button><button type="button" data-date="June 23, 2026">23</button><button type="button" data-date="June 24, 2026">24</button><button type="button" data-date="June 25, 2026">25</button><button type="button" data-date="June 26, 2026">26</button><button type="button" data-date="June 27, 2026">27</button><button type="button" data-date="June 28, 2026">28</button>
+                  <button type="button" data-date="June 29, 2026">29</button><button type="button" data-date="June 30, 2026">30</button><span class="muted-day">1</span><span class="muted-day">2</span><span class="muted-day">3</span><span class="muted-day">4</span><span class="muted-day">5</span>
+                </div>
+              </div>
+              <div class="slot-grid" id="timeSlots" aria-label="Preferred time slots">
+                <button type="button" data-slot="Morning">Morning</button>
+                <button type="button" data-slot="Noon">Noon</button>
+                <button type="button" data-slot="Afternoon to evening">Afternoon to evening</button>
+              </div>
+              <p class="calendar-note" id="calendarSelection">Select a date to view broad time-slot options. This is a placeholder for now.</p>
+            </aside>
+          </div>
+        </div>
+        <div class="bottom-cta">
+          <h3>Need help choosing the right route?</h3>
+          <p>Share your project context with us and we will help identify the most suitable advisory, asset development, or commercialisation pathway.</p>
+          <a class="btn" href="index.html#contact">Get in touch</a>
         </div>
       </div>
     </section>
   </main>
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
   <script>
-    const advisoryData = {
-      feasibility: {
-        label: "Feasibility",
-        summary: "Early project screening for eligibility, project boundary, baseline approach, methodology fit, risks, and data readiness.",
-        items: [
-          { title: "Project Feasibility", desc: "Assess whether the project idea can move forward under suitable carbon standards and market expectations.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Methodology Screening", desc: "Compare relevant methodologies and identify the most practical route for project development.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Data Gap Review", desc: "Identify missing activity data, geospatial evidence, ownership records, and monitoring inputs before development starts.", href: "climate-advisory-projects.html", tag: "Advisory" }
-        ]
+    const combinedActivity = "Multiple activities combined";
+    const unlistedActivity = "New or unlisted activity";
+    const sectorScopes = {
+      energySupply: {
+        label: "Energy Supply",
+        summary: "Renewable energy, cleaner generation, fuel transition, and energy supply decarbonisation.",
+        activities: ["Renewable energy generation", "Fuel switching", "Waste heat recovery", "Grid emission reduction", "Captive clean power"],
+        cad: ["Renewable Energy", "Fuel Switching", "Waste Heat Recovery", "Grid Emission Reduction", "Captive Clean Power"]
       },
-      pdd: {
-        label: "PDD",
-        summary: "Project Design Document advisory for baseline, additionality, project boundary, monitoring plan, safeguards, and documentation structure.",
-        items: [
-          { title: "PDD Structuring", desc: "Organize project information into a clear design document aligned with the selected methodology.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Baseline & Additionality", desc: "Support baseline selection, additionality logic, leakage consideration, and assumptions documentation.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Safeguards & Stakeholders", desc: "Prepare safeguard, stakeholder, ownership, and co-benefit records for review readiness.", href: "climate-advisory-projects.html", tag: "Advisory" }
-        ]
+      energyDistribution: {
+        label: "Energy Distribution",
+        summary: "Transmission, distribution, grid efficiency, and energy delivery improvement.",
+        activities: ["Distribution loss reduction", "Transmission efficiency", "Mini-grid systems", "Smart metering", "Efficient transformers"],
+        cad: ["Distribution Loss Reduction", "Grid Efficiency", "Mini-grid Carbon Project", "Smart Metering", "Transformer Efficiency"]
       },
-      monitoring: {
-        label: "Monitoring",
-        summary: "Monitoring plan advisory for activity tracking, evidence systems, data quality, geospatial support, and MRV readiness.",
-        items: [
-          { title: "Monitoring Plan", desc: "Design monitoring parameters, data collection frequency, responsibilities, and quality control workflows.", href: "dmrv.html", tag: "Advisory" },
-          { title: "Evidence System", desc: "Set up traceable records for field activity, production, land-use, or operational project evidence.", href: "dmrv.html", tag: "Advisory" },
-          { title: "dMRV Readiness", desc: "Translate monitoring requirements into digital workflows for continuous evidence and review support.", href: "dmrv.html", tag: "Advisory" }
-        ]
+      energyDemand: {
+        label: "Energy Demand",
+        summary: "Demand-side efficiency, lower energy consumption, and reduced end-use emissions.",
+        activities: ["Energy efficiency", "Demand-side management", "Efficient appliances", "Lighting efficiency", "Building energy optimisation"],
+        cad: ["Energy Efficiency", "Demand-Side Management", "Efficient Appliances", "LED / Lighting Projects", "Building Energy Optimisation"]
       },
-      registry: {
-        label: "Registry",
-        summary: "Registry pathway advisory for account readiness, project listing, document submission, validation coordination, and issuance workflow.",
-        items: [
-          { title: "Registry Pathway", desc: "Map the project to suitable registry requirements, submission stages, and review expectations.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Listing Support", desc: "Prepare project listing material, supporting documents, and registry-facing information packs.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Review Coordination", desc: "Support responses, document updates, and issue tracking during registry review cycles.", href: "climate-advisory-projects.html", tag: "Advisory" }
-        ]
+      manufacturing: {
+        label: "Manufacturing Industries",
+        summary: "Industrial decarbonisation, process efficiency, and lower-carbon manufacturing systems.",
+        activities: ["Industrial energy efficiency", "Process optimisation", "Low-carbon heat", "Material efficiency", "Industrial fuel switching"],
+        cad: ["Industrial Energy Efficiency", "Process Optimisation", "Low-carbon Thermal Systems", "Material Efficiency", "Industrial Fuel Switching"]
       },
-      validation: {
-        label: "Validation & Verification",
-        summary: "Independent review readiness support for validation, verification, audit evidence, corrective actions, and query responses.",
-        items: [
-          { title: "Validation Readiness", desc: "Prepare the project design, evidence files, and assumptions for validator review.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Verification Readiness", desc: "Organize monitoring reports, supporting records, and audit trails for verification.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Query Response Support", desc: "Track findings, clarify evidence, and support corrective action documentation.", href: "climate-advisory-projects.html", tag: "Advisory" }
-        ]
+      chemicals: {
+        label: "Chemical Industries",
+        summary: "Chemical process emissions, substitution, input changes, and emissions control.",
+        activities: ["Process emissions reduction", "Feedstock substitution", "Nitric acid abatement", "Low-carbon chemicals", "Solvent replacement"],
+        cad: ["Process Emission Reduction", "Feedstock Substitution", "N2O Abatement", "Low-carbon Chemicals", "Solvent Replacement"]
       },
-      issuance: {
-        label: "Issuance Readiness",
-        summary: "Advisory for monitoring report completion, issuance documentation, credit delivery files, and market-facing evidence packs.",
-        items: [
-          { title: "Monitoring Report Review", desc: "Review monitoring report completeness before submission and verification stages.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Issuance File Pack", desc: "Organize registry files, verification statements, serial records, and supporting documentation.", href: "climate-advisory-projects.html", tag: "Advisory" },
-          { title: "Buyer Evidence Pack", desc: "Prepare concise post-issuance material for buyer diligence and commercial conversations.", href: "climate-advisory-projects.html", tag: "Advisory" }
-        ]
+      construction: {
+        label: "Construction",
+        summary: "Built environment, construction material efficiency, and lower-carbon infrastructure.",
+        activities: ["Low-carbon building materials", "Embodied carbon reduction", "Construction waste reduction", "Green building systems", "Efficient cement use"],
+        cad: ["Low-carbon Materials", "Embodied Carbon Reduction", "Construction Waste Reduction", "Green Buildings", "Cement Efficiency"]
+      },
+      transport: {
+        label: "Transport",
+        summary: "Cleaner mobility, fuel transition, transport efficiency, and access-linked emission reduction.",
+        activities: ["EV transition", "Public transport shift", "Fleet efficiency", "Clean cooking distribution", "Water purification access"],
+        cad: ["EV & Clean Transport", "Public Transport Modal Shift", "Fleet Efficiency", "Improved Cookstoves", "Water Purification"]
+      },
+      mining: {
+        label: "Mining & Mineral Production",
+        summary: "Mining energy transition, methane management, mineral processing efficiency, and restoration.",
+        activities: ["Mining energy efficiency", "Mine methane avoidance", "Low-carbon mineral processing", "Renewable mine power", "Mine land restoration"],
+        cad: ["Mining Energy Efficiency", "Mine Methane Avoidance", "Mineral Processing Efficiency", "Renewable Mine Power", "Mine Land Restoration"]
+      },
+      metals: {
+        label: "Metal Production",
+        summary: "Metal production emissions, process efficiency, fuel transition, and lower-carbon processing.",
+        activities: ["Steel process efficiency", "Aluminium efficiency", "Low-carbon furnaces", "Scrap recovery", "Fuel switching"],
+        cad: ["Steel Efficiency", "Aluminium Efficiency", "Low-carbon Furnaces", "Scrap Recovery", "Metals Fuel Switching"]
+      },
+      fugitiveFuels: {
+        label: "Fugitive Emissions - Fuels",
+        summary: "Methane and fugitive emissions from fuel systems, extraction, processing, and distribution.",
+        activities: ["Methane leak detection", "Gas recovery", "Coal mine methane", "Flare reduction", "Pipeline leakage reduction"],
+        cad: ["Methane Leak Reduction", "Gas Recovery", "Coal Mine Methane", "Flare Reduction", "Pipeline Leakage Reduction"]
+      },
+      fugitiveGases: {
+        label: "Fugitive Emissions - Gases",
+        summary: "Industrial gas leakage, refrigerants, gas handling, and emissions control.",
+        activities: ["Refrigerant management", "Industrial gas leakage reduction", "Gas recovery", "Leak detection systems", "HFC replacement"],
+        cad: ["Refrigerant Management", "Industrial Gas Leakage Reduction", "Gas Recovery", "Leak Detection", "HFC Replacement"]
+      },
+      solvents: {
+        label: "Solvents Use",
+        summary: "Solvent substitution, process change, and emissions reduction from solvent use.",
+        activities: ["Solvent substitution", "Low-VOC processes", "Process redesign", "Recovery and reuse", "Input material transition"],
+        cad: ["Solvent Substitution", "Low-VOC Process Change", "Process Redesign", "Solvent Recovery", "Input Transition"]
+      },
+      waste: {
+        label: "Waste Handling & Disposal",
+        summary: "Waste management, methane avoidance, circular systems, recovery, and disposal improvements.",
+        activities: ["Waste to energy", "Landfill gas capture", "Composting", "Plastic recovery", "E-waste recovery"],
+        cad: ["Waste to Energy", "Landfill Gas / Biogas", "Composting", "Plastic Waste Management", "E-waste Recovery"]
+      },
+      forestry: {
+        label: "Forestry & Other Land Use",
+        summary: "AFOLU project types including forest creation, conservation, improved management, and blue carbon.",
+        activities: ["ARR", "IFM", "REDD+", "Blue carbon", "Agroforestry", "Bamboo"],
+        cad: ["ARR", "IFM", "REDD+", "Blue Carbon", "Agroforestry", "Bamboo"]
+      },
+      agriculture: {
+        label: "Agriculture",
+        summary: "Agriculture, soil carbon, methane reduction, regenerative practices, and farm-level carbon systems.",
+        activities: ["ALM / soil carbon", "AWD rice methane", "Regenerative agriculture", "Biochar to soil", "Manure management"],
+        cad: ["ALM / Soil Carbon", "AWD Rice Methane", "Regenerative Agriculture", "Biochar to Soil", "Manure Management"]
+      },
+      geologicalStorage: {
+        label: "Geological Carbon Storage",
+        summary: "Geological carbon storage readiness, monitoring concepts, and storage integrity systems.",
+        activities: ["Storage feasibility", "Site screening", "Injection monitoring", "Storage integrity", "Registry alignment"],
+        cad: ["Storage Feasibility", "Site Screening", "Injection Monitoring", "Storage Integrity", "Registry Alignment"]
+      },
+      engineeredRemovals: {
+        label: "Other Engineered Removals",
+        summary: "Engineered carbon removal including biochar, durable removals, and technology-led CDR pathways.",
+        activities: ["Biochar", "Direct air capture", "Enhanced weathering", "Mineralisation", "Durable carbon storage"],
+        cad: ["Biochar", "Direct Air Capture", "Enhanced Weathering", "Mineralisation", "Durable Carbon Storage"]
+      },
+      oceans: {
+        label: "Oceans & Marine Resources",
+        summary: "Marine, coastal, blue carbon, ocean restoration, and marine resource climate pathways.",
+        activities: ["Blue carbon", "Mangrove restoration", "Seagrass restoration", "Coastal wetland restoration", "Marine resource recovery"],
+        cad: ["Blue Carbon", "Mangrove Restoration", "Seagrass Restoration", "Coastal Wetlands", "Marine Resource Recovery"]
       }
     };
 
+    Object.values(sectorScopes).forEach((scope) => {
+      scope.activities = [...scope.activities, combinedActivity, unlistedActivity];
+      scope.cad = [...scope.cad, combinedActivity, unlistedActivity];
+    });
+
+    const advisoryData = Object.fromEntries(
+      Object.entries(sectorScopes).map(([key, scope]) => [
+        key,
+        {
+          label: scope.label,
+          summary: `${scope.summary} Select the sectoral scope to share project details and request advisory support.`,
+          activities: scope.activities
+        }
+      ])
+    );
+
+    const cadData = Object.fromEntries(
+      Object.entries(sectorScopes).map(([key, scope]) => [
+        key,
+        {
+          label: scope.label,
+          summary: `${scope.summary} Select an activity below to continue into carbon asset development support.`,
+          items: scope.cad.map((activity) => ({
+            title: activity,
+            desc: activity === combinedActivity
+              ? "Use this when one project combines more than one activity pathway."
+              : activity === unlistedActivity
+              ? "Use this when the project activity is new, emerging, or not covered in the listed options."
+              : `Carbon asset development support for ${activity}.`,
+            href: "climate-advisory-projects.html",
+            tag: scope.label
+          }))
+        }
+      ])
+    );
+
     const pathwayData = {
       assetDevelopment: {
-        title: "Carbon Asset Development Options",
-        intro: "Choose the project development stage you want to explore.",
-        defaultKey: "feasibility",
-        options: {
-          feasibility: {
-            label: "Feasibility",
-            summary: "Early screening for project eligibility, boundary, baseline, additionality, risks, and methodology fit.",
-            items: [
-              { title: "ARR Feasibility", desc: "Screen afforestation, reforestation, and revegetation opportunities before design begins.", href: "login.html?next=arr-phase1-feasibility-tool1.html", tag: "Login Required" },
-              { title: "Biochar Feasibility", desc: "Evaluate feedstock, technology, permanence, and registry pathways for biochar projects.", href: "biochar.html", tag: "Login Required" },
-              { title: "ALM Feasibility", desc: "Assess agricultural land management potential and data readiness.", href: "login.html?next=alm.html", tag: "Login Required" }
-            ]
-          },
-          design: {
-            label: "Design & Documentation",
-            summary: "Project design documents, monitoring plans, safeguards, stakeholder records, and validation-ready files.",
-            items: [
-              { title: "ARR Project Design", desc: "Design project structure, activity data, monitoring plots, and documentation systems.", href: "login.html?next=arr-phase2-design-tool1.html", tag: "Login Required" },
-              { title: "Biochar Project Design", desc: "Prepare biochar project design, batch records, monitoring plans, and registry files.", href: "biochar.html", tag: "Login Required" },
-              { title: "Methodology Fitment", desc: "Map project activities to suitable carbon standards and documentation expectations.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
-            ]
-          },
-          implementation: {
-            label: "Implementation",
-            summary: "Field execution support, operational records, activity tracking, quality checks, and implementation evidence.",
-            items: [
-              { title: "ARR Implementation", desc: "Track plantation, survival, field evidence, and implementation readiness.", href: "login.html?next=arr-phase3-implementation-tool1.html", tag: "Login Required" },
-              { title: "Biochar Implementation", desc: "Manage production, application, traceability, and operational evidence.", href: "biochar.html", tag: "Login Required" },
-              { title: "Project Controls", desc: "Build execution workflows that keep records aligned with verification needs.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
-            ]
-          },
-          monitoring: {
-            label: "MRV & Validation",
-            summary: "Monitoring systems, evidence trails, validation coordination, and verification readiness.",
-            items: [
-              { title: "ARR MRV", desc: "Connect field data, geospatial evidence, and monitoring records.", href: "login.html?next=arr-phase4-mrv-tool1.html", tag: "Login Required" },
-              { title: "Biochar MRV", desc: "Structure batch-level evidence, permanence records, and issuance documentation.", href: "biochar.html", tag: "Login Required" },
-              { title: "dMRV Systems", desc: "Set up digital MRV workflows for continuous evidence and review readiness.", href: "login.html?next=dmrv.html", tag: "Login Required" }
-            ]
-          },
-          issuance: {
-            label: "Issuance Readiness",
-            summary: "Registry coordination, monitoring reports, verifier queries, issuance records, and post-issuance files.",
-            items: [
-              { title: "Registry Coordination", desc: "Prepare project files, review responses, and issuance support records.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
-              { title: "Monitoring Report Support", desc: "Translate project evidence into review-ready reporting packs.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" },
-              { title: "Credit Delivery Files", desc: "Organize issuance documents, evidence archives, and buyer-facing material.", href: "login.html?next=climate-advisory-projects.html", tag: "Login Required" }
-            ]
-          }
-        }
+        title: "Carbon Asset Development Sectoral Scopes",
+        intro: "Choose the sectoral scope to view related carbon asset development activities.",
+        defaultKey: "forestry",
+        options: cadData
       },
       commercialisation: {
         title: "Commercialisation Options",
@@ -302,10 +441,22 @@
     const tabs = document.getElementById("categoryTabs");
     const summary = document.getElementById("categorySummary");
     const slider = document.getElementById("projectSlider");
+    const sliderWrap = document.querySelector(".infinite-slider");
+    const advisoryRequestPanel = document.getElementById("advisoryRequestPanel");
+    const selectedScopeInput = document.getElementById("selectedScope");
+    const selectedActivitySelect = document.getElementById("selectedActivity");
+    const meetingPreferenceInput = document.getElementById("meetingPreference");
+    const calendarSelection = document.getElementById("calendarSelection");
+    const timeSlots = document.getElementById("timeSlots");
+    const formMessage = document.getElementById("formMessage");
+    const submitEnquiry = document.getElementById("submitEnquiry");
     const optionsPanel = document.getElementById("optionsPanel");
     const optionsTitle = document.getElementById("optionsTitle");
     const optionsIntro = document.getElementById("optionsIntro");
     let currentOptions = null;
+    let currentPathway = null;
+    let selectedMeetingDate = "";
+    let selectedMeetingSlot = "";
 
     function loginHref(target) {
       let nextTarget = target || "";
@@ -336,9 +487,21 @@
       tabs.querySelectorAll("button").forEach((button) => {
         button.classList.toggle("active", button.dataset.option === key);
       });
-      const cards = [...selected.items, ...selected.items].map(cardTemplate).join("");
-      slider.innerHTML = cards;
-      document.getElementById("contactHelper").innerHTML = "Unable to decide? <a href=\"index.html#contact\">Get in touch with us.</a>";
+      if (currentPathway === "advisory") {
+        slider.innerHTML = "";
+        sliderWrap.style.display = "none";
+        advisoryRequestPanel.classList.add("visible");
+        formMessage.classList.remove("visible");
+        selectedScopeInput.value = selected.label;
+        selectedActivitySelect.innerHTML = selected.activities
+          .map((activity) => `<option value="${activity}">${activity}</option>`)
+          .join("");
+      } else {
+        advisoryRequestPanel.classList.remove("visible");
+        sliderWrap.style.display = "";
+        const cards = [...selected.items, ...selected.items].map(cardTemplate).join("");
+        slider.innerHTML = cards;
+      }
       slider.style.animation = "none";
       void slider.offsetWidth;
       slider.style.animation = "";
@@ -358,11 +521,12 @@
 
     function selectPathway(key) {
       const isAdvisory = key === "advisory";
+      currentPathway = key;
       currentOptions = isAdvisory
         ? {
-            title: "Advisory Options",
-            intro: "Choose the advisory support area you want to explore.",
-            defaultKey: "feasibility",
+            title: "Advisory Sectoral Scopes",
+            intro: "Choose the sectoral scope to open the enquiry form with related activity options.",
+            defaultKey: "forestry",
             options: advisoryData
           }
         : pathwayData[key];
@@ -379,6 +543,45 @@
 
     document.querySelectorAll(".choice-button").forEach((button) => {
       button.addEventListener("click", () => selectPathway(button.dataset.pathway));
+    });
+
+    function updateMeetingPreference() {
+      if (selectedMeetingDate && selectedMeetingSlot) {
+        meetingPreferenceInput.value = `${selectedMeetingDate} - ${selectedMeetingSlot}`;
+        calendarSelection.textContent = `Selected: ${meetingPreferenceInput.value}`;
+      } else if (selectedMeetingDate) {
+        meetingPreferenceInput.value = selectedMeetingDate;
+        calendarSelection.textContent = `${selectedMeetingDate} selected. Choose a time slot.`;
+      } else {
+        meetingPreferenceInput.value = "";
+        calendarSelection.textContent = "Select a date to view broad time-slot options. This is a placeholder for now.";
+      }
+    }
+
+    document.querySelectorAll("[data-date]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedMeetingDate = button.dataset.date;
+        selectedMeetingSlot = "";
+        document.querySelectorAll("[data-date]").forEach((dateButton) => dateButton.classList.toggle("active", dateButton === button));
+        document.querySelectorAll("[data-slot]").forEach((slotButton) => slotButton.classList.remove("active"));
+        timeSlots.classList.add("visible");
+        formMessage.classList.remove("visible");
+        updateMeetingPreference();
+      });
+    });
+
+    document.querySelectorAll("[data-slot]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedMeetingSlot = button.dataset.slot;
+        document.querySelectorAll("[data-slot]").forEach((slotButton) => slotButton.classList.toggle("active", slotButton === button));
+        formMessage.classList.remove("visible");
+        updateMeetingPreference();
+      });
+    });
+
+    submitEnquiry.addEventListener("click", () => {
+      formMessage.textContent = "Based on availability among your selected slots, the meeting invite will be shared.";
+      formMessage.classList.add("visible");
     });
   </script>
 </body>
