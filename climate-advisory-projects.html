@@ -32,6 +32,13 @@
     .category-summary{max-width:820px;margin:0 auto 28px;text-align:center;color:var(--muted)}
     .project-card h3{min-height:48px}
     .project-card .tag{display:inline-block;margin-bottom:12px;border-radius:999px;background:var(--green-light);color:var(--green-dark);font-size:12px;font-weight:800;padding:6px 10px}
+    .advisory-services{display:none;margin:0 auto 42px}
+    .advisory-services.visible{display:block}
+    .advisory-services .page-intro{margin-bottom:22px}
+    .scope-heading{display:none;text-align:center;margin:0 auto 22px;max-width:760px}
+    .scope-heading.visible{display:block}
+    .scope-heading h3{margin:0 0 8px;color:var(--green-dark);font-size:26px}
+    .scope-heading p{margin:0}
     .advisory-request{display:none;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:24px;align-items:start;margin-top:22px}
     .advisory-request.visible{display:grid}
     .request-form,.meeting-card{background:white;border:1px solid rgba(15,95,68,.12);border-radius:8px;box-shadow:0 12px 28px rgba(11,61,46,.08);padding:24px}
@@ -158,9 +165,24 @@
             <h2 class="section-title" id="optionsTitle" style="text-align:center">Select Option</h2>
             <p class="muted" id="optionsIntro"></p>
           </div>
+          <div class="advisory-services" id="advisoryServicesPanel">
+            <div class="page-intro">
+              <h2 class="section-title" style="text-align:center">Advisory Services Provided</h2>
+              <p class="muted">Select an advisory area to view the specific sub-activities we support.</p>
+            </div>
+            <div class="category-tabs" id="advisoryServiceTabs" aria-label="Advisory service options"></div>
+            <p class="category-summary" id="advisoryServiceSummary"></p>
+            <div class="infinite-slider">
+              <div class="slider-track" id="advisoryServiceSlider"></div>
+            </div>
+          </div>
+          <div class="scope-heading" id="scopeHeading">
+            <h3>Advisory Sectoral Scope</h3>
+            <p class="muted">Choose the sectoral scope below to open the enquiry form with related activity options.</p>
+          </div>
           <div class="category-tabs" id="categoryTabs" aria-label="Climate advisory options"></div>
           <p class="category-summary" id="categorySummary"></p>
-          <div class="infinite-slider">
+          <div class="infinite-slider" id="optionSliderWrap">
             <div class="slider-track" id="projectSlider"></div>
           </div>
           <div class="advisory-request" id="advisoryRequestPanel">
@@ -366,6 +388,63 @@
       ])
     );
 
+    const advisoryServices = {
+      feasibility: {
+        label: "Feasibility",
+        summary: "Early advisory for project eligibility, boundary, baseline approach, methodology fit, risks, and data readiness.",
+        items: [
+          { title: "Project Feasibility", desc: "Assess whether the project idea can move forward under suitable carbon standards and market expectations.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Methodology Screening", desc: "Compare relevant methodologies and identify the most practical route for project development.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Data Gap Review", desc: "Identify missing activity data, geospatial evidence, ownership records, and monitoring inputs before development starts.", href: "climate-advisory-projects.html", tag: "Advisory" }
+        ]
+      },
+      pdd: {
+        label: "PDD",
+        summary: "Project Design Document advisory for baseline, additionality, project boundary, monitoring plan, safeguards, and documentation structure.",
+        items: [
+          { title: "PDD Structuring", desc: "Organize project information into a clear design document aligned with the selected methodology.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Baseline & Additionality", desc: "Support baseline selection, additionality logic, leakage consideration, and assumptions documentation.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Safeguards & Stakeholders", desc: "Prepare safeguard, stakeholder, ownership, and co-benefit records for review readiness.", href: "climate-advisory-projects.html", tag: "Advisory" }
+        ]
+      },
+      monitoring: {
+        label: "Monitoring",
+        summary: "Monitoring plan advisory for activity tracking, evidence systems, data quality, geospatial support, and MRV readiness.",
+        items: [
+          { title: "Monitoring Plan", desc: "Design monitoring parameters, data collection frequency, responsibilities, and quality control workflows.", href: "dmrv.html", tag: "Advisory" },
+          { title: "Evidence System", desc: "Set up traceable records for field activity, production, land-use, or operational project evidence.", href: "dmrv.html", tag: "Advisory" },
+          { title: "dMRV Readiness", desc: "Translate monitoring requirements into digital workflows for continuous evidence and review support.", href: "dmrv.html", tag: "Advisory" }
+        ]
+      },
+      registry: {
+        label: "Registry",
+        summary: "Registry pathway advisory for account readiness, project listing, document submission, validation coordination, and issuance workflow.",
+        items: [
+          { title: "Registry Pathway", desc: "Map the project to suitable registry requirements, submission stages, and review expectations.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Listing Support", desc: "Prepare project listing material, supporting documents, and registry-facing information packs.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Review Coordination", desc: "Support responses, document updates, and issue tracking during registry review cycles.", href: "climate-advisory-projects.html", tag: "Advisory" }
+        ]
+      },
+      validation: {
+        label: "Validation & Verification",
+        summary: "Independent review readiness support for validation, verification, audit evidence, corrective actions, and query responses.",
+        items: [
+          { title: "Validation Readiness", desc: "Prepare the project design, evidence files, and assumptions for validator review.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Verification Readiness", desc: "Organize monitoring reports, supporting records, and audit trails for verification.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Query Response Support", desc: "Track findings, clarify evidence, and support corrective action documentation.", href: "climate-advisory-projects.html", tag: "Advisory" }
+        ]
+      },
+      issuance: {
+        label: "Issuance Readiness",
+        summary: "Advisory for monitoring report completion, issuance documentation, credit delivery files, and market-facing evidence packs.",
+        items: [
+          { title: "Monitoring Report Review", desc: "Review monitoring report completeness before submission and verification stages.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Issuance File Pack", desc: "Organize registry files, verification statements, serial records, and supporting documentation.", href: "climate-advisory-projects.html", tag: "Advisory" },
+          { title: "Buyer Evidence Pack", desc: "Prepare concise post-issuance material for buyer diligence and commercial conversations.", href: "climate-advisory-projects.html", tag: "Advisory" }
+        ]
+      }
+    };
+
     const cadData = Object.fromEntries(
       Object.entries(sectorScopes).map(([key, scope]) => [
         key,
@@ -441,7 +520,12 @@
     const tabs = document.getElementById("categoryTabs");
     const summary = document.getElementById("categorySummary");
     const slider = document.getElementById("projectSlider");
-    const sliderWrap = document.querySelector(".infinite-slider");
+    const sliderWrap = document.getElementById("optionSliderWrap");
+    const advisoryServicesPanel = document.getElementById("advisoryServicesPanel");
+    const advisoryServiceTabs = document.getElementById("advisoryServiceTabs");
+    const advisoryServiceSummary = document.getElementById("advisoryServiceSummary");
+    const advisoryServiceSlider = document.getElementById("advisoryServiceSlider");
+    const scopeHeading = document.getElementById("scopeHeading");
     const advisoryRequestPanel = document.getElementById("advisoryRequestPanel");
     const selectedScopeInput = document.getElementById("selectedScope");
     const selectedActivitySelect = document.getElementById("selectedActivity");
@@ -490,6 +574,7 @@
       if (currentPathway === "advisory") {
         slider.innerHTML = "";
         sliderWrap.style.display = "none";
+        scopeHeading.classList.add("visible");
         advisoryRequestPanel.classList.add("visible");
         formMessage.classList.remove("visible");
         selectedScopeInput.value = selected.label;
@@ -497,6 +582,7 @@
           .map((activity) => `<option value="${activity}">${activity}</option>`)
           .join("");
       } else {
+        scopeHeading.classList.remove("visible");
         advisoryRequestPanel.classList.remove("visible");
         sliderWrap.style.display = "";
         const cards = [...selected.items, ...selected.items].map(cardTemplate).join("");
@@ -505,6 +591,31 @@
       slider.style.animation = "none";
       void slider.offsetWidth;
       slider.style.animation = "";
+    }
+
+    function renderAdvisoryService(key) {
+      const selected = advisoryServices[key];
+      advisoryServiceSummary.textContent = selected.summary;
+      advisoryServiceTabs.querySelectorAll("button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.service === key);
+      });
+      advisoryServiceSlider.innerHTML = [...selected.items, ...selected.items].map(cardTemplate).join("");
+      advisoryServiceSlider.style.animation = "none";
+      void advisoryServiceSlider.offsetWidth;
+      advisoryServiceSlider.style.animation = "";
+    }
+
+    function renderAdvisoryServiceTabs() {
+      advisoryServiceTabs.innerHTML = "";
+      Object.entries(advisoryServices).forEach(([key, value]) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.service = key;
+        button.textContent = value.label;
+        button.addEventListener("click", () => renderAdvisoryService(key));
+        advisoryServiceTabs.appendChild(button);
+      });
+      renderAdvisoryService("issuance");
     }
 
     function renderTabs(options) {
@@ -524,13 +635,21 @@
       currentPathway = key;
       currentOptions = isAdvisory
         ? {
-            title: "Advisory Sectoral Scopes",
-            intro: "Choose the sectoral scope to open the enquiry form with related activity options.",
+            title: "Advisory",
+            intro: "Review the advisory services provided, then choose the sectoral scope to open the enquiry form with related activity options.",
             defaultKey: "forestry",
             options: advisoryData
           }
         : pathwayData[key];
 
+      advisoryServicesPanel.classList.toggle("visible", isAdvisory);
+      if (isAdvisory) {
+        renderAdvisoryServiceTabs();
+      } else {
+        scopeHeading.classList.remove("visible");
+        advisoryServiceTabs.innerHTML = "";
+        advisoryServiceSlider.innerHTML = "";
+      }
       document.querySelectorAll(".choice-button").forEach((button) => {
         button.classList.toggle("active", button.dataset.pathway === key);
       });
