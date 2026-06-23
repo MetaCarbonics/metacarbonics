@@ -145,7 +145,7 @@
             <div class="role-grid" id="roleGrid"></div>
             <div class="registry-actions">
               <button class="btn" id="openHomepage" type="button">Open homepage</button>
-              <a class="btn-outline" id="repoLink" href="../ClimaScope/README.md">Open linked repo</a>
+              <a class="btn-outline" id="repoLink" href="../ClimaScope/climascope.html">Open linked page</a>
             </div>
           </div>
         </section>
@@ -174,7 +174,7 @@
         badge: "ClimaScope",
         title: "ClimaScope Registry",
         intro: "Register the company first. The logged-in user becomes the company admin for BRSR assurance and ESG workflows.",
-        repo: "../ClimaScope/index.html",
+        repo: "../ClimaScope/climascope.html",
         roles: {
           "Company Admin": ["Company profile", "User requests", "BRSR workspace setup", "Assurance file status"],
           "Facility Manager": ["Facility data upload", "Utility evidence", "Waste and water records", "Open queries"],
@@ -236,7 +236,7 @@
       document.getElementById("registryTitle").textContent = data.title;
       document.getElementById("registryIntro").textContent = data.intro;
       document.getElementById("repoLink").href = data.repo;
-      document.getElementById("repoLink").textContent = service === "brsr" ? "Open ClimaScope repo" : "Open linked page";
+      document.getElementById("repoLink").textContent = service === "brsr" ? "Open ClimaScope" : "Open linked page";
       userType.innerHTML = Object.keys(data.roles).map((role) => `<option>${role}</option>`).join("");
       roleGrid.innerHTML = Object.entries(data.roles).map(([role, items]) => `
         <div class="role-card">
