@@ -50,17 +50,22 @@
     .field input[readonly]{background:var(--green-light);font-weight:800}
     .field textarea{min-height:96px;resize:vertical}
     .calendar-shell{margin-top:16px;border:1px solid rgba(15,95,68,.12);border-radius:8px;overflow:hidden}
-    .calendar-head{display:flex;justify-content:space-between;align-items:center;background:var(--green-dark);color:white;padding:12px 14px;font-weight:800}
+    .calendar-head{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--green-dark);color:white;padding:12px 14px;font-weight:800}
+    .calendar-head button{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:white;border-radius:8px;padding:7px 10px;font:inherit;font-weight:800;cursor:pointer}
+    .calendar-head button:disabled{opacity:.35;cursor:not-allowed}
     .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:rgba(15,95,68,.10)}
     .calendar-grid span,.calendar-grid button{min-height:38px;display:grid;place-items:center;background:white;color:var(--green-dark);font-weight:700;font-size:13px}
     .calendar-grid button{border:0;cursor:pointer;font:inherit}
     .calendar-grid button:hover,.calendar-grid button.active{background:var(--green-light);box-shadow:inset 0 0 0 2px var(--green-mid)}
+    .calendar-grid button:disabled{cursor:not-allowed;color:#9aa8a1;background:#f6faf7;box-shadow:none}
     .calendar-grid .muted-day{color:#9aa8a1;background:#f6faf7}
     .calendar-note{margin-top:12px;font-size:13px;color:var(--muted)}
     .slot-grid{display:none;grid-template-columns:1fr;gap:10px;margin-top:16px}
     .slot-grid.visible{display:grid}
     .slot-grid button{border:1px solid rgba(15,95,68,.18);background:white;color:var(--green-dark);border-radius:8px;padding:10px 12px;font:inherit;font-weight:800;cursor:pointer;text-align:left}
     .slot-grid button:hover,.slot-grid button.active{background:var(--green-dark);color:white}
+    .slot-grid small{display:block;margin-top:3px;font-weight:700;color:var(--muted)}
+    .slot-grid button:hover small,.slot-grid button.active small{color:rgba(255,255,255,.78)}
     .form-message{display:none;margin:12px 0 0;padding:12px 14px;border-radius:8px;background:var(--green-light);color:var(--green-dark);font-weight:800}
     .form-message.visible{display:block}
     .brand{color:white}
@@ -231,17 +236,30 @@
               <h3>Setup a meeting invite</h3>
               <p class="muted">Calendar booking will be enabled later. For now, share your preferred time in the project note.</p>
               <div class="calendar-shell" aria-label="Meeting calendar placeholder">
-                <div class="calendar-head"><span id="calendarRange">Next 45 days</span><span>Invite setup</span></div>
+                <div class="calendar-head">
+                  <button type="button" id="prevMonthBtn">Prev</button>
+                  <span id="calendarRange">Next 45 days</span>
+                  <button type="button" id="nextMonthBtn">Next</button>
+                </div>
                 <div class="calendar-grid" id="calendarGrid">
                   <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
                 </div>
               </div>
               <div class="slot-grid" id="timeSlots" aria-label="Preferred time slots">
-                <button type="button" data-slot="Morning">Morning</button>
-                <button type="button" data-slot="Noon">Noon</button>
-                <button type="button" data-slot="Afternoon to evening">Afternoon to evening</button>
+                <button type="button" data-slot="Morning" data-gmt="04:30-06:30 GMT">
+                  Morning
+                  <small>10:00-12:00 IST / 04:30-06:30 GMT</small>
+                </button>
+                <button type="button" data-slot="Afternoon" data-gmt="08:30-10:30 GMT">
+                  Afternoon
+                  <small>14:00-16:00 IST / 08:30-10:30 GMT</small>
+                </button>
+                <button type="button" data-slot="Evening" data-gmt="11:30-13:30 GMT">
+                  Evening
+                  <small>17:00-19:00 IST / 11:30-13:30 GMT</small>
+                </button>
               </div>
-              <p class="calendar-note" id="calendarSelection">Select a date to view broad time-slot options. This is a placeholder for now.</p>
+              <p class="calendar-note" id="calendarSelection">Select a date to view global time-slot options with GMT conversion.</p>
             </aside>
           </div>
         </div>
@@ -523,6 +541,8 @@
     const advisoryServiceSlider = document.getElementById("advisoryServiceSlider");
     const calendarGrid = document.getElementById("calendarGrid");
     const calendarRange = document.getElementById("calendarRange");
+    const prevMonthBtn = document.getElementById("prevMonthBtn");
+    const nextMonthBtn = document.getElementById("nextMonthBtn");
     const scopeHeading = document.getElementById("scopeHeading");
     const advisoryRequestPanel = document.getElementById("advisoryRequestPanel");
     const selectedScopeInput = document.getElementById("selectedScope");
@@ -539,6 +559,10 @@
     let currentPathway = null;
     let selectedMeetingDate = "";
     let selectedMeetingSlot = "";
+    let selectedMeetingGmt = "";
+    let calendarStartDate = null;
+    let calendarEndDate = null;
+    let visibleCalendarMonth = null;
 
     function loginHref(target) {
       let nextTarget = target || "";
@@ -677,14 +701,14 @@
 
     function updateMeetingPreference() {
       if (selectedMeetingDate && selectedMeetingSlot) {
-        meetingPreferenceInput.value = `${selectedMeetingDate} - ${selectedMeetingSlot}`;
+        meetingPreferenceInput.value = `${selectedMeetingDate} - ${selectedMeetingSlot} (${selectedMeetingGmt})`;
         calendarSelection.textContent = `Selected: ${meetingPreferenceInput.value}`;
       } else if (selectedMeetingDate) {
         meetingPreferenceInput.value = selectedMeetingDate;
         calendarSelection.textContent = `${selectedMeetingDate} selected. Choose a time slot.`;
       } else {
         meetingPreferenceInput.value = "";
-        calendarSelection.textContent = "Select a date to view broad time-slot options. This is a placeholder for now.";
+        calendarSelection.textContent = "Select a date to view global time-slot options with GMT conversion.";
       }
     }
 
@@ -692,37 +716,60 @@
       return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     }
 
+    function monthStart(date) {
+      return new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+
+    function monthKey(date) {
+      return date.getFullYear() * 12 + date.getMonth();
+    }
+
     function renderCalendarWindow() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const end = new Date(today);
-      end.setDate(today.getDate() + 44);
-      calendarRange.textContent = `${today.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+      calendarStartDate = new Date(today);
+      calendarStartDate.setDate(today.getDate() + 1);
+      calendarEndDate = new Date(calendarStartDate);
+      calendarEndDate.setDate(calendarStartDate.getDate() + 44);
+      visibleCalendarMonth = visibleCalendarMonth || monthStart(calendarStartDate);
+      renderVisibleMonth();
+    }
 
-      const firstWeekday = (today.getDay() + 6) % 7;
-      const dayButtons = [];
+    function renderVisibleMonth() {
+      calendarRange.textContent = visibleCalendarMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+      const days = [];
+      const firstWeekday = (visibleCalendarMonth.getDay() + 6) % 7;
       for (let i = 0; i < firstWeekday; i += 1) {
-        dayButtons.push('<span class="muted-day"></span>');
+        days.push('<span class="muted-day"></span>');
       }
-      for (let i = 0; i < 45; i += 1) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
+
+      const daysInMonth = new Date(visibleCalendarMonth.getFullYear(), visibleCalendarMonth.getMonth() + 1, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(visibleCalendarMonth.getFullYear(), visibleCalendarMonth.getMonth(), day);
         const label = formatMeetingDate(date);
-        const display = `${date.getDate()} ${date.toLocaleDateString("en-US", { month: "short" })}`;
-        dayButtons.push(`<button type="button" data-date="${label}">${display}</button>`);
+        const disabled = date < calendarStartDate || date > calendarEndDate;
+        const active = selectedMeetingDate === label ? " active" : "";
+        days.push(`<button type="button" data-date="${label}" class="${active.trim()}" ${disabled ? "disabled" : ""}>${day}</button>`);
       }
+
       calendarGrid.innerHTML = `
         <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-        ${dayButtons.join("")}
+        ${days.join("")}
       `;
+
+      prevMonthBtn.disabled = monthKey(visibleCalendarMonth) <= monthKey(calendarStartDate);
+      nextMonthBtn.disabled = monthKey(visibleCalendarMonth) >= monthKey(calendarEndDate);
+      bindCalendarDates();
     }
 
     function bindCalendarDates() {
-      document.querySelectorAll("[data-date]").forEach((button) => {
+      calendarGrid.querySelectorAll("[data-date]:not(:disabled)").forEach((button) => {
         button.addEventListener("click", () => {
           selectedMeetingDate = button.dataset.date;
           selectedMeetingSlot = "";
-          document.querySelectorAll("[data-date]").forEach((dateButton) => dateButton.classList.toggle("active", dateButton === button));
+          selectedMeetingGmt = "";
+          calendarGrid.querySelectorAll("[data-date]").forEach((dateButton) => dateButton.classList.toggle("active", dateButton === button));
           document.querySelectorAll("[data-slot]").forEach((slotButton) => slotButton.classList.remove("active"));
           timeSlots.classList.add("visible");
           formMessage.classList.remove("visible");
@@ -731,9 +778,20 @@
       });
     }
 
+    prevMonthBtn.addEventListener("click", () => {
+      visibleCalendarMonth = new Date(visibleCalendarMonth.getFullYear(), visibleCalendarMonth.getMonth() - 1, 1);
+      renderVisibleMonth();
+    });
+
+    nextMonthBtn.addEventListener("click", () => {
+      visibleCalendarMonth = new Date(visibleCalendarMonth.getFullYear(), visibleCalendarMonth.getMonth() + 1, 1);
+      renderVisibleMonth();
+    });
+
     document.querySelectorAll("[data-slot]").forEach((button) => {
       button.addEventListener("click", () => {
         selectedMeetingSlot = button.dataset.slot;
+        selectedMeetingGmt = button.dataset.gmt;
         document.querySelectorAll("[data-slot]").forEach((slotButton) => slotButton.classList.toggle("active", slotButton === button));
         formMessage.classList.remove("visible");
         updateMeetingPreference();
@@ -746,7 +804,6 @@
     });
 
     renderCalendarWindow();
-    bindCalendarDates();
   </script>
   <script src="capabilities-nav.js"></script>
 </body>
