@@ -66,8 +66,9 @@
     .brand{color:white}
     .nav-dropdown{position:relative;display:inline-flex;align-items:center}
     .nav-dropdown-trigger{color:white;text-decoration:none;opacity:.95}
-    .nav-dropdown-panel{display:none;position:absolute;top:calc(100% + 10px);left:0;min-width:260px;overflow:hidden;border-radius:8px;background:white;border:1px solid rgba(11,61,46,.14);box-shadow:0 18px 40px rgba(0,0,0,.18);z-index:20}
-    .nav-dropdown:hover .nav-dropdown-panel,.nav-dropdown:focus-within .nav-dropdown-panel{display:block}
+    .nav-dropdown-panel{display:none;position:absolute;top:100%;left:0;min-width:260px;overflow:hidden;border-radius:8px;background:white;border:1px solid rgba(11,61,46,.14);box-shadow:0 18px 40px rgba(0,0,0,.18);z-index:100;padding-top:6px}
+    .nav-dropdown-panel::before{content:"";position:absolute;left:0;right:0;top:-12px;height:12px}
+    .nav-dropdown:hover .nav-dropdown-panel,.nav-dropdown:focus-within .nav-dropdown-panel,.nav-dropdown.open .nav-dropdown-panel{display:block}
     .nav-dropdown-panel a{display:block;margin:0;padding:12px 14px;color:var(--green-dark);font-size:14px;font-weight:700;text-decoration:none;white-space:normal}
     .nav-dropdown-panel a:hover{background:var(--green-light);opacity:1}
     .bottom-cta{margin:56px auto 0;padding:28px;border-radius:8px;background:var(--green-dark);color:white;text-align:center;max-width:860px}
@@ -230,14 +231,9 @@
               <h3>Setup a meeting invite</h3>
               <p class="muted">Calendar booking will be enabled later. For now, share your preferred time in the project note.</p>
               <div class="calendar-shell" aria-label="Meeting calendar placeholder">
-                <div class="calendar-head"><span>June 2026</span><span>Invite setup</span></div>
-                <div class="calendar-grid">
+                <div class="calendar-head"><span id="calendarRange">Next 45 days</span><span>Invite setup</span></div>
+                <div class="calendar-grid" id="calendarGrid">
                   <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                  <button type="button" data-date="June 1, 2026">1</button><button type="button" data-date="June 2, 2026">2</button><button type="button" data-date="June 3, 2026">3</button><button type="button" data-date="June 4, 2026">4</button><button type="button" data-date="June 5, 2026">5</button><button type="button" data-date="June 6, 2026">6</button><button type="button" data-date="June 7, 2026">7</button>
-                  <button type="button" data-date="June 8, 2026">8</button><button type="button" data-date="June 9, 2026">9</button><button type="button" data-date="June 10, 2026">10</button><button type="button" data-date="June 11, 2026">11</button><button type="button" data-date="June 12, 2026">12</button><button type="button" data-date="June 13, 2026">13</button><button type="button" data-date="June 14, 2026">14</button>
-                  <button type="button" data-date="June 15, 2026">15</button><button type="button" data-date="June 16, 2026">16</button><button type="button" data-date="June 17, 2026">17</button><button type="button" data-date="June 18, 2026">18</button><button type="button" data-date="June 19, 2026">19</button><button type="button" data-date="June 20, 2026">20</button><button type="button" data-date="June 21, 2026">21</button>
-                  <button type="button" data-date="June 22, 2026">22</button><button type="button" data-date="June 23, 2026">23</button><button type="button" data-date="June 24, 2026">24</button><button type="button" data-date="June 25, 2026">25</button><button type="button" data-date="June 26, 2026">26</button><button type="button" data-date="June 27, 2026">27</button><button type="button" data-date="June 28, 2026">28</button>
-                  <button type="button" data-date="June 29, 2026">29</button><button type="button" data-date="June 30, 2026">30</button><span class="muted-day">1</span><span class="muted-day">2</span><span class="muted-day">3</span><span class="muted-day">4</span><span class="muted-day">5</span>
                 </div>
               </div>
               <div class="slot-grid" id="timeSlots" aria-label="Preferred time slots">
@@ -525,6 +521,8 @@
     const advisoryServiceTabs = document.getElementById("advisoryServiceTabs");
     const advisoryServiceSummary = document.getElementById("advisoryServiceSummary");
     const advisoryServiceSlider = document.getElementById("advisoryServiceSlider");
+    const calendarGrid = document.getElementById("calendarGrid");
+    const calendarRange = document.getElementById("calendarRange");
     const scopeHeading = document.getElementById("scopeHeading");
     const advisoryRequestPanel = document.getElementById("advisoryRequestPanel");
     const selectedScopeInput = document.getElementById("selectedScope");
@@ -565,6 +563,19 @@
       `;
     }
 
+    function advisoryCardTemplate(item, index) {
+      const alt = index % 2 ? " alt" : "";
+      return `
+        <article class="card project-card${alt}">
+          <div class="card-body">
+            <span class="tag">${item.tag}</span>
+            <h3>${item.title}</h3>
+            <p class="muted">${item.desc}</p>
+          </div>
+        </article>
+      `;
+    }
+
     function renderOption(key) {
       const selected = currentOptions.options[key];
       summary.textContent = selected.summary;
@@ -599,7 +610,7 @@
       advisoryServiceTabs.querySelectorAll("button").forEach((button) => {
         button.classList.toggle("active", button.dataset.service === key);
       });
-      advisoryServiceSlider.innerHTML = [...selected.items, ...selected.items].map(cardTemplate).join("");
+      advisoryServiceSlider.innerHTML = [...selected.items, ...selected.items].map(advisoryCardTemplate).join("");
       advisoryServiceSlider.style.animation = "none";
       void advisoryServiceSlider.offsetWidth;
       advisoryServiceSlider.style.animation = "";
@@ -677,17 +688,48 @@
       }
     }
 
-    document.querySelectorAll("[data-date]").forEach((button) => {
-      button.addEventListener("click", () => {
-        selectedMeetingDate = button.dataset.date;
-        selectedMeetingSlot = "";
-        document.querySelectorAll("[data-date]").forEach((dateButton) => dateButton.classList.toggle("active", dateButton === button));
-        document.querySelectorAll("[data-slot]").forEach((slotButton) => slotButton.classList.remove("active"));
-        timeSlots.classList.add("visible");
-        formMessage.classList.remove("visible");
-        updateMeetingPreference();
+    function formatMeetingDate(date) {
+      return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    }
+
+    function renderCalendarWindow() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const end = new Date(today);
+      end.setDate(today.getDate() + 44);
+      calendarRange.textContent = `${today.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+
+      const firstWeekday = (today.getDay() + 6) % 7;
+      const dayButtons = [];
+      for (let i = 0; i < firstWeekday; i += 1) {
+        dayButtons.push('<span class="muted-day"></span>');
+      }
+      for (let i = 0; i < 45; i += 1) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        const label = formatMeetingDate(date);
+        const display = `${date.getDate()} ${date.toLocaleDateString("en-US", { month: "short" })}`;
+        dayButtons.push(`<button type="button" data-date="${label}">${display}</button>`);
+      }
+      calendarGrid.innerHTML = `
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        ${dayButtons.join("")}
+      `;
+    }
+
+    function bindCalendarDates() {
+      document.querySelectorAll("[data-date]").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedMeetingDate = button.dataset.date;
+          selectedMeetingSlot = "";
+          document.querySelectorAll("[data-date]").forEach((dateButton) => dateButton.classList.toggle("active", dateButton === button));
+          document.querySelectorAll("[data-slot]").forEach((slotButton) => slotButton.classList.remove("active"));
+          timeSlots.classList.add("visible");
+          formMessage.classList.remove("visible");
+          updateMeetingPreference();
+        });
       });
-    });
+    }
 
     document.querySelectorAll("[data-slot]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -702,6 +744,10 @@
       formMessage.textContent = "Based on availability among your selected slots, the meeting invite will be shared.";
       formMessage.classList.add("visible");
     });
+
+    renderCalendarWindow();
+    bindCalendarDates();
   </script>
+  <script src="capabilities-nav.js"></script>
 </body>
 </html>
