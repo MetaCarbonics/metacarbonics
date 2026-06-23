@@ -6,6 +6,39 @@
   <title>dMRV — MetaCarbonics</title>
   <link rel="stylesheet" href="styles.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    .gateway-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:28px}
+    .service-card{background:white;border:1px solid rgba(11,61,46,.1);border-radius:8px;padding:24px;box-shadow:0 8px 20px rgba(20,30,20,.06);display:flex;flex-direction:column;gap:14px}
+    .service-card h3{margin:0;color:var(--green-dark)}
+    .service-card p{margin:0;color:#40514b}
+    .service-card .btn{align-self:flex-start;margin-top:auto}
+    .tool-shell{display:none;background:white;border:1px solid rgba(11,61,46,.1);border-radius:8px;box-shadow:0 8px 20px rgba(20,30,20,.06);overflow:hidden;margin-top:28px}
+    .tool-shell.visible{display:block}
+    .tool-head{display:flex;align-items:center;justify-content:space-between;gap:18px;background:var(--green-dark);color:white;padding:24px}
+    .tool-head h2{margin:0;color:white}
+    .tool-head p{margin:6px 0 0;color:rgba(255,255,255,.82)}
+    .tool-body{padding:24px}
+    .tool-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .tool-field{display:flex;flex-direction:column;gap:7px}
+    .tool-field.full{grid-column:1/-1}
+    .tool-field label{font-size:13px;font-weight:800;color:var(--green-dark)}
+    .tool-field input,.tool-field select,.tool-field textarea{width:100%;border:1px solid rgba(15,95,68,.18);border-radius:8px;padding:11px 12px;font:inherit;color:var(--green-dark);background:white}
+    .tool-field textarea{min-height:86px;resize:vertical}
+    .tool-output{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;margin-top:24px}
+    .output-panel{background:#f6f8f6;border:1px solid rgba(15,95,68,.1);border-radius:8px;padding:20px}
+    .output-panel h3{margin:0 0 12px;color:var(--green-dark)}
+    .output-panel ul{margin:0;padding-left:18px;color:#40514b}
+    .output-panel li{margin:8px 0}
+    .role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px}
+    .role-card{background:white;border:1px solid rgba(15,95,68,.12);border-radius:8px;padding:14px}
+    .role-card strong{color:var(--green-dark)}
+    .status-pill{display:inline-flex;border-radius:999px;background:#daf7e8;color:#0b3d2e;font-size:12px;font-weight:800;padding:6px 10px;white-space:nowrap}
+    .login-note{display:none;margin-top:18px;background:#fff;border:1px solid rgba(15,95,68,.12);border-radius:8px;padding:18px;color:#40514b}
+    .login-note.visible{display:block}
+    @media(max-width:880px){
+      .gateway-grid,.tool-form,.tool-output{grid-template-columns:1fr}
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -30,13 +63,283 @@
   <main>
     <section class="hero">
       <div class="wrap">
-        <p class="eyebrow">Capabilities</p>
+        <p class="eyebrow">Tool Gateway</p>
         <h1 class="hero-title">dMRV</h1>
-        <p class="hero-sub">This capability page will be developed with the dedicated private repository.</p>
+        <p class="hero-sub">Select the service, log in, and open the relevant digital workflow.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <h2 class="section-title">Select Service</h2>
+        <div class="gateway-grid">
+          <article class="service-card">
+            <span class="status-pill">ClimaScope</span>
+            <h3>BRSR Assurance</h3>
+            <p>Open the ClimaScope company registration, admin setup, user request, and BRSR readiness workspace.</p>
+            <button class="btn service-launch" type="button" data-tool="brsr">Login to open</button>
+          </article>
+          <article class="service-card">
+            <span class="status-pill">Carbon Tool</span>
+            <h3>Carbon</h3>
+            <p>Open carbon project monitoring, evidence, and asset development workflows. Full tool will be connected later.</p>
+            <button class="btn service-launch" type="button" data-tool="carbon">Login to open</button>
+          </article>
+          <article class="service-card">
+            <span class="status-pill">EPR Tool</span>
+            <h3>EPR</h3>
+            <p>Open EPR and circular economy tracking workflows for documentation and market support. Full tool will be connected later.</p>
+            <button class="btn service-launch" type="button" data-tool="epr">Login to open</button>
+          </article>
+        </div>
+        <div class="login-note" id="loginNote">Please log in to continue. After login, this page will open the selected tool.</div>
+
+        <section class="tool-shell" id="climaScopeTool" aria-label="ClimaScope basic tool">
+          <div class="tool-head">
+            <div>
+              <span class="status-pill">ClimaScope</span>
+              <h2>Company Registration</h2>
+              <p>Register the company first. The logged-in user becomes the company admin and can request access for other users.</p>
+            </div>
+            <span class="status-pill">BRSR Assurance</span>
+          </div>
+          <div class="tool-body">
+            <div class="tool-form">
+              <div class="tool-field">
+                <label for="companyName">Company name</label>
+                <input id="companyName" type="text" placeholder="Company legal name">
+              </div>
+              <div class="tool-field">
+                <label for="cinNumber">CIN / registration number</label>
+                <input id="cinNumber" type="text" placeholder="Optional for now">
+              </div>
+              <div class="tool-field">
+                <label for="sebiIndustry">Industry as per SEBI classification</label>
+                <select id="sebiIndustry">
+                  <option value="energy">Oil, Gas & Consumable Fuels</option>
+                  <option value="power">Power</option>
+                  <option value="metals">Metals & Mining</option>
+                  <option value="chemicals">Chemicals</option>
+                  <option value="construction">Construction / Construction Materials</option>
+                  <option value="financial">Financial Services</option>
+                  <option value="it">Information Technology</option>
+                  <option value="healthcare">Healthcare</option>
+                  <option value="fmcg">Fast Moving Consumer Goods</option>
+                  <option value="auto">Automobiles & Auto Components</option>
+                  <option value="consumer">Consumer Durables / Consumer Services</option>
+                  <option value="telecom">Telecommunication</option>
+                  <option value="realty">Realty</option>
+                  <option value="services">Services</option>
+                  <option value="textiles">Textiles</option>
+                  <option value="media">Media, Entertainment & Publication</option>
+                  <option value="capitalGoods">Capital Goods</option>
+                  <option value="diversified">Diversified</option>
+                </select>
+              </div>
+              <div class="tool-field">
+                <label for="adminName">Admin name</label>
+                <input id="adminName" type="text" placeholder="Logged-in company admin">
+              </div>
+              <div class="tool-field">
+                <label for="adminEmail">Admin email</label>
+                <input id="adminEmail" type="email" placeholder="admin@company.com">
+              </div>
+              <div class="tool-field">
+                <label for="serviceNeed">Service need</label>
+                <select id="serviceNeed">
+                  <option value="readiness">BRSR Readiness</option>
+                  <option value="assurance">BRSR Assurance</option>
+                  <option value="esg">ESG Advisory</option>
+                </select>
+              </div>
+              <div class="tool-field full">
+                <label for="companyNotes">Basic company context</label>
+                <textarea id="companyNotes" placeholder="Number of facilities, reporting stage, assurance timeline, and documentation status."></textarea>
+              </div>
+            </div>
+
+            <div class="tool-output">
+              <div class="output-panel">
+                <h3>Admin Workspace</h3>
+                <p class="muted" id="adminWorkspaceCopy">After registration, you will manage this company workspace as admin.</p>
+                <div class="role-grid">
+                  <div class="role-card"><strong>Facility Manager</strong><br><span class="muted">Uploads facility data, utility records, and evidence.</span></div>
+                  <div class="role-card"><strong>Sustainability Head</strong><br><span class="muted">Reviews BRSR disclosures, gaps, and ESG responses.</span></div>
+                  <div class="role-card"><strong>Company Owner</strong><br><span class="muted">Approves company-level submissions and final files.</span></div>
+                  <div class="role-card"><strong>Finance Controller</strong><br><span class="muted">Supports financial-linked metrics and assurance evidence.</span></div>
+                  <div class="role-card"><strong>HR Lead</strong><br><span class="muted">Manages workforce, safety, diversity, and training data.</span></div>
+                  <div class="role-card"><strong>External Auditor</strong><br><span class="muted">Reviews evidence and raises assurance queries.</span></div>
+                </div>
+              </div>
+              <div class="output-panel">
+                <h3>Create User Request</h3>
+                <div class="tool-form" style="grid-template-columns:1fr">
+                  <div class="tool-field">
+                    <label for="inviteRole">User type</label>
+                    <select id="inviteRole">
+                      <option>Facility Manager</option>
+                      <option>Sustainability Head</option>
+                      <option>Company Owner</option>
+                      <option>Finance Controller</option>
+                      <option>HR Lead</option>
+                      <option>External Auditor</option>
+                    </select>
+                  </div>
+                  <div class="tool-field">
+                    <label for="inviteEmail">User email</label>
+                    <input id="inviteEmail" type="email" placeholder="user@company.com">
+                  </div>
+                  <button class="btn" id="createRequest" type="button">Create request</button>
+                </div>
+                <ul id="requestList"></ul>
+              </div>
+            </div>
+
+            <div class="tool-output">
+              <div class="output-panel">
+                <h3 id="industryOutputTitle">Oil, Gas & Consumable Fuels</h3>
+                <p class="muted" id="industryOutputCopy">Initial sector focus will appear here.</p>
+              </div>
+              <div class="output-panel">
+                <h3 id="checklistTitle">Suggested Checklist</h3>
+                <ul id="checklistOutput"></ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tool-shell" id="placeholderTool" aria-label="Placeholder tool">
+          <div class="tool-head">
+            <div>
+              <span class="status-pill" id="placeholderBadge">Tool</span>
+              <h2 id="placeholderTitle">Tool Workspace</h2>
+              <p id="placeholderCopy">This tool will be connected with its dedicated workflow later.</p>
+            </div>
+          </div>
+          <div class="tool-body">
+            <div class="output-panel">
+              <h3>Coming Next</h3>
+              <ul>
+                <li>Company registration and role-based workspace access.</li>
+                <li>Evidence upload and review workflow.</li>
+                <li>Dashboard for project status and documentation readiness.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
       </div>
     </section>
   </main>
   <footer class="site-footer"><div class="wrap">© 2025 MetaCarbonics. All Rights Reserved.</div></footer>
+  <script src="supabase-client.js"></script>
+  <script>
+    const selectedToolKey = "mc:selected-dmrv-tool";
+    const serviceButtons = document.querySelectorAll(".service-launch");
+    const loginNote = document.getElementById("loginNote");
+    const climaScopeTool = document.getElementById("climaScopeTool");
+    const placeholderTool = document.getElementById("placeholderTool");
+    const placeholderBadge = document.getElementById("placeholderBadge");
+    const placeholderTitle = document.getElementById("placeholderTitle");
+    const placeholderCopy = document.getElementById("placeholderCopy");
+
+    const industryProfiles = {
+      energy: ["Oil, Gas & Consumable Fuels", "High attention on emissions inventory, transition plans, water, waste, worker safety, and regulatory evidence.", ["Scope 1 and Scope 2 emissions source map", "Fuel consumption and flare records", "HSE incident evidence", "Water withdrawal and discharge records"]],
+      power: ["Power", "Priority areas include generation mix, plant-level emissions, renewable procurement, water intensity, ash or waste handling, and grid reliability disclosures.", ["Plant-wise generation and emissions file", "Renewable energy and REC evidence", "Water intensity by plant", "Waste and ash handling records"]],
+      metals: ["Metals & Mining", "Material issues usually include process emissions, mining impacts, tailings and waste, worker safety, water, land rehabilitation, and supply chain traceability.", ["Mine or plant boundary evidence", "Process emissions data", "Land and rehabilitation records", "Worker safety records"]],
+      chemicals: ["Chemicals", "Key BRSR areas include hazardous material handling, process emissions, safety systems, product stewardship, water, waste, and emergency readiness.", ["Hazardous material register", "Process emissions and solvent use records", "Safety incident evidence", "Effluent and waste treatment records"]],
+      construction: ["Construction / Construction Materials", "Focus on material sourcing, cement and embodied carbon, contractor safety, construction waste, water, land impact, and project-level evidence.", ["Project-wise material consumption", "Contractor safety evidence", "Construction waste logs", "Water use and site approvals"]],
+      financial: ["Financial Services", "Emphasis on governance, responsible lending or investment, customer protection, data privacy, climate risk, portfolio exposure, and policy documentation.", ["ESG governance note", "Responsible lending or investment policy", "Customer grievance data", "Data privacy controls"]],
+      it: ["Information Technology", "Relevant areas include energy use, data privacy, employee wellbeing, diversity, supply chain standards, business ethics, and digital governance.", ["Facility energy and renewable use", "Data privacy and cyber controls", "Employee diversity records", "Supplier code evidence"]],
+      healthcare: ["Healthcare", "Priority checks include patient safety, biomedical waste, product quality, access, ethics, energy, water, and regulatory documentation.", ["Biomedical waste records", "Quality and patient safety evidence", "Access and affordability notes", "Regulatory compliance file"]],
+      fmcg: ["Fast Moving Consumer Goods", "Typical focus areas include packaging, EPR, product responsibility, supply chain, water stewardship, emissions, and consumer grievance records.", ["Packaging and EPR evidence", "Product responsibility records", "Supplier assessment file", "Consumer grievance trends"]],
+      auto: ["Automobiles & Auto Components", "Material issues include supply chain, energy, emissions, product safety, end-of-life responsibility, worker safety, and transition planning.", ["Plant energy and emissions data", "Product safety records", "Supplier ESG screening", "Worker safety evidence"]],
+      consumer: ["Consumer Durables / Consumer Services", "Focus on product quality, customer data, supply chain, waste, energy use, employee wellbeing, and consumer grievance systems.", ["Product quality and recall records", "Customer grievance data", "Supplier evidence", "Waste and packaging logs"]],
+      telecom: ["Telecommunication", "Priority areas include network energy, e-waste, data privacy, customer service, infrastructure resilience, and responsible supply chain.", ["Network energy consumption", "E-waste evidence", "Data privacy controls", "Customer complaint records"]],
+      realty: ["Realty", "Relevant areas include green buildings, construction material, worker safety, energy and water systems, waste, and community impact.", ["Project energy and water records", "Green building certifications", "Contractor safety file", "Community impact documentation"]],
+      services: ["Services", "Service businesses usually need stronger evidence on workforce, customer responsibility, ethics, data systems, procurement, and energy use.", ["Employee and workforce data", "Customer grievance file", "Ethics and compliance records", "Facility energy data"]],
+      textiles: ["Textiles", "Important areas include water, effluent, labour practices, chemical use, supply chain traceability, waste, and product responsibility.", ["Water and effluent records", "Chemical use register", "Labour and welfare evidence", "Supplier traceability file"]],
+      media: ["Media, Entertainment & Publication", "Key checks include governance, content responsibility, data privacy, employee practices, energy use, and stakeholder grievance processes.", ["Content responsibility policy", "Data privacy controls", "Employee records", "Stakeholder grievance logs"]],
+      capitalGoods: ["Capital Goods", "Focus on manufacturing emissions, product safety, supply chain, worker safety, material use, waste, and customer responsibility.", ["Plant emissions and energy data", "Product safety records", "Supplier assessment file", "Material and waste records"]],
+      diversified: ["Diversified", "Diversified groups need business-wise boundary mapping, separate data owners, consolidated controls, and entity-level evidence management.", ["Business segment boundary map", "Data owner matrix", "Consolidation logic", "Board and governance records"]]
+    };
+    const serviceChecklists = {
+      readiness: ["Map BRSR disclosures and data owners", "Identify data gaps and weak evidence", "Create document request list", "Prepare review file structure"],
+      assurance: ["Test sample evidence for BRSR Core indicators", "Check audit trail and approvals", "Prepare assurance query tracker", "Align review file with assurance procedures"],
+      esg: ["Identify material ESG issues", "Prepare policy and governance map", "Create management action tracker", "Build stakeholder-ready ESG documentation"]
+    };
+
+    const fields = {
+      companyName: document.getElementById("companyName"),
+      sebiIndustry: document.getElementById("sebiIndustry"),
+      adminName: document.getElementById("adminName"),
+      adminEmail: document.getElementById("adminEmail"),
+      serviceNeed: document.getElementById("serviceNeed"),
+      industryOutputTitle: document.getElementById("industryOutputTitle"),
+      industryOutputCopy: document.getElementById("industryOutputCopy"),
+      checklistTitle: document.getElementById("checklistTitle"),
+      checklistOutput: document.getElementById("checklistOutput"),
+      requestList: document.getElementById("requestList")
+    };
+
+    async function hasSession() {
+      const { data } = await window._supabase.auth.getSession();
+      return Boolean(data?.session);
+    }
+
+    function showTool(tool) {
+      loginNote.classList.remove("visible");
+      climaScopeTool.classList.toggle("visible", tool === "brsr");
+      placeholderTool.classList.toggle("visible", tool === "carbon" || tool === "epr");
+      if (tool === "carbon" || tool === "epr") {
+        const label = tool === "carbon" ? "Carbon" : "EPR";
+        placeholderBadge.textContent = `${label} Tool`;
+        placeholderTitle.textContent = `${label} Workspace`;
+        placeholderCopy.textContent = `${label} workflow will open here after the dedicated tool is connected.`;
+      }
+    }
+
+    async function launchTool(tool) {
+      sessionStorage.setItem(selectedToolKey, tool);
+      if (await hasSession()) {
+        showTool(tool);
+        return;
+      }
+      loginNote.classList.add("visible");
+      window.location.href = "login.html?next=dmrv.html";
+    }
+
+    function renderClimaScope() {
+      const [label, focus, checks] = industryProfiles[fields.sebiIndustry.value];
+      const service = fields.serviceNeed.options[fields.serviceNeed.selectedIndex].text;
+      fields.industryOutputTitle.textContent = label;
+      fields.industryOutputCopy.textContent = focus;
+      fields.checklistTitle.textContent = `${service} checklist`;
+      fields.checklistOutput.innerHTML = [...serviceChecklists[fields.serviceNeed.value], ...checks].map((item) => `<li>${item}</li>`).join("");
+      fields.adminWorkspaceCopy.textContent = `${fields.companyName.value || "The company"} workspace will be administered by ${fields.adminName.value || "the logged-in user"}.`;
+    }
+
+    fields.adminWorkspaceCopy = document.getElementById("adminWorkspaceCopy");
+    ["companyName", "sebiIndustry", "adminName", "serviceNeed"].forEach((key) => fields[key].addEventListener("input", renderClimaScope));
+    ["sebiIndustry", "serviceNeed"].forEach((key) => fields[key].addEventListener("change", renderClimaScope));
+
+    document.getElementById("createRequest").addEventListener("click", () => {
+      const role = document.getElementById("inviteRole").value;
+      const email = document.getElementById("inviteEmail").value || "pending email";
+      const item = document.createElement("li");
+      item.textContent = `${role} request created for ${email}.`;
+      fields.requestList.appendChild(item);
+    });
+
+    serviceButtons.forEach((button) => {
+      button.addEventListener("click", () => launchTool(button.dataset.tool));
+    });
+
+    (async () => {
+      renderClimaScope();
+      const storedTool = sessionStorage.getItem(selectedToolKey);
+      if (storedTool && await hasSession()) showTool(storedTool);
+    })();
+  </script>
   <script src="capabilities-nav.js"></script>
 </body>
 </html>
