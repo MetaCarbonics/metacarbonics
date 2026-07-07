@@ -13,9 +13,15 @@
     .about-kicker{font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#daf7e8;font-size:13px}
     .about-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
     .person-card{background:white;border:1px solid rgba(11,61,46,.08);border-radius:8px;padding:18px;display:flex;align-items:center;gap:15px;box-shadow:0 8px 20px rgba(20,30,20,.06)}
-    .person-card img{width:72px;height:72px;border-radius:50%;background:#daf7e8;flex:0 0 auto}
+    .person-card img{width:72px;height:72px;border-radius:50%;background:#daf7e8;flex:0 0 auto;object-fit:cover}
     .person-card h3{font-size:17px;margin:0 0 6px;color:var(--green-dark)}
     .person-card p{margin:0;color:var(--muted);font-size:14px}
+    .person-card.featured-advisor{grid-column:span 2;align-items:center}
+    .person-card.featured-advisor img{width:132px;height:132px;border-radius:8px}
+    .advisor-details{display:flex;flex-direction:column;gap:10px}
+    .advisor-stat{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;border:2px solid var(--green-mid);color:var(--green-dark);font-weight:800;border-radius:4px;padding:7px 16px;background:#eef8f1}
+    .advisor-focus{display:flex;flex-wrap:wrap;gap:8px}
+    .advisor-focus span{background:var(--green-dark);color:white;border-radius:4px;padding:7px 10px;font-size:13px;font-weight:800}
     .about-copy{max-width:940px}
     .about-copy p{font-size:17px;color:#40514b;margin:0 0 18px}
     .split-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}
@@ -40,6 +46,8 @@
       .about-hero{padding:64px 0}
       .person-card{align-items:flex-start}
       .person-card img{width:62px;height:62px}
+      .person-card.featured-advisor{grid-column:auto}
+      .person-card.featured-advisor img{width:92px;height:92px}
     }
   </style>
 </head>
@@ -128,11 +136,18 @@
               <p>EPR &amp; Circular Economy</p>
             </div>
           </article>
-          <article class="person-card">
-            <img src="assets/avatar-man.svg" alt="Nishant Kumar Balyan"/>
-            <div>
+          <article class="person-card featured-advisor">
+            <img src="assets/nishant-kumar-balyan.jpeg" alt="Nishant Kumar Balyan"/>
+            <div class="advisor-details">
               <h3>Nishant Kumar Balyan</h3>
-              <p>Legal Advisor</p>
+              <p>External Advisor - Legal Strategy &amp; Institutional Partnerships</p>
+              <div class="advisor-stat">5+ Years</div>
+              <div class="advisor-focus">
+                <span>Legal Strategy</span>
+                <span>Commercial Law</span>
+                <span>Policy Advisory</span>
+                <span>Institutional Partnership</span>
+              </div>
             </div>
           </article>
           <article class="person-card">
