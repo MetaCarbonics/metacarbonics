@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Advisor avatar">
+  <rect width="160" height="160" rx="80" fill="#daf7e8"/>
+  <circle cx="80" cy="58" r="30" fill="#0f5f44"/>
+  <path d="M48 132c5-28 18-44 32-44s27 16 32 44" fill="#0b3d2e"/>
+  <path d="M47 72c3-26 16-44 33-44s30 18 33 44c-8-7-18-11-33-11s-25 4-33 11Z" fill="#123f31"/>
+  <circle cx="80" cy="64" r="22" fill="#f6f8f6"/>
+  <path d="M57 62c8-2 15-7 20-16 7 10 16 16 26 18-4-17-12-27-24-27-13 0-21 9-22 25Z" fill="#123f31"/>
+</svg>
