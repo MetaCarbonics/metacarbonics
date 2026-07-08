@@ -15,7 +15,8 @@ body{margin:0;font-family:Inter, Arial, sans-serif;background:var(--offwhite);co
 /* Header */
 .site-header{background:var(--green-dark);color:white;position:sticky;top:0;z-index:50;box-shadow:0 6px 18px rgba(0,0,0,0.18)}
 .header-inner{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
-.brand{font-weight:700;font-size:20px;letter-spacing:0.6px}
+.brand{font-weight:700;font-size:20px;letter-spacing:0.6px;display:inline-flex;align-items:center;gap:10px}
+.brand::before{content:"";width:32px;height:32px;flex:0 0 32px;background:url("assets/metacarbonics-logo.svg") center/contain no-repeat}
 .brand-accent{color:var(--green-light);margin-left:6px}
 .main-nav a{color:white;margin-left:20px;text-decoration:none;opacity:.95}
 .main-nav a:hover{opacity:.8}
@@ -71,4 +72,5 @@ body{margin:0;font-family:Inter, Arial, sans-serif;background:var(--offwhite);co
   .cards-row{flex-direction:column}
   .main-nav{display:none}
   .card-media{height:160px}
+  .brand::before{width:28px;height:28px;flex-basis:28px}
 }

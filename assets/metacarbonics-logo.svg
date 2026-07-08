@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1374" height="1145" viewBox="0 0 1374 1145" version="1.1">
+
+  <defs>
+    <linearGradient id="gradOrange" x1="175" y1="90" x2="1205" y2="1020" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B86524"/>
+      <stop offset="0.52" stop-color="#D88936"/>
+      <stop offset="1" stop-color="#B86A2A"/>
+    </linearGradient>
+    <linearGradient id="gradLightGreen" x1="315" y1="140" x2="1000" y2="930" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A6C0AD"/>
+      <stop offset="0.55" stop-color="#79A389"/>
+      <stop offset="1" stop-color="#5E8E73"/>
+    </linearGradient>
+    <linearGradient id="gradDarkGreen" x1="405" y1="290" x2="960" y2="1018" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B4A2B"/>
+      <stop offset="0.48" stop-color="#155F39"/>
+      <stop offset="1" stop-color="#0A4428"/>
+    </linearGradient>
+  </defs>
+
+  <g id="MetaCarbonics-logo" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Carbon-cycle / monitoring rings -->
+    <path d="M 352 1017 A 548.9 548.9 0 1 1 1017 1017" stroke="url(#gradOrange)" stroke-width="10"/>
+    <path d="M 416 958 A 469.8 469.8 0 1 1 957 958" stroke="url(#gradLightGreen)" stroke-width="8" opacity="0.94"/>
+    <path d="M 466 902 A 385.3 385.3 0 1 1 906 902" stroke="url(#gradLightGreen)" stroke-width="7" opacity="0.94"/>
+
+    <!-- Central carbon/nature vessel and stem -->
+    <path d="M 687 1034 L 687 887
+             C 520 886 392 781 392 571
+             C 392 385 520 276 687 269
+             C 854 276 982 385 982 571
+             C 982 781 854 886 687 887"
+          stroke="url(#gradDarkGreen)" stroke-width="22"/>
+
+    <!-- Leaf-vein M mark -->
+    <path d="M 687 338 L 687 965" stroke="url(#gradLightGreen)" stroke-width="18"/>
+    <path d="M 687 374 L 579 318" stroke="url(#gradLightGreen)" stroke-width="18"/>
+    <path d="M 687 374 L 795 318" stroke="url(#gradLightGreen)" stroke-width="18"/>
+
+    <path d="M 462 798 L 462 499" stroke="url(#gradLightGreen)" stroke-width="20"/>
+    <path d="M 462 499 C 538 585 640 610 687 782" stroke="url(#gradLightGreen)" stroke-width="20"/>
+    <path d="M 912 798 L 912 499" stroke="url(#gradLightGreen)" stroke-width="20"/>
+    <path d="M 912 499 C 836 585 734 610 687 782" stroke="url(#gradLightGreen)" stroke-width="20"/>
+
+    <path d="M 687 887 L 611 819" stroke="url(#gradLightGreen)" stroke-width="20"/>
+    <path d="M 687 887 L 763 819" stroke="url(#gradLightGreen)" stroke-width="20"/>
+
+    <!-- Side verification/data point mark -->
+    <circle cx="1205" cy="762" r="24" stroke="url(#gradDarkGreen)" stroke-width="8"/>
+    <circle cx="1205" cy="762" r="12" stroke="url(#gradOrange)" stroke-width="8"/>
+  </g>
+
+  <!-- Copper carbon value point -->
+  <circle cx="687" cy="262" r="58" fill="url(#gradOrange)"/>
+</svg>
