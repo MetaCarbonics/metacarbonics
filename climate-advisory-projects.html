@@ -459,6 +459,11 @@
       }
     };
 
+    const repositoryRoutes = {
+      ARR: "/metacarbonics-arr/",
+      Biochar: "/Biochar/"
+    };
+
     const cadData = Object.fromEntries(
       Object.entries(sectorScopes).map(([key, scope]) => [
         key,
@@ -472,8 +477,9 @@
               : activity === unlistedActivity
               ? "Use this when the project activity is new, emerging, or not covered in the listed options."
               : `Carbon asset development support for ${activity}.`,
-            href: "climate-advisory-projects.html",
-            tag: scope.label
+            href: repositoryRoutes[activity] || "climate-advisory-projects.html",
+            tag: scope.label,
+            direct: Boolean(repositoryRoutes[activity])
           }))
         }
       ])
@@ -575,13 +581,15 @@
 
     function cardTemplate(item, index) {
       const alt = index % 2 ? " alt" : "";
+      const href = item.direct ? item.href : loginHref(item.href);
+      const actionText = item.direct ? "Open workflow" : "Login to continue";
       return `
-        <a class="card project-card${alt}" href="${loginHref(item.href)}">
+        <a class="card project-card${alt}" href="${href}">
           <div class="card-body">
             <span class="tag">${item.tag}</span>
             <h3>${item.title}</h3>
             <p class="muted">${item.desc}</p>
-            <div class="card-actions"><span class="btn">Login to continue</span></div>
+            <div class="card-actions"><span class="btn">${actionText}</span></div>
           </div>
         </a>
       `;
