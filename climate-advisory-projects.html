@@ -479,7 +479,7 @@
               : `Carbon asset development support for ${activity}.`,
             href: repositoryRoutes[activity] || "climate-advisory-projects.html",
             tag: repositoryRoutes[activity] ? "Carbon Asset Development" : scope.label,
-            direct: Boolean(repositoryRoutes[activity])
+            repositoryWorkflow: Boolean(repositoryRoutes[activity])
           }))
         }
       ])
@@ -575,15 +575,16 @@
       if (nextTarget.startsWith("login.html?")) {
         nextTarget = new URLSearchParams(nextTarget.split("?")[1]).get("next") || "";
       }
-      const next = /^[a-zA-Z0-9._-]+\.html$/.test(nextTarget) ? nextTarget : "climate-advisory-projects.html";
+      const next = /^\/[a-zA-Z0-9._/-]+(?:\?[a-zA-Z0-9._%=&-]+)?$/.test(nextTarget) || /^[a-zA-Z0-9._-]+\.html$/.test(nextTarget)
+        ? nextTarget
+        : "climate-advisory-projects.html";
       return `login.html?next=${encodeURIComponent(next)}`;
     }
 
     function cardTemplate(item, index) {
       const alt = index % 2 ? " alt" : "";
-      const isCadWorkflow = currentPathway === "assetDevelopment" && item.direct;
-      const href = isCadWorkflow ? item.href : loginHref(item.href);
-      const actionText = isCadWorkflow ? "Open CAD workflow" : "Login to continue";
+      const href = loginHref(item.href);
+      const actionText = currentPathway === "assetDevelopment" && item.repositoryWorkflow ? "Login to open CAD workflow" : "Login to continue";
       return `
         <a class="card project-card${alt}" href="${href}">
           <div class="card-body">

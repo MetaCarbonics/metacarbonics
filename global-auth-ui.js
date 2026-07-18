@@ -9,8 +9,13 @@
         return file;
     }
 
+    function currentPathName() {
+        return (window.location.pathname || "/").replace(/^\/+/, "");
+    }
+
     function isPublicPage() {
-        return PUBLIC_PAGES.has(currentFileName());
+        const path = currentPathName();
+        return PUBLIC_PAGES.has(path);
     }
 
     function loadScript(src) {
@@ -70,7 +75,7 @@
             }
         } else {
             wrap.innerHTML = `
-                <a href="login.html" style="background:#fff;color:#0b3d2e;padding:8px 12px;border-radius:9999px;font-weight:600;text-decoration:none;border:1px solid #0b3d2e;">
+                <a href="/login.html" style="background:#fff;color:#0b3d2e;padding:8px 12px;border-radius:9999px;font-weight:600;text-decoration:none;border:1px solid #0b3d2e;">
                     Login
                 </a>
             `;
@@ -117,18 +122,19 @@
             await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
         }
         if (!window._supabase) {
-            await loadScript("supabase-client.js");
+            await loadScript("/supabase-client.js");
         }
         if (!window.metaAuth) {
-            await loadScript("auth.js");
+            await loadScript("/auth.js");
         }
 
         const { data } = await window._supabase.auth.getSession();
         const session = data?.session || null;
 
         if (!session && !isPublicPage()) {
-            const next = encodeURIComponent(window.location.pathname.split("/").pop() || "index.html");
-            window.location.href = `${LOGIN_PAGE}?next=${next}`;
+            const nextPath = `${window.location.pathname || "/"}${window.location.search || ""}`;
+            const next = encodeURIComponent(nextPath);
+            window.location.href = `/${LOGIN_PAGE}?next=${next}`;
             return;
         }
 
