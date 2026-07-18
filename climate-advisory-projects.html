@@ -478,7 +478,7 @@
               ? "Use this when the project activity is new, emerging, or not covered in the listed options."
               : `Carbon asset development support for ${activity}.`,
             href: repositoryRoutes[activity] || "climate-advisory-projects.html",
-            tag: scope.label,
+            tag: repositoryRoutes[activity] ? "Carbon Asset Development" : scope.label,
             direct: Boolean(repositoryRoutes[activity])
           }))
         }
@@ -581,8 +581,9 @@
 
     function cardTemplate(item, index) {
       const alt = index % 2 ? " alt" : "";
-      const href = item.direct ? item.href : loginHref(item.href);
-      const actionText = item.direct ? "Open workflow" : "Login to continue";
+      const isCadWorkflow = currentPathway === "assetDevelopment" && item.direct;
+      const href = isCadWorkflow ? item.href : loginHref(item.href);
+      const actionText = isCadWorkflow ? "Open CAD workflow" : "Login to continue";
       return `
         <a class="card project-card${alt}" href="${href}">
           <div class="card-body">
