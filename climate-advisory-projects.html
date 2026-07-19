@@ -68,6 +68,7 @@
     .slot-grid button:hover small,.slot-grid button.active small{color:rgba(255,255,255,.78)}
     .form-message{display:none;margin:12px 0 0;padding:12px 14px;border-radius:8px;background:var(--green-light);color:var(--green-dark);font-weight:800}
     .form-message.visible{display:block}
+    .form-message.error{background:#fee4e2;color:#b42318}
     .brand{color:white}
     .nav-dropdown{position:relative;display:inline-flex;align-items:center}
     .nav-dropdown-trigger{color:white;text-decoration:none;opacity:.95}
@@ -275,6 +276,7 @@
   <script>
     const combinedActivity = "Multiple activities combined";
     const unlistedActivity = "New or unlisted activity";
+    const advisorySheetEndpoint = "https://script.google.com/macros/s/AKfycbyf9Lo2YJZxOTqDcosPoERV5wqF_emh6Hd9UXqg884O5fXjwQ0wfsuzYT5xNtXv_OE7-g/exec";
     const sectorScopes = {
       energySupply: {
         label: "Energy Supply",
@@ -554,6 +556,11 @@
     const selectedScopeInput = document.getElementById("selectedScope");
     const selectedActivitySelect = document.getElementById("selectedActivity");
     const meetingPreferenceInput = document.getElementById("meetingPreference");
+    const contactNameInput = document.getElementById("contactName");
+    const contactEmailInput = document.getElementById("contactEmail");
+    const contactCompanyInput = document.getElementById("contactCompany");
+    const contactPhoneInput = document.getElementById("contactPhone");
+    const projectNoteInput = document.getElementById("projectNote");
     const calendarSelection = document.getElementById("calendarSelection");
     const timeSlots = document.getElementById("timeSlots");
     const formMessage = document.getElementById("formMessage");
@@ -808,9 +815,51 @@
       });
     });
 
-    submitEnquiry.addEventListener("click", () => {
-      formMessage.textContent = "Based on availability among your selected slots, the meeting invite will be shared.";
+    function setFormMessage(message, isError = false) {
+      formMessage.textContent = message;
+      formMessage.classList.toggle("error", isError);
       formMessage.classList.add("visible");
+    }
+
+    submitEnquiry.addEventListener("click", async () => {
+      const payload = {
+        submittedAt: new Date().toISOString(),
+        pathway: "Advisory",
+        selectedScope: selectedScopeInput.value,
+        selectedActivity: selectedActivitySelect.value,
+        meetingPreference: meetingPreferenceInput.value,
+        meetingDate: selectedMeetingDate,
+        meetingSlot: selectedMeetingSlot,
+        meetingGmt: selectedMeetingGmt,
+        name: contactNameInput.value.trim(),
+        company: contactCompanyInput.value.trim(),
+        email: contactEmailInput.value.trim(),
+        phone: contactPhoneInput.value.trim(),
+        projectNote: projectNoteInput.value.trim()
+      };
+
+      if (!payload.name || !payload.email) {
+        setFormMessage("Please add your name and email before submitting.", true);
+        return;
+      }
+
+      submitEnquiry.disabled = true;
+      submitEnquiry.textContent = "Submitting...";
+      setFormMessage("Submitting your enquiry...");
+
+      try {
+        await fetch(advisorySheetEndpoint, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify(payload)
+        });
+        setFormMessage("Based on availability among your selected slots, the meeting invite will be shared.");
+      } catch (error) {
+        setFormMessage("Unable to submit right now. Please try again in a moment.", true);
+      } finally {
+        submitEnquiry.disabled = false;
+        submitEnquiry.textContent = "Submit enquiry";
+      }
     });
 
     renderCalendarWindow();
