@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Get in Touch — MetaCarbonics</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+  <style>
+    .contact-hero{background:linear-gradient(135deg,var(--green-dark),var(--green-mid));color:white;padding:86px 0 76px}
+    .contact-hero h1{font-size:clamp(40px,7vw,72px);line-height:1;margin:10px 0 16px;letter-spacing:0}
+    .contact-hero p{max-width:760px;margin:0;font-size:18px;color:rgba(255,255,255,.86)}
+    .contact-kicker{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#daf7e8;font-size:13px}
+    .contact-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:24px;align-items:start}
+    .contact-card{background:white;border:1px solid rgba(15,95,68,.12);border-radius:8px;box-shadow:0 12px 28px rgba(11,61,46,.08);padding:24px}
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .field{display:flex;flex-direction:column;gap:7px}
+    .field.full{grid-column:1/-1}
+    .field label{color:var(--green-dark);font-weight:800;font-size:13px}
+    .field input,.field select,.field textarea{width:100%;border:1px solid rgba(15,95,68,.18);border-radius:8px;padding:11px 12px;font:inherit;color:var(--green-dark);background:#fff}
+    .field textarea{min-height:130px;resize:vertical}
+    .meeting-panel{display:none;grid-column:1/-1;margin-top:4px;padding:18px;border:1px solid rgba(15,95,68,.12);border-radius:8px;background:#f8fcfa}
+    .meeting-panel.visible{display:block}
+    .calendar-shell{margin-top:14px;border:1px solid rgba(15,95,68,.12);border-radius:8px;overflow:hidden;background:white}
+    .calendar-head{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--green-dark);color:white;padding:12px 14px;font-weight:800}
+    .calendar-head button{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:white;border-radius:8px;padding:7px 10px;font:inherit;font-weight:800;cursor:pointer}
+    .calendar-head button:disabled{opacity:.35;cursor:not-allowed}
+    .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:rgba(15,95,68,.10)}
+    .calendar-grid span,.calendar-grid button{min-height:38px;display:grid;place-items:center;background:white;color:var(--green-dark);font-weight:700;font-size:13px}
+    .calendar-grid button{border:0;cursor:pointer;font:inherit}
+    .calendar-grid button:hover,.calendar-grid button.active{background:var(--green-light);box-shadow:inset 0 0 0 2px var(--green-mid)}
+    .calendar-grid button:disabled{cursor:not-allowed;color:#9aa8a1;background:#f6faf7;box-shadow:none}
+    .calendar-grid .muted-day{color:#9aa8a1;background:#f6faf7}
+    .calendar-note{margin-top:12px;font-size:13px;color:var(--muted)}
+    .slot-grid{display:none;grid-template-columns:1fr;gap:10px;margin-top:16px}
+    .slot-grid.visible{display:grid}
+    .slot-grid button{border:1px solid rgba(15,95,68,.18);background:white;color:var(--green-dark);border-radius:8px;padding:10px 12px;font:inherit;font-weight:800;cursor:pointer;text-align:left}
+    .slot-grid button:hover,.slot-grid button.active{background:var(--green-dark);color:white}
+    .slot-grid small{display:block;margin-top:3px;font-weight:700;color:var(--muted)}
+    .slot-grid button:hover small,.slot-grid button.active small{color:rgba(255,255,255,.78)}
+    .submit-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:16px}
+    .form-message{display:none;margin:0;padding:12px 14px;border-radius:8px;background:var(--green-light);color:var(--green-dark);font-weight:800}
+    .form-message.visible{display:block}
+    .form-message.error{background:#fee4e2;color:#b42318}
+    .contact-list{display:grid;gap:14px}
+    .contact-item{padding:16px;border-radius:8px;background:var(--green-light);color:var(--green-dark)}
+    .contact-item h3{margin:0 0 6px;font-size:16px}
+    .contact-item p{margin:0;color:#40514b}
+    .social-block{margin-top:18px}
+    .social-block .footer-social{justify-content:flex-start;margin-top:10px}
+    .social-block .footer-social a{color:var(--green-dark);border-color:rgba(15,95,68,.28);background:white}
+    .social-block .footer-social a:hover{background:var(--green-light)}
+    .nav-dropdown{position:relative;display:inline-flex;align-items:center}
+    .nav-dropdown-trigger{color:white;text-decoration:none;opacity:.95}
+    .nav-dropdown-panel{display:none;position:absolute;top:100%;left:0;min-width:260px;overflow:hidden;border-radius:8px;background:white;border:1px solid rgba(11,61,46,.14);box-shadow:0 18px 40px rgba(0,0,0,.18);z-index:100;padding-top:6px}
+    .nav-dropdown-panel::before{content:"";position:absolute;left:0;right:0;top:-12px;height:12px}
+    .nav-dropdown:hover .nav-dropdown-panel,.nav-dropdown:focus-within .nav-dropdown-panel,.nav-dropdown.open .nav-dropdown-panel{display:block}
+    .nav-dropdown-panel a{display:block;margin:0;padding:12px 14px;color:var(--green-dark);font-size:14px;font-weight:700;text-decoration:none;white-space:normal}
+    .nav-dropdown-panel a:hover{background:var(--green-light);opacity:1}
+    @media(max-width:760px){
+      .contact-layout,.form-grid{grid-template-columns:1fr}
+      .contact-hero{padding:64px 0}
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand">MetaCarbonics</div>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="about.html">About Us</a>
+        <div class="nav-dropdown">
+          <a href="index.html#dmrv" class="nav-dropdown-trigger">Capabilities</a>
+          <div class="nav-dropdown-panel">
+            <a href="brsr-assurance-esg-advisory.html">BRSR Assurance &amp; ESG Advisory</a>
+            <a href="climate-advisory-projects.html">Climate Advisory &amp; Projects</a>
+            <a href="dmrv.html">dMRV</a>
+            <a href="epr-circular-economy.html">EPR &amp; Circular Economy</a>
+          </div>
+        </div>
+        <a href="index.html#projects">Portfolio</a>
+        <a href="index.html#blogs">News &amp; Insights</a>
+        <a href="get-in-touch.html">Get in Touch</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="contact-hero">
+      <div class="wrap">
+        <div class="contact-kicker">Get in Touch</div>
+        <h1>Talk To MetaCarbonics</h1>
+        <p>Share your enquiry and our team will review it for the right climate, carbon markets, dMRV, ESG, or circular economy workflow.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap contact-layout">
+        <form class="contact-card" id="generalContactForm">
+          <h2 class="section-title">General Enquiry</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label for="contactName">Name</label>
+              <input id="contactName" name="name" autocomplete="name" required/>
+            </div>
+            <div class="field">
+              <label for="contactCompany">Company / Organization</label>
+              <input id="contactCompany" name="company" autocomplete="organization"/>
+            </div>
+            <div class="field">
+              <label for="contactEmail">Email</label>
+              <input id="contactEmail" name="email" type="email" autocomplete="email" required/>
+            </div>
+            <div class="field">
+              <label for="contactPhone">Phone</label>
+              <input id="contactPhone" name="phone" autocomplete="tel"/>
+            </div>
+            <div class="field">
+              <label for="queryType">Query Type</label>
+              <select id="queryType" name="queryType">
+                <option>General query</option>
+                <option>BRSR Assurance &amp; ESG Advisory</option>
+                <option>Climate Advisory &amp; Projects</option>
+                <option>dMRV / ClimaVector</option>
+                <option>EPR &amp; Circular Economy</option>
+                <option>Partnership / Institutional enquiry</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="contactMethod">Preferred Contact Method</label>
+              <select id="contactMethod" name="contactMethod">
+                <option>Email</option>
+                <option>Phone</option>
+                <option>Meeting invite</option>
+              </select>
+            </div>
+            <div class="meeting-panel" id="meetingPanel">
+              <label>Preferred Meeting Date</label>
+              <div class="calendar-shell">
+                <div class="calendar-head">
+                  <button id="prevMonth" type="button">Previous</button>
+                  <span id="calendarTitle">Month</span>
+                  <button id="nextMonth" type="button">Next</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid" aria-label="Meeting calendar"></div>
+              </div>
+              <p class="calendar-note" id="calendarNote">Select a date from tomorrow onward. The window is open for the next 45 days.</p>
+              <div class="slot-grid" id="slotGrid" aria-label="Meeting time slots">
+                <button type="button" data-slot="Morning" data-gmt="04:30-06:30 GMT">Morning <small>07:00-12:00 IST / 04:30-06:30 GMT</small></button>
+                <button type="button" data-slot="Afternoon" data-gmt="08:30-10:30 GMT">Afternoon <small>12:00-17:00 IST / 08:30-10:30 GMT</small></button>
+                <button type="button" data-slot="Evening" data-gmt="11:30-13:30 GMT">Evening <small>17:00-22:00 IST / 11:30-13:30 GMT</small></button>
+              </div>
+            </div>
+            <div class="field full">
+              <label for="contactMessage">Message</label>
+              <textarea id="contactMessage" name="message" required placeholder="Write your enquiry here."></textarea>
+            </div>
+          </div>
+          <div class="submit-row">
+            <button class="btn" id="submitGeneralEnquiry" type="submit">Submit enquiry</button>
+            <p class="form-message" id="generalFormMessage">Your enquiry has been submitted.</p>
+          </div>
+        </form>
+
+        <aside class="contact-card">
+          <h2 class="section-title">Contact Details</h2>
+          <div class="contact-list">
+            <div class="contact-item">
+              <h3>Email</h3>
+              <p><a href="mailto:info@metacarbonics.com">info@metacarbonics.com</a></p>
+            </div>
+            <div class="contact-item">
+              <h3>Location</h3>
+              <p>Gurugram, Haryana, India</p>
+            </div>
+            <div class="contact-item">
+              <h3>Focus Areas</h3>
+              <p>Carbon markets, ESG, BRSR, dMRV, EPR, and circular economy systems.</p>
+            </div>
+          </div>
+          <div class="social-block">
+            <h3>Follow MetaCarbonics</h3>
+            <div class="footer-social" aria-label="MetaCarbonics social links">
+              <a href="https://www.linkedin.com/company/metacarbonics/" target="_blank" rel="noopener noreferrer" aria-label="MetaCarbonics on LinkedIn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.58c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.68H9.34V8.98h3.42v1.57h.05c.48-.9 1.64-1.85 3.37-1.85 3.61 0 4.27 2.38 4.27 5.47v6.28ZM5.32 7.41a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12Zm1.78 13.04H3.54V8.98H7.1v11.47ZM22.23 0H1.76C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.76 24h20.47c.97 0 1.77-.77 1.77-1.72V1.72C24 .77 23.2 0 22.23 0Z"/></svg>
+              </a>
+              <a href="https://www.instagram.com/metacarbonics/" target="_blank" rel="noopener noreferrer" aria-label="MetaCarbonics on Instagram">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.22.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.05.41 2.22.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.22-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.05.36-2.22.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.22-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.05-.41-2.22-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.22.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.05-.36 2.22-.41 1.27-.06 1.65-.07 4.85-.07ZM12 0C8.74 0 8.33.01 7.05.07 5.77.13 4.9.33 4.14.63a5.87 5.87 0 0 0-2.13 1.38A5.87 5.87 0 0 0 .63 4.14C.33 4.9.13 5.77.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.28.26 2.15.56 2.91.31.79.72 1.46 1.38 2.13a5.87 5.87 0 0 0 2.13 1.38c.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.28-.06 2.15-.26 2.91-.56a5.87 5.87 0 0 0 2.13-1.38 5.87 5.87 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.28-.26-2.15-.56-2.91a5.87 5.87 0 0 0-1.38-2.13A5.87 5.87 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0Zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32Zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0Z"/></svg>
+              </a>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>© 2026 MetaCarbonics. All Rights Reserved.</div>
+      <div class="footer-social" aria-label="MetaCarbonics social links">
+        <a href="https://www.linkedin.com/company/metacarbonics/" target="_blank" rel="noopener noreferrer" aria-label="MetaCarbonics on LinkedIn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.58c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.68H9.34V8.98h3.42v1.57h.05c.48-.9 1.64-1.85 3.37-1.85 3.61 0 4.27 2.38 4.27 5.47v6.28ZM5.32 7.41a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12Zm1.78 13.04H3.54V8.98H7.1v11.47ZM22.23 0H1.76C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.76 24h20.47c.97 0 1.77-.77 1.77-1.72V1.72C24 .77 23.2 0 22.23 0Z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/metacarbonics/" target="_blank" rel="noopener noreferrer" aria-label="MetaCarbonics on Instagram">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.22.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.05.41 2.22.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.22-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.05.36-2.22.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.22-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.05-.41-2.22-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.22.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.05-.36 2.22-.41 1.27-.06 1.65-.07 4.85-.07ZM12 0C8.74 0 8.33.01 7.05.07 5.77.13 4.9.33 4.14.63a5.87 5.87 0 0 0-2.13 1.38A5.87 5.87 0 0 0 .63 4.14C.33 4.9.13 5.77.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.28.26 2.15.56 2.91.31.79.72 1.46 1.38 2.13a5.87 5.87 0 0 0 2.13 1.38c.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.28-.06 2.15-.26 2.91-.56a5.87 5.87 0 0 0 2.13-1.38 5.87 5.87 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.28-.26-2.15-.56-2.91a5.87 5.87 0 0 0-1.38-2.13A5.87 5.87 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0Zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32Zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm7.85-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0Z"/></svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const generalEnquiryEndpoint = "https://script.google.com/macros/s/AKfycbzrVupd1Fx1wv2CxwR4D7apfU68PzkQtgZsx5pIwD5Y4GCFzgM0H9gvmYLpqlnzEJY4WQ/exec";
+    const form = document.getElementById("generalContactForm");
+    const submitButton = document.getElementById("submitGeneralEnquiry");
+    const message = document.getElementById("generalFormMessage");
+    const contactMethod = document.getElementById("contactMethod");
+    const meetingPanel = document.getElementById("meetingPanel");
+    const calendarGrid = document.getElementById("calendarGrid");
+    const calendarTitle = document.getElementById("calendarTitle");
+    const prevMonth = document.getElementById("prevMonth");
+    const nextMonth = document.getElementById("nextMonth");
+    const slotGrid = document.getElementById("slotGrid");
+    const slots = Array.from(document.querySelectorAll("[data-slot]"));
+    const today = new Date();
+    const minDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const maxDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 45);
+    let calendarCursor = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    let selectedMeetingDate = "";
+    let selectedMeetingSlot = "";
+    let selectedMeetingGmt = "";
+
+    function setFormMessage(text, isError = false) {
+      message.textContent = text;
+      message.classList.toggle("error", isError);
+      message.classList.add("visible");
+    }
+
+    function dateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function renderCalendar() {
+      const year = calendarCursor.getFullYear();
+      const month = calendarCursor.getMonth();
+      calendarTitle.textContent = calendarCursor.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+      calendarGrid.innerHTML = "";
+
+      ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach((day) => {
+        const label = document.createElement("span");
+        label.textContent = day;
+        label.className = "muted-day";
+        calendarGrid.appendChild(label);
+      });
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let i = 0; i < firstDay; i += 1) {
+        const empty = document.createElement("span");
+        empty.className = "muted-day";
+        empty.textContent = "";
+        calendarGrid.appendChild(empty);
+      }
+
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(year, month, day);
+        const key = dateKey(date);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = day;
+        button.disabled = date < minDate || date > maxDate;
+        button.classList.toggle("active", selectedMeetingDate === key);
+        button.addEventListener("click", () => {
+          selectedMeetingDate = key;
+          selectedMeetingSlot = "";
+          selectedMeetingGmt = "";
+          slots.forEach((slot) => slot.classList.remove("active"));
+          slotGrid.classList.add("visible");
+          renderCalendar();
+          setFormMessage("Select a preferred time slot for the meeting invite.");
+        });
+        calendarGrid.appendChild(button);
+      }
+
+      const prevCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1);
+      const nextCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1);
+      prevMonth.disabled = new Date(prevCursor.getFullYear(), prevCursor.getMonth() + 1, 0) < minDate;
+      nextMonth.disabled = nextCursor > maxDate;
+    }
+
+    function toggleMeetingPanel() {
+      const showMeeting = contactMethod.value === "Meeting invite";
+      meetingPanel.classList.toggle("visible", showMeeting);
+      if (showMeeting) {
+        renderCalendar();
+      } else {
+        selectedMeetingDate = "";
+        selectedMeetingSlot = "";
+        selectedMeetingGmt = "";
+        slotGrid.classList.remove("visible");
+        slots.forEach((slot) => slot.classList.remove("active"));
+      }
+    }
+
+    contactMethod.addEventListener("change", toggleMeetingPanel);
+    prevMonth.addEventListener("click", () => {
+      calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1);
+      renderCalendar();
+    });
+    nextMonth.addEventListener("click", () => {
+      calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1);
+      renderCalendar();
+    });
+    slots.forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedMeetingSlot = button.dataset.slot || "";
+        selectedMeetingGmt = button.dataset.gmt || "";
+        slots.forEach((slot) => slot.classList.toggle("active", slot === button));
+        setFormMessage(`${selectedMeetingSlot} selected for ${selectedMeetingDate}. The invite will be shared based on availability.`);
+      });
+    });
+    toggleMeetingPanel();
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const rawMessage = document.getElementById("contactMessage").value.trim();
+      const meetingSummary = contactMethod.value === "Meeting invite" && selectedMeetingDate && selectedMeetingSlot
+        ? `\n\nMeeting preference: ${selectedMeetingDate} | ${selectedMeetingSlot} | ${selectedMeetingGmt}`
+        : "";
+      const payload = {
+        name: document.getElementById("contactName").value.trim(),
+        company: document.getElementById("contactCompany").value.trim(),
+        email: document.getElementById("contactEmail").value.trim(),
+        phone: document.getElementById("contactPhone").value.trim(),
+        queryType: document.getElementById("queryType").value,
+        contactMethod: contactMethod.value,
+        meetingDate: selectedMeetingDate,
+        meetingSlot: selectedMeetingSlot,
+        meetingGmt: selectedMeetingGmt,
+        message: `${rawMessage}${meetingSummary}`,
+        sourcePage: window.location.pathname || "get-in-touch.html"
+      };
+
+      if (!payload.name || !payload.email || !payload.message) {
+        setFormMessage("Please add your name, email, and message before submitting.", true);
+        return;
+      }
+      if (payload.contactMethod === "Meeting invite" && (!payload.meetingDate || !payload.meetingSlot)) {
+        setFormMessage("Please select a meeting date and time slot before submitting.", true);
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Submitting...";
+      setFormMessage("Submitting your enquiry...");
+
+      try {
+        await fetch(generalEnquiryEndpoint, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify(payload)
+        });
+        form.reset();
+        toggleMeetingPanel();
+        setFormMessage("Your enquiry has been submitted. The MetaCarbonics team will review it and respond soon.");
+      } catch (error) {
+        setFormMessage("Unable to submit right now. Please try again in a moment.", true);
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Submit enquiry";
+      }
+    });
+  </script>
+  <script src="capabilities-nav.js"></script>
+</body>
+</html>
