@@ -69,6 +69,7 @@ body{margin:0;font-family:Inter, Arial, sans-serif;background:var(--offwhite);co
 .footer-social a{width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:white;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);transition:background .2s ease,transform .2s ease}
 .footer-social a:hover{background:rgba(255,255,255,.18);transform:translateY(-2px)}
 .footer-social svg{width:19px;height:19px;fill:currentColor}
+.site-footer .footer-social{display:none!important}
 
 /* Responsive tweaks */
 @media (max-width:880px){
