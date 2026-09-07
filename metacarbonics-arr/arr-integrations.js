@@ -1,8 +1,8 @@
 (function(){
   const baseOpenModule=window.openModule;
   window.openModule=function(index){
-    if(index===1){window.location.href='pom-module.html?module=M02';return;}
-    baseOpenModule(index);
+    const code='M'+String(index+1).padStart(2,'0');
+    window.location.href='pom-module.html?module='+code;
   };
 
   let workbook=null,activeSheet='',showFormulas=false,selectedCell='';
