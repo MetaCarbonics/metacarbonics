@@ -159,6 +159,11 @@
 </div>
 </article>
 </div>
+<article class="panel drive-admin-panel">
+<div class="panel-head"><div><h2>Google Drive backend connection</h2><p>Only administrators can map a Drive folder to this project. OAuth tokens remain in the backend.</p></div><span class="status attention" id="driveAdminStatus">Not configured</span></div>
+<div class="drive-config"><label>Project folder ID<input id="driveFolderId" placeholder="Google Drive folder ID"></label><label>Backend connector endpoint<input id="driveEndpoint" value="/api/google-drive" readonly></label><label>Access policy<select id="drivePolicy"><option>Role-based project folders</option><option>Single project folder</option></select></label><button class="primary" id="adminConnectDrive">Authorize Google Drive</button></div>
+<p class="config-note">Configure the Google OAuth client ID, client secret, redirect URI and encrypted refresh-token storage in the deployment backend. Secrets are never stored in this page.</p>
+</article>
 <article class="panel table-panel">
 <div class="panel-head">
 <div>
@@ -572,6 +577,13 @@
 <div class="period-list" id="errPeriodTable">
 </div>
 </article>
+<article class="panel workbook-panel">
+<div class="panel-head"><div><h2>Complete ERR workbook</h2><p>Open every worksheet, inspect formulas and values, edit draft cells and download the revised workbook.</p></div><div class="page-actions"><button class="secondary" id="toggleFormula">Show formulas</button><button class="primary" id="downloadEditedErr">Download edited workbook</button></div></div>
+<div class="workbook-status" id="workbookStatus">Loading workbook sheets…</div>
+<div class="sheet-tabs" id="sheetTabs"></div>
+<div class="sheet-toolbar"><b id="activeSheetName">Workbook</b><span id="activeCell">Select a cell to inspect or edit</span><input id="cellEditor" placeholder="Cell value or formula" disabled><button class="secondary" id="applyCellEdit" disabled>Apply edit</button></div>
+<div class="sheet-grid-wrap"><table class="sheet-grid" id="sheetGrid"></table></div>
+</article>
 <article class="panel compliance-panel">
 <div class="panel-head">
 <div>
@@ -751,7 +763,11 @@
 </div>
 <div class="toast" id="toast">
 </div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+</script>
 <script src="arr-dmrv.js">
+</script>
+<script src="arr-integrations.js">
 </script>
 <script src="../cad-auth-gate.js">
 </script>
