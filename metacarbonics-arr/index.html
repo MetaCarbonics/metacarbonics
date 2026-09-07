@@ -18,13 +18,15 @@
 </a>
 <div class="project-switch">
 <label>Active project</label>
-<button>VCS 4713 Agroforestry <span>⌄</span>
+<button id="activeProjectButton">VCS 4713 Agroforestry <span>⌄</span>
 </button>
 </div>
 <button class="mobile-menu" id="mobileMenu">Menu</button>
 </div>
 <nav class="main-nav" aria-label="ARR dMRV navigation">
 <button class="nav-link active" data-view="control">Overview</button>
+<button class="nav-link" data-view="projects">My projects</button>
+<button class="nav-link" data-view="sourcing">BD sourcing</button>
 <button class="nav-link" data-view="modules">Work plan</button>
 <button class="nav-link" data-view="err">ERR model</button>
 <button class="nav-link" data-view="budget">Budget</button>
@@ -51,6 +53,9 @@
 <label class="role-picker">View as<select id="roleSelect">
 <option value="manager">Project manager</option>
 <option value="developer">Project developer</option>
+<option value="projectlead">Project lead</option>
+<option value="bd">BD team</option>
+<option value="operations">Operations team</option>
 <option value="ceo">CEO</option>
 <option value="accounts">Accounts</option>
 <option value="farmer">Farmer</option>
@@ -63,6 +68,17 @@
 <div class="avatar">WA</div>
 </div>
 </header>
+<section class="view" id="view-projects">
+<div class="page-head"><div><p class="eyebrow">ROLE-AUTHORIZED PORTFOLIO</p><h1>My projects</h1><p>Only projects assigned to your role and organisation are shown. Select a project to open its CAD.</p></div><span class="status" id="visibleProjectCount">0 projects</span></div>
+<div class="portfolio-filter"><input class="search" id="projectSearch" placeholder="Search project, country, registry or methodology"><select id="projectStageFilter"><option value="all">All accessible stages</option><option>Sourcing</option><option>Due diligence</option><option>Handoff ready</option><option>Operations</option></select></div>
+<div class="project-portfolio" id="projectPortfolio"></div>
+</section>
+<section class="view" id="view-sourcing">
+<div class="page-head"><div><p class="eyebrow">BUSINESS DEVELOPMENT → OPERATIONS</p><h1>Project sourcing and handoff</h1><p>BD develops opportunities; the Project Lead approves a complete transfer pack before Operations accepts delivery responsibility.</p></div><button class="primary" id="addOpportunity">Add opportunity</button></div>
+<div class="handoff-flow"><div><b>1</b><span>Lead captured</span></div><i>→</i><div><b>2</b><span>Qualified</span></div><i>→</i><div><b>3</b><span>Due diligence</span></div><i>→</i><div><b>4</b><span>Handoff ready</span></div><i>→</i><div><b>5</b><span>Operations accepted</span></div></div>
+<div class="bd-layout"><article class="panel"><div class="panel-head"><div><h2>Sourcing pipeline</h2><p>Opportunities owned by Project Lead and BD team</p></div><select id="bdStageFilter"><option value="all">All stages</option><option>Lead captured</option><option>Qualified</option><option>Due diligence</option><option>Handoff ready</option><option>Operations</option></select></div><div id="bdPipeline"></div></article>
+<article class="panel"><div class="panel-head"><div><h2>Transfer gate</h2><p>Mandatory package before Operations acceptance</p></div></div><div class="handoff-checklist" id="handoffChecklist"></div></article></div>
+</section>
 <section class="view" id="view-admin">
 <div class="page-head">
 <div>
@@ -108,6 +124,9 @@
 <span class="status">Draft v1.3</span>
 </div>
 <div class="form-stack">
+<label>Template name<input id="templateName" value="Verra ARR · VM0047 delivery template"></label>
+<label>Project type<select id="templateProjectType"><option>ARR</option><option>Biochar</option><option>IFM</option><option>REDD+</option><option>Soil carbon</option></select></label>
+<label>Registry<select id="templateRegistry"><option>Verra VCS</option><option>Gold Standard</option><option>Plan Vivo</option><option>Article 6 programme</option></select></label>
 <label>Methodology<select>
 <option>VM0047 v1.1</option>
 <option>VM0047 v1.0 transition</option>
