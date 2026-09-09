@@ -6,7 +6,7 @@
 const CL_CONFIG = {
   spreadsheetId: '1zDz0ZLTF4XSNE8rvFbbSgZzfZlrDgBnjEmRZGB0cjAw',
   rootFolderId: '1oUQIKoOAz7tcNxzNLICNxyYSHv77gT0e',
-  tabs: {tickets:'Ticket Register', leads:'Leads', team:'Team Access', folders:'Folder Manifest', logs:'Audit Log'}
+  tabs: {tickets:'Ticket Register', signals:'Sourcing Signals', leads:'Leads', opportunities:'Opportunities', lineage:'Project Lineage', team:'Team Access', folders:'Folder Manifest', logs:'Audit Log'}
 };
 
 function workbook_() { return SpreadsheetApp.openById(CL_CONFIG.spreadsheetId); }
@@ -88,6 +88,25 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (body.action === 'createSignal') {
+      const signal = body.signal || {};
+      ['Signal_ID', 'Account', 'Lead_Source', 'Source_Document', 'Identified_By', 'Trigger'].forEach(function (key) {
+        if (!String(signal[key] || '').trim()) throw new Error('Missing required field: ' + key);
+      });
+      lock.waitLock(30000);
+      appendObject_(CL_CONFIG.tabs.signals, signal);
+      appendObject_(CL_CONFIG.tabs.logs, {Timestamp:new Date(), Record_ID:signal.Signal_ID, Action:'Sourcing signal created', Actor:signal.Identified_By, Detail:signal.Account, Status:'Success'});
+      return json_({ok:true, signalId:signal.Signal_ID});
+    }
+    if (body.action === 'convertLead') {
+      const conversion = body.conversion || {};
+      if (!conversion.Lead_ID || !conversion.Opportunity_ID || !(conversion.Checks || []).every(Boolean)) throw new Error('All conversion gates are required.');
+      lock.waitLock(30000);
+      appendObject_(CL_CONFIG.tabs.opportunities, conversion);
+      appendObject_(CL_CONFIG.tabs.lineage, {Timestamp:new Date(), Signal_ID:conversion.Signal_ID || '', Lead_ID:conversion.Lead_ID, Opportunity_ID:conversion.Opportunity_ID, Project_ID:'Pending', Action:'Lead qualified and converted'});
+      appendObject_(CL_CONFIG.tabs.logs, {Timestamp:new Date(), Record_ID:conversion.Opportunity_ID, Action:'Lead converted to opportunity', Actor:conversion.Converted_By || '', Detail:conversion.Lead_ID, Status:'Success'});
+      return json_({ok:true, opportunityId:conversion.Opportunity_ID});
+    }
     if (body.action !== 'createLead') throw new Error('Unsupported action.');
     const lead = body.lead || {};
     ['Lead_ID', 'organisation', 'contact', 'email', 'scope'].forEach(function (key) {
