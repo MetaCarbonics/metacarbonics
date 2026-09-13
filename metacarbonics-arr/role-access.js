@@ -12,7 +12,8 @@
     const current=e?.detail||window.MC_CURRENT_USER;if(!current)return;
     const p=current.profile||{},r=p.role||'user',display=roleNames[r]||'Project Developer',set=new Set(allowed[r]||allowed.developer);
     const select=document.getElementById('role');if(select){select.value=display;select.dispatchEvent(new Event('change'));}
-    document.querySelectorAll('#nav [data-view]').forEach(el=>{el.hidden=!set.has(el.dataset.view)});
+    const enforceNavigation=()=>document.querySelectorAll('#nav [data-view]').forEach(el=>{el.hidden=!set.has(el.dataset.view)});
+    enforceNavigation();
     document.querySelectorAll('#nav p').forEach(el=>{if(![...el.parentElement.querySelectorAll('[data-view]')].some(x=>!x.hidden))el.hidden=true});
     const internal=['admin','bd','projectlead','manager','developer','operations','finance','ceo'].includes(r);
     document.querySelectorAll('[data-internal]').forEach(el=>{if(!internal)el.hidden=true});
@@ -23,6 +24,7 @@
     const user=document.getElementById('workspaceUser');if(user)user.textContent=p.organisation&&['buyer','investor','farmer'].includes(r)?p.organisation:(p.full_name||p.email);
     const first=document.querySelector('#nav [data-view]:not([hidden])');const active=document.querySelector('#nav [data-view].active');if(active&&active.hidden&&first)first.click();
     if(r==='farmer'&&location.pathname.endsWith('/climalink.html')) location.replace('index.html#projects');
+    window.setTimeout(enforceNavigation,150);
   }
   window.addEventListener('mc-auth-ready',apply);if(window.MC_CURRENT_USER)apply({detail:window.MC_CURRENT_USER});
 })();
