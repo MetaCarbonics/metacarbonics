@@ -14,7 +14,14 @@
     const select=document.getElementById('role');if(select){select.value=display;select.dispatchEvent(new Event('change'));}
     const enforceNavigation=()=>document.querySelectorAll('#nav [data-view]').forEach(el=>{el.hidden=!set.has(el.dataset.view)});
     enforceNavigation();
-    document.querySelectorAll('#nav p').forEach(el=>{if(![...el.parentElement.querySelectorAll('[data-view]')].some(x=>!x.hidden))el.hidden=true});
+    document.querySelectorAll('#nav p').forEach(el=>{
+      let node=el.nextElementSibling,hasVisibleItem=false;
+      while(node&&node.tagName!=='P'){
+        if((node.matches('[data-view]')||node.tagName==='A')&&!node.hidden)hasVisibleItem=true;
+        node=node.nextElementSibling;
+      }
+      el.hidden=!hasVisibleItem;
+    });
     const internal=['admin','bd','projectlead','manager','developer','operations','finance','ceo'].includes(r);
     document.querySelectorAll('[data-internal]').forEach(el=>{if(!internal)el.hidden=true});
     const canCreate=['admin','bd','projectlead'].includes(r);
