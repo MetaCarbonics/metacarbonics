@@ -40,7 +40,7 @@
             const result = await window._supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
             const profile = result?.data || { email: user.email, role: "user", full_name: user.email };
             const email = String(user.email || profile.email || "").toLowerCase();
-            const isWarisAdmin = email === "waris@metacarbonics.com" && profile.role === "admin";
+            const isWarisAdmin = email === "hooda.waris0507@gmail.com" && profile.role === "admin";
             const allowedPreviews = new Set(["admin", "bd", "projectlead", "manager", "developer", "operations", "finance", "ceo", "farmer", "buyer", "investor"]);
             const requestedPreview = isWarisAdmin ? sessionStorage.getItem("mc:waris-role-preview") : null;
             const effectiveRole = requestedPreview && allowedPreviews.has(requestedPreview) ? requestedPreview : profile.role;

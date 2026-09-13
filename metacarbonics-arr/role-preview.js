@@ -9,7 +9,7 @@
     const current = event?.detail || window.MC_CURRENT_USER;
     const profile = current?.profile || {};
     const email = String(current?.user?.email || profile.email || "").toLowerCase();
-    if (email !== "waris@metacarbonics.com" || profile.actual_role !== "admin") return;
+    if (email !== "hooda.waris0507@gmail.com" || profile.actual_role !== "admin") return;
     const host = document.querySelector(".top-actions");
     if (!host || document.getElementById("warisRolePreview")) return;
     const label = document.createElement("label");

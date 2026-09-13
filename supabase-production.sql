@@ -1,5 +1,8 @@
 -- ClimaLink production data boundary. Run in the Supabase SQL editor before release.
 alter table public.profiles add column if not exists organisation_id uuid;
+alter table public.profiles add column if not exists full_name text;
+alter table public.profiles add column if not exists organisation text;
+alter table public.profiles add column if not exists status text default 'active';
 alter table public.profiles enable row level security;
 
 create table if not exists public.portal_projects (
