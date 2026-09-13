@@ -22,12 +22,11 @@ async function ensureProfileForCurrentUser() {
     if (userError || !user) return;
     const metadataName = user.user_metadata?.full_name || user.user_metadata?.name || null;
 
-    const { error: profileError } = await _supabase
-        .from("profiles")
-        .upsert(
-            { id: user.id, email: user.email, full_name: metadataName, role: "user" },
-            { onConflict: "id" }
-        );
+    const { data: existing } = await _supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    const { error: profileError } = await _supabase.from("profiles").upsert(
+        { id: user.id, email: user.email, full_name: metadataName || existing?.full_name || "", role: existing?.role || user.app_metadata?.role || "user", organisation: existing?.organisation || user.user_metadata?.organisation || "" },
+        { onConflict: "id" }
+    );
 
     if (profileError) {
         console.warn("Profile upsert skipped:", profileError.message);
@@ -42,7 +41,12 @@ async function login(email, password, redirectTo) {
     await _supabase.auth.signOut({ scope: "others" });
     await ensureProfileForCurrentUser();
     startSessionGuards();
-    window.location.href = redirectTo || "index.html";
+    const current = await getCurrentUserWithProfile();
+    const role = current?.profile?.role || "user";
+    const roleHome = ["buyer","investor","bd","projectlead","finance","ceo","admin"].includes(role)
+        ? "/metacarbonics-arr/climalink.html"
+        : "/metacarbonics-arr/index.html#projects";
+    window.location.href = redirectTo && redirectTo !== "index.html" ? redirectTo : roleHome;
 }
 
 // SIGNUP + Welcome Email

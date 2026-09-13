@@ -80,6 +80,14 @@ body {
 
     </form>
 
+    <details class="mt-6 border-t pt-4 text-sm">
+      <summary class="cursor-pointer font-semibold text-primary-dark">Pilot test accounts</summary>
+      <p class="text-xs text-text-muted mt-2">Choose a role. These browser-only pilot passwords will be replaced by the production identity database.</p>
+      <select id="demoAccount" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-2">
+        <option value="">Select a role…</option><option value="admin">Administrator</option><option value="bd">BD Manager</option><option value="projectlead">Project Lead</option><option value="manager">Project Manager</option><option value="developer">Project Developer</option><option value="operations">Operations</option><option value="finance">Finance</option><option value="ceo">CEO</option><option value="farmer">Farmer</option><option value="buyer">Buyer</option><option value="investor">Investor</option>
+      </select>
+    </details>
+
 </div>
 
 <script>
@@ -115,6 +123,8 @@ forgotPasswordBtn.addEventListener("click", async () => {
 signupRedirectBtn.addEventListener("click", () => {
     window.location.href = "signup.html";
 });
+const demoCredentials={admin:['admin@metacarbonics.com','MetaAdmin#2026'],bd:['bd@metacarbonics.com','MetaBD#2026'],projectlead:['projectlead@metacarbonics.com','MetaLead#2026'],manager:['projectmanager@metacarbonics.com','MetaPM#2026'],developer:['projectdeveloper@metacarbonics.com','MetaDev#2026'],operations:['operations@metacarbonics.com','MetaOps#2026'],finance:['finance@metacarbonics.com','MetaFin#2026'],ceo:['ceo@metacarbonics.com','MetaCEO#2026'],farmer:['farmer.demo@metacarbonics.com','MetaFarmer#2026'],buyer:['buyer.demo@metacarbonics.com','MetaBuyer#2026'],investor:['investor.demo@metacarbonics.com','MetaInvestor#2026']};
+document.getElementById('demoAccount').addEventListener('change',e=>{const c=demoCredentials[e.target.value];if(!c)return;document.getElementById('email').value=c[0];document.getElementById('password').value=c[1]});
 
 // =====================
 // 🚀 AUTH SUBMIT

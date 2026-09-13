@@ -6,16 +6,49 @@
 const CL_CONFIG = {
   spreadsheetId: '1zDz0ZLTF4XSNE8rvFbbSgZzfZlrDgBnjEmRZGB0cjAw',
   rootFolderId: '1oUQIKoOAz7tcNxzNLICNxyYSHv77gT0e',
-  tabs: {tickets:'Ticket Register', signals:'Sourcing Signals', leads:'Leads', opportunities:'Opportunities', lineage:'Project Lineage', team:'Team Access', folders:'Folder Manifest', logs:'Audit Log'}
+  tabs: {tickets:'Ticket Register', signals:'Sourcing Signals', leads:'Leads', opportunities:'Opportunities', projects:'Project Master', lineage:'Project Lineage', users:'Users & Roles', permissions:'Role Permissions', access:'Record Access', documents:'Document Index', notifications:'Notifications', team:'Team Access', folders:'Folder Manifest', logs:'Audit Log'}
+};
+
+const CL_HEADERS = {
+  'Project Master':['Project_ID','Opportunity_ID','Project_Name','Activity','Registry','Methodology','Country','Project_Manager','Status','Crediting_Start','Crediting_End','Root_Folder_URL','Created_At'],
+  'Users & Roles':['User_Email','Full_Name','Role','Organisation','Status','Auth_Provider','Last_Updated'],
+  'Role Permissions':['Role','View','Can_Read','Can_Create','Can_Edit','Can_Approve','Data_Scope'],
+  'Record Access':['User_Email','Record_Type','Record_ID','Access_Level','Granted_By','Granted_At','Expires_At','Status'],
+  'Document Index':['Document_ID','Project_ID','Document_Type','File_Name','Drive_URL','Version','Visibility','Owner','Status','Updated_At'],
+  'Notifications':['Notification_ID','Record_ID','Milestone','Recipient_Email','Recipient_Role','Subject','Status','Sent_At'],
+  'Team Access':['Ticket_ID','Project_ID','Name','Email','Role','Access','Permission_Status'],
+  'Folder Manifest':['Timestamp','Record_ID','Sequence','Folder_Name','Folder_URL','Status'],
+  'Audit Log':['Timestamp','Record_ID','Action','Actor','Detail','Status']
 };
 
 function workbook_() { return SpreadsheetApp.openById(CL_CONFIG.spreadsheetId); }
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('ClimaLink Admin')
+    .addItem('Create / repair control tabs', 'setupProductionWorkspace')
     .addItem('Provision selected ticket', 'provisionSelectedTicket')
     .addItem('Validate workspace', 'validateWorkspace')
     .addToUi();
+}
+
+function setupProductionWorkspace() {
+  const ss=workbook_();
+  Object.keys(CL_HEADERS).forEach(function(name){
+    let sh=ss.getSheetByName(name); if(!sh) sh=ss.insertSheet(name);
+    const headers=CL_HEADERS[name];
+    if(sh.getLastRow()===0 || !String(sh.getRange(1,1).getValue()).trim()) sh.getRange(1,1,1,headers.length).setValues([headers]);
+    else headers.forEach(function(h){const existing=sh.getRange(1,1,1,Math.max(sh.getLastColumn(),1)).getValues()[0].map(String);if(existing.indexOf(h)<0)sh.getRange(1,sh.getLastColumn()+1).setValue(h)});
+    sh.setFrozenRows(1);sh.getRange(1,1,1,sh.getLastColumn()).setFontWeight('bold').setBackground('#e8eee9');sh.autoResizeColumns(1,Math.min(sh.getLastColumn(),12));
+  });
+  seedRoles_();
+  return {ok:true,spreadsheetUrl:ss.getUrl()};
+}
+
+function seedRoles_(){
+  const users=[['admin@metacarbonics.com','System Administrator','admin','MetaCarbonics'],['bd@metacarbonics.com','BD Manager','bd','MetaCarbonics'],['projectlead@metacarbonics.com','Project Lead','projectlead','MetaCarbonics'],['projectmanager@metacarbonics.com','Project Manager','manager','MetaCarbonics'],['projectdeveloper@metacarbonics.com','Project Developer','developer','MetaCarbonics'],['operations@metacarbonics.com','Operations Lead','operations','MetaCarbonics'],['finance@metacarbonics.com','Finance Controller','finance','MetaCarbonics'],['ceo@metacarbonics.com','Chief Executive Officer','ceo','MetaCarbonics'],['farmer.demo@metacarbonics.com','Demo Farmer','farmer','Tripura Farmer Group'],['buyer.demo@metacarbonics.com','Buyer Representative','buyer','GreenFuture Foods'],['investor.demo@metacarbonics.com','Investor Representative','investor','Terra Climate Fund']];
+  const sh=workbook_().getSheetByName(CL_CONFIG.tabs.users);if(sh.getLastRow()<2)users.forEach(function(u){sh.appendRow(u.concat(['Active','Pilot browser auth → production IdP',new Date()]))});
+  const views={admin:'All records and administration',bd:'Signals; Leads; Accounts; Opportunities',projectlead:'Assigned leads and opportunities',manager:'Assigned projects and POM',developer:'Assigned project technical workspace',operations:'Transferred projects and delivery',finance:'Budgets; receipts; revenue; payments',ceo:'Executive portfolio and approvals',farmer:'Own plots; actions; payments',buyer:'Released procurement projects',investor:'Released investment projects'};
+  const ps=workbook_().getSheetByName(CL_CONFIG.tabs.permissions);if(ps.getLastRow()<2)Object.keys(views).forEach(function(r){ps.appendRow([r,views[r],'Yes',/admin|bd|projectlead|manager|developer|operations|finance/.test(r)?'Yes':'No',r==='admin'?'Yes':'Scoped',/admin|manager|finance|ceo/.test(r)?'Yes':'No',r==='admin'?'Global':r==='bd'?'Internal BD':'Assigned records only'])});
 }
 
 function validateWorkspace() {
@@ -88,6 +121,8 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (body.action === 'setupWorkspace') { lock.waitLock(30000); return json_(setupProductionWorkspace()); }
+    if (body.action === 'provisionProject') { lock.waitLock(30000); return json_(provisionProject_(body.project || {})); }
     if (body.action === 'createSignal') {
       const signal = body.signal || {};
       ['Signal_ID', 'Account', 'Lead_Source', 'Source_Document', 'Identified_By', 'Trigger'].forEach(function (key) {
@@ -134,6 +169,19 @@ function doPost(e) {
   } finally {
     try { lock.releaseLock(); } catch (_) {}
   }
+}
+
+function provisionProject_(p){
+  ['Project_ID','Opportunity_ID','Project_Name','Activity'].forEach(function(k){if(!String(p[k]||'').trim())throw new Error('Missing required field: '+k)});
+  setupProductionWorkspace();
+  const root=DriveApp.getFolderById(CL_CONFIG.rootFolderId),activity=getOrCreateFolder_(root,safe_(p.Activity)),projectFolder=getOrCreateFolder_(activity,safe_(p.Project_ID+' - '+p.Project_Name));
+  const children=['01 Intake and KYC','02 Due Diligence','03 Contracts and Rights','04 Project Design','05 MRV and Evidence','06 Finance and Payments','07 Commercial and Registry','08 Team Working','09 External Sharing','99 Logs and Audit'];
+  children.forEach(function(name,i){const f=getOrCreateFolder_(projectFolder,name);appendObject_(CL_CONFIG.tabs.folders,{Folder_Record_ID:'FLD-'+p.Project_ID+'-'+('0'+(i+1)).slice(-2),Ticket_ID:p.Ticket_ID||p.Project_ID,Sequence:i+1,Relative_Path:name,Folder_URL:f.getUrl(),Status:'Active'})});
+  appendObject_(CL_CONFIG.tabs.projects,{Project_ID:p.Project_ID,Opportunity_ID:p.Opportunity_ID,Project_Name:p.Project_Name,Activity:p.Activity,Registry:p.Registry||'Verra VCS',Methodology:p.Methodology||'',Country:p.Country||'India',Project_Manager:p.Project_Manager||'',Status:p.Status||'Initiation',Crediting_Start:p.Crediting_Start||'',Crediting_End:p.Crediting_End||'',Root_Folder_URL:projectFolder.getUrl(),Created_At:new Date()});
+  (p.Team||[]).forEach(function(m){appendObject_(CL_CONFIG.tabs.team,{Ticket_ID:p.Ticket_ID||'',Project_ID:p.Project_ID,Name:m.name||'',Email:m.email||'',Role:m.role||'',Access:m.access||'Viewer',Permission_Status:'Approved'});appendObject_(CL_CONFIG.tabs.access,{User_Email:m.email||'',Record_Type:'Project',Record_ID:p.Project_ID,Access_Level:m.access||'Viewer',Granted_By:Session.getActiveUser().getEmail(),Granted_At:new Date(),Expires_At:'',Status:'Active'});if(m.email){if(m.access==='Editor')projectFolder.addEditor(m.email);else projectFolder.addViewer(m.email)}});
+  appendObject_(CL_CONFIG.tabs.lineage,{Timestamp:new Date(),Signal_ID:p.Signal_ID||'',Lead_ID:p.Lead_ID||'',Opportunity_ID:p.Opportunity_ID,Project_ID:p.Project_ID,Action:'Opportunity converted to project and workspace provisioned'});
+  appendObject_(CL_CONFIG.tabs.logs,{Timestamp:new Date(),Record_ID:p.Project_ID,Action:'Project workspace provisioned',Actor:Session.getActiveUser().getEmail(),Detail:projectFolder.getUrl(),Status:'Success'});
+  return {ok:true,projectId:p.Project_ID,folderUrl:projectFolder.getUrl(),sheetUrl:workbook_().getUrl()};
 }
 
 function appendObject_(tab, record) {

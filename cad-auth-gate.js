@@ -36,6 +36,12 @@
                 redirectToLogin();
                 return;
             }
+            const user = data.session.user;
+            const result = await window._supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+            const profile = result?.data || { email: user.email, role: "user", full_name: user.email };
+            window.MC_CURRENT_USER = { user, profile };
+            document.documentElement.dataset.mcRole = profile.role || "user";
+            window.dispatchEvent(new CustomEvent("mc-auth-ready", { detail: window.MC_CURRENT_USER }));
             document.documentElement.classList.remove("cad-auth-pending");
         } catch (_error) {
             redirectToLogin();

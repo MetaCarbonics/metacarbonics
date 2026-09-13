@@ -12,6 +12,19 @@
         "info@metacarbonics.com",
         "waris@metacarbonics.com"
     ]);
+    const PILOT_USERS = [
+        ["admin@metacarbonics.com", "MetaAdmin#2026", "System Administrator", "admin", "MetaCarbonics"],
+        ["bd@metacarbonics.com", "MetaBD#2026", "BD Manager", "bd", "MetaCarbonics"],
+        ["projectlead@metacarbonics.com", "MetaLead#2026", "Project Lead", "projectlead", "MetaCarbonics"],
+        ["projectmanager@metacarbonics.com", "MetaPM#2026", "Project Manager", "manager", "MetaCarbonics"],
+        ["projectdeveloper@metacarbonics.com", "MetaDev#2026", "Project Developer", "developer", "MetaCarbonics"],
+        ["operations@metacarbonics.com", "MetaOps#2026", "Operations Lead", "operations", "MetaCarbonics"],
+        ["finance@metacarbonics.com", "MetaFin#2026", "Finance Controller", "finance", "MetaCarbonics"],
+        ["ceo@metacarbonics.com", "MetaCEO#2026", "Chief Executive Officer", "ceo", "MetaCarbonics"],
+        ["farmer.demo@metacarbonics.com", "MetaFarmer#2026", "Demo Farmer", "farmer", "Tripura Farmer Group"],
+        ["buyer.demo@metacarbonics.com", "MetaBuyer#2026", "Buyer Representative", "buyer", "GreenFuture Foods"],
+        ["investor.demo@metacarbonics.com", "MetaInvestor#2026", "Investor Representative", "investor", "Terra Climate Fund"]
+    ];
 
     window.SB_URL = "local-auth-fallback";
     window.SB_KEY = "local-auth-fallback";
@@ -55,6 +68,24 @@
     function saveProfiles(profiles) {
         writeJson(PROFILES_KEY, profiles);
     }
+
+    function seedPilotUsers() {
+        const users = loadUsers();
+        const profiles = loadProfiles();
+        PILOT_USERS.forEach(([email, password, fullName, role, organisation]) => {
+            let user = users.find((entry) => String(entry.email).toLowerCase() === email);
+            if (!user) {
+                user = { id: `pilot_${role}`, email, password, confirmed_at: new Date().toISOString(), created_at: new Date().toISOString(), user_metadata: { full_name: fullName, organisation }, app_metadata: { role } };
+                users.push(user);
+            }
+            const profileIndex = profiles.findIndex((entry) => entry.id === user.id);
+            const profile = { id: user.id, email, full_name: fullName, role, organisation, status: "active", avatar_url: "" };
+            if (profileIndex >= 0) profiles[profileIndex] = { ...profiles[profileIndex], ...profile };
+            else profiles.push(profile);
+        });
+        saveUsers(users); saveProfiles(profiles);
+    }
+    seedPilotUsers();
 
     function getSessionObject() {
         return readJson(SESSION_KEY, null);
