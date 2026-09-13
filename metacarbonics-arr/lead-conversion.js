@@ -1,1 +1,30 @@
-(()=>{const q=new URLSearchParams(location.search),id=q.get('id')||'',role=q.get('role')||'BD Manager';if(!id.startsWith('LD-')||['Buyer','Investor'].includes(role))return;const checks=['Counterparty identified','Project, advisory, buyer or investor type identified','Geography known','Approximate scale or value known','Initial interest confirmed through engagement','No obvious disqualifying issue'];setTimeout(()=>{const record=document.getElementById('record');if(!record)return;const box=document.createElement('section');box.className='conversion-box';box.innerHTML='<p class="eyebrow">CONTROLLED QUALIFICATION</p><h2>Convert lead to opportunity</h2><p>Contact alone is insufficient. All six gates must be evidenced before this record can enter forecasts.</p>'+checks.map((x,i)=>'<label class="conversion-check"><input type="checkbox" data-conversion="'+i+'"><span><b>'+x+'</b><br><small>Reviewer evidence required</small></span></label>').join('')+'<label>Opportunity activity / service<input id="conversionActivity" placeholder="ARR, Biochar, ESG advisory…"></label><label>Converted by<input id="convertedBy" value="Waris Hooda"></label><button class="primary" id="convertLead" disabled>Convert to opportunity</button><p id="conversionStatus" class="lineage">'+id+' → Opportunity pending</p>';record.append(box);const inputs=[...box.querySelectorAll('[data-conversion]')],button=box.querySelector('#convertLead');inputs.forEach(x=>x.onchange=()=>button.disabled=!inputs.every(i=>i.checked));button.onclick=async()=>{const activity=box.querySelector('#conversionActivity').value.trim();if(!activity){alert('Enter the opportunity activity or service.');return}const code=activity.toUpperCase().includes('BIOCHAR')?'BCR':activity.toUpperCase().includes('ARR')?'ARR':'ADV',opp=`OPP-${code}-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,conversion={Lead_ID:id,Opportunity_ID:opp,Signal_ID:'',Activity_or_Service:activity,Stage:'Qualified Opportunity',Forecast_Eligible:'Yes',Checks:inputs.map(i=>i.checked),Converted_By:box.querySelector('#convertedBy').value,Converted_At:new Date().toISOString()};button.disabled=true;await fetch('https://script.google.com/macros/s/AKfycbzgO6qTKX_jaxF4xdsB9WrIBT8C--rtWxvCRTzbr0r1q6xedtb2lJwn2kPyXGXi08Szyg/exec',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'convertLead',conversion})});localStorage.setItem('climalinkLastConversion',JSON.stringify(conversion));box.querySelector('#conversionStatus').textContent=id+' → '+opp+' · Submitted to Sheet';button.textContent='Converted'}},80)})();
+(function () {
+  "use strict";
+  const id = new URLSearchParams(location.search).get("id") || "";
+  const allowed = new Set(["admin", "bd", "projectlead"]);
+  async function init(event) {
+    const profile = (event?.detail || window.MC_CURRENT_USER)?.profile || {};
+    if (!id.startsWith("LD-") || !allowed.has(String(profile.role || "").toLowerCase())) return;
+    const record = document.getElementById("record");
+    if (!record || record.querySelector(".privacy")) return;
+    const checks = ["Counterparty identified", "Relationship type identified", "Geography known", "Scale or value known", "Interest confirmed", "No obvious disqualifying issue"];
+    const box = document.createElement("section");
+    box.className = "conversion-box";
+    box.innerHTML = `<p class="eyebrow">CONTROLLED QUALIFICATION</p><h2>Convert lead to opportunity</h2>${checks.map((x,i)=>`<label class="conversion-check"><input type="checkbox" data-check="${i}"><span><b>${x}</b><br><small>Evidence required</small></span></label>`).join("")}<label>Activity or service<input id="conversionActivity" required></label><button class="primary" id="convertLead" disabled>Convert to opportunity</button><p id="conversionStatus" class="lineage">${id} → Opportunity pending</p>`;
+    record.append(box);
+    const inputs = [...box.querySelectorAll("[data-check]")];
+    const button = box.querySelector("#convertLead");
+    inputs.forEach((input) => input.addEventListener("change", () => { button.disabled = !inputs.every((item) => item.checked); }));
+    button.addEventListener("click", async () => {
+      const activity = box.querySelector("#conversionActivity").value.trim();
+      if (!activity) return;
+      button.disabled = true;
+      const { data, error } = await window._supabase.rpc("convert_lead_to_opportunity", { p_lead_id: id, p_activity: activity });
+      if (error) { button.disabled = false; box.querySelector("#conversionStatus").textContent = "Not saved — " + error.message; return; }
+      box.querySelector("#conversionStatus").textContent = `${id} → ${data} · Saved`;
+      button.textContent = "Converted";
+    });
+  }
+  window.addEventListener("mc-auth-ready", init, { once: true });
+  if (window.MC_CURRENT_USER) init({ detail: window.MC_CURRENT_USER });
+})();
