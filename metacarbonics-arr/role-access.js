@@ -10,7 +10,7 @@
   };
   function apply(e){
     const current=e?.detail||window.MC_CURRENT_USER;if(!current)return;
-    const p=current.profile||{},r=p.role||'user',display=roleNames[r]||'Project Developer',set=new Set(allowed[r]||allowed.developer);
+    const p=current.profile||{},rawRole=p.role||'user',r=allowed[rawRole]?rawRole:'developer',display=roleNames[r],set=new Set(allowed[r]);
     const select=document.getElementById('role');if(select){select.value=display;select.dispatchEvent(new Event('change'));}
     const enforceNavigation=()=>document.querySelectorAll('#nav [data-view]').forEach(el=>{el.hidden=!set.has(el.dataset.view)});
     enforceNavigation();
