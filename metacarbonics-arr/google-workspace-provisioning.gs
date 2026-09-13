@@ -121,6 +121,12 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (body.action === 'archiveFolder') {
+      const folderId=String(body.folderId||'');if(!folderId)throw new Error('folderId is required.');
+      lock.waitLock(30000);const folder=DriveApp.getFolderById(folderId),name=folder.getName();folder.setTrashed(true);
+      appendObject_(CL_CONFIG.tabs.logs,{Timestamp:new Date(),Record_ID:body.recordId||folderId,Action:'Previous project folder moved to trash',Actor:Session.getActiveUser().getEmail(),Detail:name,Status:'Success'});
+      return json_({ok:true,folderId:folderId,status:'trashed'});
+    }
     if (body.action === 'setupWorkspace') { lock.waitLock(30000); return json_(setupProductionWorkspace()); }
     if (body.action === 'provisionProject') { lock.waitLock(30000); return json_(provisionProject_(body.project || {})); }
     if (body.action === 'createSignal') {
@@ -174,9 +180,14 @@ function doPost(e) {
 function provisionProject_(p){
   ['Project_ID','Opportunity_ID','Project_Name','Activity'].forEach(function(k){if(!String(p[k]||'').trim())throw new Error('Missing required field: '+k)});
   setupProductionWorkspace();
-  const root=DriveApp.getFolderById(CL_CONFIG.rootFolderId),activity=getOrCreateFolder_(root,safe_(p.Activity)),projectFolder=getOrCreateFolder_(activity,safe_(p.Project_ID+' - '+p.Project_Name));
-  const children=['01 Intake and KYC','02 Due Diligence','03 Contracts and Rights','04 Project Design','05 MRV and Evidence','06 Finance and Payments','07 Commercial and Registry','08 Team Working','09 External Sharing','99 Logs and Audit'];
+  const root=DriveApp.getFolderById(CL_CONFIG.rootFolderId);
+  const path=[p.Vertical||'Carbon Markets',p.Service||'Carbon Asset Development',p.Sector||'AFOLU',p.Scope||'ARR',p.Registry||'Verra',p.Standard||'VCS',p.Methodology||'VM0047'];
+  let parent=root;path.forEach(function(name){parent=getOrCreateFolder_(parent,safe_(name))});
+  const projectFolder=getOrCreateFolder_(parent,safe_(p.Project_ID+' - '+p.Project_Name));
+  const children=['00 PROJECT CONTROL','01 PROJECT PROGRAMME DESIGN','02 GROUPED ELIGIBILITY','03 ACTIVITY INSTANCE REGISTER','04 ACTIVITY INSTANCE BATCHES','05 IMPLEMENTATION ASSETS','06 SHARED TECHNICAL','07 GIS REMOTE SENSING','08 QUANTIFICATION ERR','09 MRV','10 SAFEGUARDS RISK','11 VALIDATION REGISTRATION','12 MONITORING VERIFICATION','13 ISSUANCE REGISTRY','14 COMMERCIAL REFERENCE','15 REPORTING','98 SUPERSEDED','99 ARCHIVE'];
   children.forEach(function(name,i){const f=getOrCreateFolder_(projectFolder,name);appendObject_(CL_CONFIG.tabs.folders,{Folder_Record_ID:'FLD-'+p.Project_ID+'-'+('0'+(i+1)).slice(-2),Ticket_ID:p.Ticket_ID||p.Project_ID,Sequence:i+1,Relative_Path:name,Folder_URL:f.getUrl(),Status:'Active'})});
+  const instanceRoot=getOrCreateFolder_(getOrCreateFolder_(projectFolder,'03 ACTIVITY INSTANCE REGISTER'),'PAI-001 - Initial Validation Batch');
+  ['00 INSTANCE CONTROL','01 ELIGIBILITY','02 BOUNDARY GIS','03 IMPLEMENTATION','04 PARTICIPANTS','05 LAND ASSETS','06 AGREEMENTS CARBON RIGHTS','07 BASELINE','08 ADDITIONALITY','09 MONITORING','10 QUANTIFICATION','11 SAFEGUARDS','12 RISK','13 VVB REVIEW','14 REGISTRY INCLUSION','15 CREDIT ATTRIBUTION'].forEach(function(name){getOrCreateFolder_(instanceRoot,name)});
   appendObject_(CL_CONFIG.tabs.projects,{Project_ID:p.Project_ID,Opportunity_ID:p.Opportunity_ID,Project_Name:p.Project_Name,Activity:p.Activity,Registry:p.Registry||'Verra VCS',Methodology:p.Methodology||'',Country:p.Country||'India',Project_Manager:p.Project_Manager||'',Status:p.Status||'Initiation',Crediting_Start:p.Crediting_Start||'',Crediting_End:p.Crediting_End||'',Root_Folder_URL:projectFolder.getUrl(),Created_At:new Date()});
   (p.Team||[]).forEach(function(m){appendObject_(CL_CONFIG.tabs.team,{Ticket_ID:p.Ticket_ID||'',Project_ID:p.Project_ID,Name:m.name||'',Email:m.email||'',Role:m.role||'',Access:m.access||'Viewer',Permission_Status:'Approved'});appendObject_(CL_CONFIG.tabs.access,{User_Email:m.email||'',Record_Type:'Project',Record_ID:p.Project_ID,Access_Level:m.access||'Viewer',Granted_By:Session.getActiveUser().getEmail(),Granted_At:new Date(),Expires_At:'',Status:'Active'});if(m.email){if(m.access==='Editor')projectFolder.addEditor(m.email);else projectFolder.addViewer(m.email)}});
   appendObject_(CL_CONFIG.tabs.lineage,{Timestamp:new Date(),Signal_ID:p.Signal_ID||'',Lead_ID:p.Lead_ID||'',Opportunity_ID:p.Opportunity_ID,Project_ID:p.Project_ID,Action:'Opportunity converted to project and workspace provisioned'});

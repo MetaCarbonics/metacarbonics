@@ -1,12 +1,12 @@
 (function(){
   const roleNames={admin:'Administrator',bd:'BD Manager',projectlead:'Project Lead',manager:'Project Manager',developer:'Project Developer',operations:'Operations',finance:'Finance',ceo:'Management',farmer:'Farmer',buyer:'Buyer',investor:'Investor',user:'Project Developer'};
   const allowed={
-    admin:['home','signals','leads','accounts','opportunities','project','advisory','partners','buyers','investors','tasks','timeline'],
-    bd:['home','signals','leads','accounts','opportunities','project','advisory','partners','buyers','investors','tasks','timeline'],
-    projectlead:['home','leads','accounts','opportunities','project','partners','tasks','timeline'],
-    manager:['home','project','tasks','timeline'],developer:['home','project','tasks','timeline'],operations:['home','project','tasks','timeline'],
-    finance:['home','accounts','opportunities','buyers','investors','tasks','timeline'],ceo:['home','accounts','opportunities','project','buyers','investors','tasks','timeline'],
-    buyer:['home','portfolio','new-opportunities','documents','tasks','timeline'],investor:['home','portfolio','new-opportunities','documents','tasks','timeline'],farmer:['home','portfolio','documents','tasks']
+    admin:['home','signals','leads','accounts','opportunities','project','advisory','partners','buyers','investors','tasks'],
+    bd:['home','signals','leads','accounts','opportunities','project','advisory','partners','buyers','investors','tasks'],
+    projectlead:['home','leads','accounts','opportunities','project','partners','tasks'],
+    manager:['home','project','tasks'],developer:['home','project','tasks'],operations:['home','project','tasks'],
+    finance:['home','accounts','opportunities','buyers','investors','tasks'],ceo:['home','accounts','opportunities','project','buyers','investors','tasks'],
+    buyer:['home','portfolio','new-opportunities','documents','tasks'],investor:['home','portfolio','new-opportunities','documents','tasks'],farmer:['home','portfolio','documents','tasks']
   };
   function apply(e){
     const current=e?.detail||window.MC_CURRENT_USER;if(!current)return;
