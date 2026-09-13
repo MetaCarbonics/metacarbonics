@@ -29,4 +29,10 @@
   }
   window.addEventListener("mc-auth-ready", init);
   if (window.MC_CURRENT_USER) init({ detail: window.MC_CURRENT_USER });
+  let attempts = 0;
+  const retry = window.setInterval(() => {
+    attempts += 1;
+    if (window.MC_CURRENT_USER) init({ detail: window.MC_CURRENT_USER });
+    if (document.getElementById("warisRolePreview") || attempts >= 20) window.clearInterval(retry);
+  }, 250);
 })();
