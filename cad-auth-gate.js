@@ -39,8 +39,14 @@
             const user = data.session.user;
             const result = await window._supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
             const profile = result?.data || { email: user.email, role: "user", full_name: user.email };
-            window.MC_CURRENT_USER = { user, profile };
-            document.documentElement.dataset.mcRole = profile.role || "user";
+            const email = String(user.email || profile.email || "").toLowerCase();
+            const isWarisAdmin = email === "waris@metacarbonics.com" && profile.role === "admin";
+            const allowedPreviews = new Set(["admin", "bd", "projectlead", "manager", "developer", "operations", "finance", "ceo", "farmer", "buyer", "investor"]);
+            const requestedPreview = isWarisAdmin ? sessionStorage.getItem("mc:waris-role-preview") : null;
+            const effectiveRole = requestedPreview && allowedPreviews.has(requestedPreview) ? requestedPreview : profile.role;
+            const effectiveProfile = { ...profile, role: effectiveRole, actual_role: profile.role, is_role_preview: effectiveRole !== profile.role };
+            window.MC_CURRENT_USER = { user, profile: effectiveProfile };
+            document.documentElement.dataset.mcRole = effectiveRole || "user";
             window.dispatchEvent(new CustomEvent("mc-auth-ready", { detail: window.MC_CURRENT_USER }));
             document.documentElement.classList.remove("cad-auth-pending");
         } catch (_error) {

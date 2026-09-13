@@ -16,7 +16,15 @@
   async function renderExternal(current) {
     const profile = current.profile || {};
     const role = String(profile.role || "").toLowerCase();
-    if (!externalRoles.has(role) || !profile.organisation_id) return failClosed("Your account has no approved organisation access scope. Contact MetaCarbonics BD.");
+    if (!externalRoles.has(role)) return failClosed("Your account has no approved external role.");
+    if (profile.is_role_preview) {
+      document.body.dataset.portalRole = role;
+      document.querySelectorAll("[data-internal]").forEach((el) => { el.hidden = true; });
+      document.querySelectorAll("[data-external]").forEach((el) => { el.hidden = false; });
+      main.innerHTML = `<section class="external-hero"><div><p class="eyebrow">${role.toUpperCase()} PORTAL · PREVIEW</p><h1>${role === "buyer" ? "Carbon procurement workspace" : "Carbon investment portfolio"}</h1><p>This is a layout preview. No external organisation records are disclosed while an administrator is previewing a role.</p></div></section><div class="access-note">Use the buyer or investor’s own account to verify its server-scoped project data.</div>`;
+      return;
+    }
+    if (!profile.organisation_id) return failClosed("Your account has no approved organisation access scope. Contact MetaCarbonics BD.");
     const { data, error } = await window._supabase.from("portal_projects").select("id,name,status,category,primary_metric,milestone,public_reference").order("updated_at", { ascending: false });
     if (error) return failClosed("The secure project service is not available. Contact MetaCarbonics BD; access was denied safely.");
     const rows = data || [];
