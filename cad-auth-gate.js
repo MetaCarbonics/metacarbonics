@@ -42,7 +42,7 @@
             const email = String(user.email || profile.email || "").toLowerCase();
             const isWarisAdmin = email === "hooda.waris0507@gmail.com" && profile.role === "admin";
             const allowedPreviews = new Set(["admin", "bd", "projectlead", "manager", "developer", "operations", "finance", "ceo", "farmer", "buyer", "investor"]);
-            const requestedPreview = isWarisAdmin ? sessionStorage.getItem("mc:waris-role-preview") : null;
+            const requestedPreview = isWarisAdmin ? new URLSearchParams(window.location.search).get("preview") : null;
             const effectiveRole = requestedPreview && allowedPreviews.has(requestedPreview) ? requestedPreview : profile.role;
             const effectiveProfile = { ...profile, role: effectiveRole, actual_role: profile.role, is_role_preview: effectiveRole !== profile.role };
             window.MC_CURRENT_USER = { user, profile: effectiveProfile };

@@ -23,8 +23,10 @@
       if (badge) badge.textContent = `${roles.find(([value]) => value === profile.role)?.[1] || profile.role} · Preview`;
     }
     label.querySelector("select").addEventListener("change", (e) => {
-      sessionStorage.setItem("mc:waris-role-preview", e.target.value);
-      location.reload();
+      const url = new URL(location.href);
+      if (e.target.value === "admin") url.searchParams.delete("preview");
+      else url.searchParams.set("preview", e.target.value);
+      location.href = url.toString();
     });
   }
   window.addEventListener("mc-auth-ready", init);
