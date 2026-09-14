@@ -4,6 +4,8 @@
  * after the administrator confirms the existing workbook schema.
  */
 const CL_CONFIG = {
+  supabaseUrl: 'https://trytdfqeokraxklxygnc.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXAiLCJyZWYiOiJ0cnl0ZGZxZW9rcmF4a2x4eWduYyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzcxNTk1MjA3LCJleHAiOjIwODcxNzEyMDd9.wnDUZjmG1X84ayGgiyyON32nsQ8KAA_gnASkVLPw1ww',
   spreadsheetId: '1zDz0ZLTF4XSNE8rvFbbSgZzfZlrDgBnjEmRZGB0cjAw',
   rootFolderId: '1oUQIKoOAz7tcNxzNLICNxyYSHv77gT0e',
   tabs: {tickets:'Ticket Register', signals:'Sourcing Signals', leads:'Leads', opportunities:'Opportunities', projects:'Project Master', lineage:'Project Lineage', users:'Users & Roles', permissions:'Role Permissions', access:'Record Access', documents:'Document Index', notifications:'Notifications', team:'Team Access', folders:'Folder Manifest', logs:'Audit Log'}
@@ -121,6 +123,16 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (body.action === 'syncRecord') {
+      const actor = authenticateSupabaseUser_(body.accessToken);
+      const record = body.record || {}, definition = syncDefinition_(body.recordType);
+      if (!definition) throw new Error('Unsupported record type.');
+      if (!String(record[definition.key] || '').trim()) throw new Error('Record ID is required.');
+      lock.waitLock(30000);
+      const result = upsertObject_(definition.tab, definition.key, record);
+      appendObject_(CL_CONFIG.tabs.logs, {Timestamp:new Date(), Record_ID:record[definition.key], Action:'Realtime Sheet '+result.action, Actor:actor.email, Detail:definition.tab, Status:'Success'});
+      return json_({ok:true, recordId:record[definition.key], sheet:definition.tab, action:result.action});
+    }
     if (body.action === 'archiveFolder') {
       const folderId=String(body.folderId||'');if(!folderId)throw new Error('folderId is required.');
       lock.waitLock(30000);const folder=DriveApp.getFolderById(folderId),name=folder.getName();folder.setTrashed(true);
@@ -177,6 +189,20 @@ function doPost(e) {
   }
 }
 
+function authenticateSupabaseUser_(accessToken) {
+  const token=String(accessToken||'').trim();
+  if(!token) throw new Error('Authentication required.');
+  const response=UrlFetchApp.fetch(CL_CONFIG.supabaseUrl+'/auth/v1/user',{method:'get',muteHttpExceptions:true,headers:{apikey:CL_CONFIG.supabaseAnonKey,Authorization:'Bearer '+token}});
+  if(response.getResponseCode()!==200) throw new Error('Invalid or expired session.');
+  const user=JSON.parse(response.getContentText()||'{}');
+  if(!user.id||!user.email) throw new Error('Authenticated user not found.');
+  return user;
+}
+
+function syncDefinition_(recordType) {
+  return {signal:{tab:CL_CONFIG.tabs.signals,key:'Signal_ID'},lead:{tab:CL_CONFIG.tabs.leads,key:'Lead_ID'},opportunity:{tab:CL_CONFIG.tabs.opportunities,key:'Opportunity_ID'},project:{tab:CL_CONFIG.tabs.projects,key:'Project_ID'}}[String(recordType||'').toLowerCase()]||null;
+}
+
 function provisionProject_(p){
   ['Project_ID','Opportunity_ID','Project_Name','Activity'].forEach(function(k){if(!String(p[k]||'').trim())throw new Error('Missing required field: '+k)});
   setupProductionWorkspace();
@@ -207,6 +233,18 @@ function appendObject_(tab, record) {
   sheet.appendRow(headers.map(function (name) {
     return Object.prototype.hasOwnProperty.call(record, name) ? sheetSafe_(record[name]) : '';
   }));
+}
+
+function upsertObject_(tab, keyName, record) {
+  const ss=workbook_(), sheet=ss.getSheetByName(tab)||ss.insertSheet(tab);
+  let headers=sheet.getLastColumn()?sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0].map(String):[];
+  if(!headers.length||headers.every(function(h){return !h.trim()})){headers=Object.keys(record);sheet.getRange(1,1,1,headers.length).setValues([headers]);}
+  Object.keys(record).forEach(function(name){if(headers.indexOf(name)===-1){headers.push(name);sheet.getRange(1,headers.length).setValue(name)}});
+  const keyColumn=headers.indexOf(keyName)+1;if(!keyColumn)throw new Error('Sync key column is unavailable.');
+  let row=0;if(sheet.getLastRow()>1){const match=sheet.getRange(2,keyColumn,sheet.getLastRow()-1,1).createTextFinder(String(record[keyName])).matchEntireCell(true).findNext();if(match)row=match.getRow();}
+  const values=headers.map(function(name){return Object.prototype.hasOwnProperty.call(record,name)?sheetSafe_(record[name]):''});
+  if(row){sheet.getRange(row,1,1,headers.length).setValues([values]);return {action:'updated',row:row};}
+  sheet.appendRow(values);return {action:'created',row:sheet.getLastRow()};
 }
 
 function sheetSafe_(value) {
