@@ -199,6 +199,13 @@ function authenticateSupabaseUser_(accessToken) {
   return user;
 }
 
+/** Run once from the Apps Script editor to authorize outbound Supabase validation. */
+function authorizeClimaLinkSync() {
+  const response=UrlFetchApp.fetch(CL_CONFIG.supabaseUrl+'/auth/v1/health',{muteHttpExceptions:true,headers:{apikey:CL_CONFIG.supabaseAnonKey}});
+  if(response.getResponseCode()>=400) throw new Error('Supabase authorization check failed.');
+  return 'ClimaLink sync authorization is healthy.';
+}
+
 function syncDefinition_(recordType) {
   return {signal:{tab:CL_CONFIG.tabs.signals,key:'Signal_ID'},lead:{tab:CL_CONFIG.tabs.leads,key:'Lead_ID'},opportunity:{tab:CL_CONFIG.tabs.opportunities,key:'Opportunity_ID'},project:{tab:CL_CONFIG.tabs.projects,key:'Project_ID'}}[String(recordType||'').toLowerCase()]||null;
 }
